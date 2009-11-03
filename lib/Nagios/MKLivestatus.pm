@@ -1,15 +1,13 @@
-package Nagios::Livestatus;
+package Nagios::MKLivestatus;
 
-use 5.010000;
+use 5.008008;
 use strict;
 use warnings;
 use IO::Socket;
 use Data::Dumper;
 use Carp;
 
-
-our $VERSION = '0.01';
-
+our $VERSION = '0.10';
 
 ########################################
 sub new {
@@ -25,8 +23,14 @@ sub new {
                };
     bless $self, $class;
 
-    $self->{'verbose'} = $options->{'verbose'} if defined $options->{'verbose'};
-    $self->{'socket'}  = $options->{'socket'}  if defined $options->{'socket'};
+    for my $opt_key (keys %{$options}) {
+        if(exists $self->{$opt_key}) {
+            $self->{$opt_key} = $options->{$opt_key};
+        }
+        else {
+            croak("unknown option: $opt_key");
+        }
+    }
 
     if(!defined $self->{'socket'}) {
         croak('no socket given');
@@ -38,7 +42,14 @@ sub new {
 sub _send {
     my $self      = shift;
     my $statement = shift;
+    if(!-S $self->{'socket'}) {
+        croak("failed to open socket $self->{'socket'}: $!");
+    }
     my $sock = IO::Socket::UNIX->new($self->{'socket'});
+    if(!defined $sock or !$sock->connected()) {
+        croak("failed to connect: $!");
+        return(undef);
+    }
     my ($recv, @result);
     $sock->send("$statement\nSeparators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}");
     $sock->shutdown(1);
@@ -92,16 +103,16 @@ __END__
 
 =head1 NAME
 
-Nagios::Livestatus - Perl extension for blah blah blah
+Nagios::MKLivestatus - Perl extension for blah blah blah
 
 =head1 SYNOPSIS
 
-  use Nagios::Livestatus;
+  use Nagios::MKLivestatus;
   blah blah blah
 
 =head1 DESCRIPTION
 
-Stub documentation for Nagios::Livestatus, created by h2xs. It looks like the
+Stub documentation for Nagios::MKLivestatus, created by h2xs. It looks like the
 author of the extension was negligent enough to leave the stub
 unedited.
 
