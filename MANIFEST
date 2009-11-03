@@ -1,6 +1,6 @@
 Changes
+lib/Nagios/MKLivestatus.pm
 Makefile.PL
 MANIFEST
 README
-t/Nagios-Livestatus.t
-lib/Nagios/Livestatus.pm
+t/Nagios-MKLivestatus.t
