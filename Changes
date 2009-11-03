@@ -1,0 +1,6 @@
+Revision history for Perl extension Nagios::Livestatus.
+
+0.01  Tue Nov  3 00:07:46 2009
+	- original version; created by h2xs 1.23 with options
+		-A -X -n Nagios::Livestatus
+
