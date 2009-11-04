@@ -17,7 +17,7 @@ Nagios::MKLivestatus - access nagios runtime data from check_mk livestatus Nagio
 =head1 SYNOPSIS
 
     use Nagios::MKLivestatus;
-    my $nl = Nagios::MKLivestatus->new({ socket => '/var/lib/nagios3/rw/livestatus.sock' });
+    my $nl = Nagios::MKLivestatus->new( socket => '/var/lib/nagios3/rw/livestatus.sock' );
     my $hosts = $nl->selectall_arrayref("GET hosts");
 
 =head1 DESCRIPTION

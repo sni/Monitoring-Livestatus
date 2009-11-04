@@ -18,7 +18,7 @@ DEPENDENCIES
     This module requires no other modules.
 
 SYNOPSIS
-    my $nl = Nagios::MKLivestatus->new({ socket => '/var/lib/nagios3/rw/livestatus.sock' });$
+    my $nl = Nagios::MKLivestatus->new( socket => '/var/lib/nagios3/rw/livestatus.sock' );
     my $hosts = $nl->selectall_arrayref("GET hosts");
 
 AUTHOR
