@@ -7,12 +7,54 @@ use IO::Socket;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
+
+
+=head1 NAME
+
+Nagios::MKLivestatus - access nagios runtime data from check_mk livestatus Nagios addon
+
+=head1 SYNOPSIS
+
+    use Nagios::MKLivestatus;
+    my $nl = Nagios::MKLivestatus->new({ socket => '/var/lib/nagios3/rw/livestatus.sock' });
+    my $hosts = $nl->selectall_arrayref("GET hosts");
+
+=head1 DESCRIPTION
+
+This module connects via socket to the check_mk livestatus nagios addon. You first have
+to install and activate the livestatus addon in your nagios installation.
+
+
+=head1 CONSTRUCTOR
+
+=over 4
+
+=item new ( [ARGS] )
+
+Creates an C<Nagios::MKLivestatus> object. C<new> takes at least the socketpath.
+Arguments are in key-value pairs.
+
+    socket                    path to the unix socket of check_mk livestatus
+    verbose                   verbose mode
+    line_seperator            ascii code of the line seperator, defaults to 10, (newline)
+    column_seperator          ascii code of the column seperator, defaults to 0 (null byte)
+    list_seperator            ascii code of the list seperator, defaults to 44 (comma)
+    host_service_seperator    ascii code of the host/service seperator, defaults to 124 (pipe)
+
+If the constructor is only passed a single argument, it is assumed to
+be a the C<socket> specification.
+
+=back
+
+=cut
 
 ########################################
 sub new {
-    my $class   = shift;
-    my $options = shift;
+    my $class = shift;
+    unshift(@_, "socket") if scalar @_ == 1;
+    my(%options) = @_;
+
     my $self = {
                     "verbose"                   => 0,
                     "socket"                    => undef,
@@ -23,9 +65,9 @@ sub new {
                };
     bless $self, $class;
 
-    for my $opt_key (keys %{$options}) {
+    for my $opt_key (keys %options) {
         if(exists $self->{$opt_key}) {
-            $self->{$opt_key} = $options->{$opt_key};
+            $self->{$opt_key} = $options{$opt_key};
         }
         else {
             croak("unknown option: $opt_key");
@@ -39,6 +81,13 @@ sub new {
     return $self;
 }
 
+sub do {
+    my $self      = shift;
+    my $statement = shift;
+    $self->_send($statement);
+    return(1);
+}
+
 sub _send {
     my $self      = shift;
     my $statement = shift;
@@ -48,12 +97,17 @@ sub _send {
     my $sock = IO::Socket::UNIX->new($self->{'socket'});
     if(!defined $sock or !$sock->connected()) {
         croak("failed to connect: $!");
-        return(undef);
     }
+
     my ($recv, @result);
-    $sock->send("$statement\nSeparators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}");
-    $sock->shutdown(1);
-    while($sock->recv(my $data, 1024)) { $recv .= $data; }
+    my $send = "$statement\nSeparators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
+    print "> ".Dumper($send) if $self->{'verbose'};
+    print $sock $send;
+    $sock->shutdown(1) or croak("shutdown failed: $!");
+    while(<$sock>) { $recv .= $_; }
+    print "< ".Dumper($recv) if $self->{'verbose'};
+
+    return undef if !defined $recv;
 
     my $line_seperator = chr($self->{'line_seperator'});
     my $col_seperator  = chr($self->{'column_seperator'});
@@ -98,36 +152,22 @@ sub selectall_arrayref {
 
 
 1;
-__END__
-
-=head1 NAME
-
-    Nagios::MKLivestatus - Perl extension for accession data from check_mk - livestatus Nagios addon
-
-=head1 SYNOPSIS
-
-    use Nagios::MKLivestatus;
-    my $nl = Nagios::MKLivestatus->new({ socket => '/var/lib/nagios3/rw/livestatus.sock' });
-    my $hosts = $nl->selectall_arrayref("GET hosts");
-
-=head1 DESCRIPTION
-
-    This module connects via socket to the check_mk livestatus nagios addon. You first have
-    to install and activate the livestatus addon in your nagios installation.
 
 =head1 SEE ALSO
 
-    For more information see the Livestatus page: http://mathias-kettner.de/checkmk_livestatus.html
+For more information see the Livestatus page: http://mathias-kettner.de/checkmk_livestatus.html
 
 =head1 AUTHOR
 
-    Sven Nierlein, E<lt>nierlein@cpan.orgE<gt>
+Sven Nierlein, nierlein@cpan.org
 
 =head1 COPYRIGHT AND LICENSE
 
-    Copyright (C) 2009 by Sven Nierlein
+Copyright (C) 2009 by Sven Nierlein
 
-    This library is free software; you can redistribute it and/or modify
-    it under the same terms as Perl itself.
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
 
 =cut
+
+__END__
