@@ -183,7 +183,7 @@ For more information see the Livestatus page: http://mathias-kettner.de/checkmk_
 
 =head1 AUTHOR
 
-Sven Nierlein, nierlein@cpan.org
+Sven Nierlein, E<lt>nierlein@cpan.orgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
