@@ -7,7 +7,7 @@ use IO::Socket;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 
 =head1 NAME
@@ -81,12 +81,66 @@ sub new {
     return $self;
 }
 
+=head1 METHODS
+
+=over 4
+
+=item do
+
+send a single statement without fetching the result
+
+=cut
+
 sub do {
     my $self      = shift;
     my $statement = shift;
     $self->_send($statement);
     return(1);
 }
+
+=over 4
+
+=item selectall_arrayref
+
+send a query an get a array reference of arrays
+
+    my $arr_refs = $nl->selectall_arrayref("GET hosts");
+
+to get a array of hash references do something like
+
+    my $hash_refs = $nl->selectall_arrayref("GET hosts", { slice => {} });
+
+=cut
+
+sub selectall_arrayref {
+    my $self      = shift;
+    my $statement = shift;
+    my $slice     = shift;
+
+    my $result = $self->_send($statement);
+
+    if(defined $slice and ref $slice eq 'HASH') {
+        # make an array of hashes
+        my @hash_refs;
+        for my $res (@{$result->{'result'}}) {
+            my $hash_ref;
+            for(my $x=0;$x<scalar @{$res};$x++) {
+                $hash_ref->{$result->{'keys'}->[$x]} = $res->[$x];
+            }
+            push @hash_refs, $hash_ref;
+        }
+        return(\@hash_refs);
+    }
+
+    return($result->{'result'});
+}
+
+#selectall_hashref($statement, $key_field);
+#selectcol_arrayref($statement);
+#selectcol_arrayref($statement, \%attr);
+#selectrow_array($statement);
+#selectrow_arrayref($statement);
+#selectrow_hashref($statement);
 
 sub _send {
     my $self      = shift;
@@ -119,36 +173,6 @@ sub _send {
     my $keys = shift @result;
     return({ keys => $keys, result => \@result});
 }
-
-sub selectall_arrayref {
-    my $self      = shift;
-    my $statement = shift;
-    my $slice     = shift;
-
-    my $result = $self->_send($statement);
-
-    if(defined $slice and ref $slice eq 'HASH') {
-        # make an array of hashes
-        my @hash_refs;
-        for my $res (@{$result->{'result'}}) {
-            my $hash_ref;
-            for(my $x=0;$x<scalar @{$res};$x++) {
-                $hash_ref->{$result->{'keys'}->[$x]} = $res->[$x];
-            }
-            push @hash_refs, $hash_ref;
-        }
-        return(\@hash_refs);
-    }
-
-    return($result->{'result'});
-}
-
-#selectall_hashref($statement, $key_field);
-#selectcol_arrayref($statement);
-#selectcol_arrayref($statement, \%attr);
-#selectrow_array($statement);
-#selectrow_arrayref($statement);
-#selectrow_hashref($statement);
 
 
 1;

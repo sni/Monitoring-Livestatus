@@ -3,4 +3,6 @@ lib/Nagios/MKLivestatus.pm
 Makefile.PL
 MANIFEST
 README
-t/Nagios-MKLivestatus.t
+t/01-Nagios-MKLivestatus-basic_tests.t
+t/20-Nagios-MKLivestatus-test_socket.t
+t/99-Perl-Critic.t
