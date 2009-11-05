@@ -146,7 +146,7 @@ sub selectall_arrayref {
 
 send a query an get a hashref
 
-    my $arr_refs = $nl->selectall_hashref("GET hosts", "name");
+    my $hashrefs = $nl->selectall_hashref("GET hosts", "name");
 
 =cut
 
