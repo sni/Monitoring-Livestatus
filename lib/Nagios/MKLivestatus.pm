@@ -98,8 +98,6 @@ sub do {
     return(1);
 }
 
-=over 4
-
 =item selectall_arrayref
 
 send a query an get a array reference of arrays
@@ -176,6 +174,8 @@ sub _send {
 
 
 1;
+
+=back
 
 =head1 SEE ALSO
 
