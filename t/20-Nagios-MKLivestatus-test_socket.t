@@ -10,7 +10,7 @@ BEGIN {
   if ( $@ ) {
     plan skip_all => 'need threads support for testing a real socket'
   }else{
-    plan tests => 4
+    plan tests => 5
   }
 }
 
@@ -54,6 +54,7 @@ is_deeply($hosts2, $test_host_result_hash, 'selectall_arrayref GET hosts sliced'
 # exit tests
 my $exited_ok = $nl->do("exit");
 is($exited_ok, 1, 'exiting test socket');
+$thr->join();
 exit;
 
 

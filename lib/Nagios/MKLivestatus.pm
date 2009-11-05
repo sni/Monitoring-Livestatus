@@ -161,7 +161,7 @@ sub _send {
     while(<$sock>) { $recv .= $_; }
     print "< ".Dumper($recv) if $self->{'verbose'};
 
-    return undef if !defined $recv;
+    return if !defined $recv;
 
     my $line_seperator = chr($self->{'line_seperator'});
     my $col_seperator  = chr($self->{'column_seperator'});
