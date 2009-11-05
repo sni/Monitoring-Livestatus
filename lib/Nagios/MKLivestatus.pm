@@ -81,6 +81,8 @@ sub new {
     return $self;
 }
 
+########################################
+
 =head1 METHODS
 
 =over 4
@@ -98,7 +100,9 @@ sub do {
     return(1);
 }
 
-=item selectall_arrayref
+########################################
+
+=item selectall_arrayref($statement)
 
 send a query an get a array reference of arrays
 
@@ -114,6 +118,8 @@ sub selectall_arrayref {
     my $self      = shift;
     my $statement = shift;
     my $slice     = shift;
+
+    croak("no statement") if !defined $statement;
 
     my $result = $self->_send($statement);
 
@@ -133,7 +139,38 @@ sub selectall_arrayref {
     return($result->{'result'});
 }
 
-#selectall_hashref($statement, $key_field);
+
+########################################
+
+=item selectall_hashref($statement, $key_field);
+
+send a query an get a hashref
+
+    my $arr_refs = $nl->selectall_hashref("GET hosts", "name");
+
+=cut
+
+sub selectall_hashref {
+    my $self      = shift;
+    my $statement = shift;
+    my $key_field = shift;
+
+    croak("no statement")                          if !defined $statement;
+    croak("key is required for selectall_hashref") if !defined $key_field;
+
+    my $result = $self->selectall_arrayref($statement, { slice => 1 });
+    return if !defined $result;
+
+    my %indexed;
+    for my $row (@{$result}) {
+        croak("key $key_field not found in result set") if !defined $row->{$key_field};
+        $indexed{$row->{$key_field}} = $row;
+    }
+    return(\%indexed);
+}
+
+
+
 #selectcol_arrayref($statement);
 #selectcol_arrayref($statement, \%attr);
 #selectrow_array($statement);

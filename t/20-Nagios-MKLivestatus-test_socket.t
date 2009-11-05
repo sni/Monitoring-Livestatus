@@ -10,7 +10,7 @@ BEGIN {
   if ( $@ ) {
     plan skip_all => 'need threads support for testing a real socket'
   }else{
-    plan tests => 5
+    plan tests => 6
   }
 }
 
@@ -18,11 +18,12 @@ use File::Temp;
 BEGIN { use_ok('Nagios::MKLivestatus') };
 
 #########################
-my $line_seperator        = 10;
-my $column_seperator      = 0;
-my $test_host_result      = [ ["a","b","c"], ["d","e","f"], ["g","h","i"] ];
-my $test_host_result_arr  = [ ["d","e","f"], ["g","h","i"] ];
-my $test_host_result_hash = [ { 'c' => 'f', 'a' => 'd', 'b' => 'e' }, { 'c' => 'i', 'a' => 'g', 'b' => 'h' } ];
+my $line_seperator           = 10;
+my $column_seperator         = 0;
+my $test_host_result         = [ ["a","b","c"], ["d","e","f"], ["g","h","i"] ];
+my $test_host_result_arr     = [ ["d","e","f"], ["g","h","i"] ];
+my $test_host_result_hash    = [ { 'c' => 'f', 'a' => 'd', 'b' => 'e' }, { 'c' => 'i', 'a' => 'g', 'b' => 'h' } ];
+my $test_host_result_hashref = { 'd' => { 'c' => 'f', 'a' => 'd', 'b' => 'e' }, 'g' => { 'c' => 'i', 'a' => 'g', 'b' => 'h' } };
 
 #########################
 # get a temp file from File::Temp and replace it with our socket
@@ -49,6 +50,8 @@ is_deeply($hosts1, $test_host_result_arr, 'selectall_arrayref GET hosts');
 my $hosts2 = $nl->selectall_arrayref("GET hosts", { slice => {} });
 is_deeply($hosts2, $test_host_result_hash, 'selectall_arrayref GET hosts sliced');
 
+my $hosts3 = $nl->selectall_hashref("GET hosts", 'a');
+is_deeply($hosts3, $test_host_result_hashref, 'selectall_hashref GET hosts');
 
 #########################
 # exit tests

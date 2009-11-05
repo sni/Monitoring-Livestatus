@@ -2,6 +2,7 @@ Revision history for Perl extension Nagios::MKLivestatus.
 
 0.13  Fri Nov  6 00:03:38 CET 2009
 	- fixed tests on solaris
+	- implemented selectall_hashref()
 
 0.12  Thu Nov  5 09:34:59 CET 2009
 	- fixed tests with thread support
