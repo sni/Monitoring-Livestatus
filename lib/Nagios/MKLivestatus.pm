@@ -1,13 +1,13 @@
 package Nagios::MKLivestatus;
 
-use 5.008008;
+use 5.008000;
 use strict;
 use warnings;
 use IO::Socket;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 
 =head1 NAME
