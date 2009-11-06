@@ -339,6 +339,7 @@ sub _send {
     }
 
     my ($recv, @result);
+    chomp($statement);
     my $send = "$statement\nSeparators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
     print "> ".Dumper($send) if $self->{'verbose'};
     print $sock $send;
