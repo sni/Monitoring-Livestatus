@@ -4,13 +4,15 @@
 
 use strict;
 use Test::More;
+use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
+use Data::Dumper;
 
 BEGIN {
   eval {require threads;};
   if ( $@ ) {
     plan skip_all => 'need threads support for testing a real socket'
   }else{
-    plan tests => 8
+    plan tests => 12
   }
 }
 
@@ -18,13 +20,35 @@ use File::Temp;
 BEGIN { use_ok('Nagios::MKLivestatus') };
 
 #########################
-my $line_seperator           = 10;
-my $column_seperator         = 0;
-my $test_host_result         = [ ["a","b","c"], ["d","e","f"], ["g","h","i"] ];
-my $test_host_result_arr     = [ ["d","e","f"], ["g","h","i"] ];
-my $test_host_result_hash    = [ { 'c' => 'f', 'a' => 'd', 'b' => 'e' }, { 'c' => 'i', 'a' => 'g', 'b' => 'h' } ];
-my $test_host_result_hashref = { 'd' => { 'c' => 'f', 'a' => 'd', 'b' => 'e' }, 'g' => { 'c' => 'i', 'a' => 'g', 'b' => 'h' } };
-my $test_col_arr_ref         = ['d', 'g'];
+my $line_seperator      = 10;
+my $column_seperator    = 0;
+my $test_data           = [ ["alias","name","contacts"],       # table header
+                            ["alias1","host1","contact1"],     # row 1
+                            ["alias2","host2","contact2"],     # row 2
+                            ["alias3","host3","contact3"],     # row 3
+                          ];
+# expected results
+my $selectall_arrayref1 = [ [ 'alias1', 'host1', 'contact1' ],
+                            [ 'alias2', 'host2', 'contact2' ],
+                            [ 'alias3', 'host3', 'contact3' ]
+                          ];
+my $selectall_arrayref2 = [
+                            { 'contacts' => 'contact1', 'name' => 'host1', 'alias' => 'alias1' },
+                            { 'contacts' => 'contact2', 'name' => 'host2', 'alias' => 'alias2' },
+                            { 'contacts' => 'contact3', 'name' => 'host3', 'alias' => 'alias3' }
+                          ];
+my $selectall_hashref   = {
+                            'host1' => { 'contacts' => 'contact1', 'name' => 'host1', 'alias' => 'alias1' },
+                            'host2' => { 'contacts' => 'contact2', 'name' => 'host2', 'alias' => 'alias2' },
+                            'host3' => { 'contacts' => 'contact3', 'name' => 'host3', 'alias' => 'alias3' }
+                          };
+my $selectcol_arrayref1 = [ 'alias1', 'alias2', 'alias3' ];
+my $selectcol_arrayref2 = [ 'alias1', 'host1', 'alias2', 'host2', 'alias3', 'host3' ];
+my $selectcol_arrayref3 = [ 'alias1', 'host1', 'contact1', 'alias2', 'host2', 'contact2', 'alias3', 'host3', 'contact' ];
+my @selectrow_array     = ( 'alias1', 'host1', 'contact1' );
+my $selectrow_arrayref  = [ 'alias1', 'host1', 'contact1' ];
+my $selectrow_hashref   = { 'contacts' => 'contact1', 'name' => 'host1', 'alias' => 'alias1' };
+
 
 #########################
 # get a temp file from File::Temp and replace it with our socket
@@ -46,21 +70,54 @@ isa_ok($nl, 'Nagios::MKLivestatus');
 
 #########################
 # do some sample querys
-# selectall_arrayref
-my $hosts1 = $nl->selectall_arrayref("GET hosts");
-is_deeply($hosts1, $test_host_result_arr, 'selectall_arrayref GET hosts');
-my $hosts2 = $nl->selectall_arrayref("GET hosts", { slice => {} });
-is_deeply($hosts2, $test_host_result_hash, 'selectall_arrayref GET hosts sliced');
+my $statement = "GET hosts";
 
-# selectall_hashref
-my $hosts3 = $nl->selectall_hashref("GET hosts", 'a');
-is_deeply($hosts3, $test_host_result_hashref, 'selectall_hashref GET hosts');
+#########################
+my $ary_ref  = $nl->selectall_arrayref($statement);
+is_deeply($ary_ref, $selectall_arrayref1, 'selectall_arrayref($statement)')
+    or diag("got: ".Dumper($ary_ref)."\n but expected ".Dumper($selectall_arrayref1));
 
-# selectcol_arrayref
-my $hosts4 = $nl->selectcol_arrayref("GET hosts");
-is_deeply($hosts4, $test_col_arr_ref, 'selectcol_arrayref GET hosts');
-my $hosts5 = $nl->selectcol_arrayref("GET hosts\nColumns: a");
-is_deeply($hosts5, $test_col_arr_ref, 'selectcol_arrayref GET hosts\nColumns: a');
+#########################
+$ary_ref  = $nl->selectall_arrayref($statement, { Slice => {} });
+is_deeply($ary_ref, $selectall_arrayref2, 'selectall_arrayref($statement, { Slice => {} })')
+    or diag("got: ".Dumper($ary_ref)."\n but expected ".Dumper($selectall_arrayref2));
+
+#########################
+my $hash_ref = $nl->selectall_hashref($statement, 'name');
+is_deeply($hash_ref, $selectall_hashref, 'selectall_hashref($statement, "name")')
+    or diag("got: ".Dumper($hash_ref)."\n but expected ".Dumper($selectall_hashref));
+
+#########################
+$ary_ref  = $nl->selectcol_arrayref($statement);
+is_deeply($ary_ref, $selectcol_arrayref1, 'selectcol_arrayref($statement)')
+    or diag("got: ".Dumper($ary_ref)."\n but expected ".Dumper($selectcol_arrayref1));
+
+#########################
+TODO: {
+$ary_ref = $nl->selectcol_arrayref($statement, { Columns=>[1,2] });
+is_deeply($ary_ref, $selectcol_arrayref2, 'selectcol_arrayref($statement, { Columns=>[1,2] })')
+    or diag("got: ".Dumper($ary_ref)."\n but expected ".Dumper($selectcol_arrayref2));
+
+$ary_ref = $nl->selectcol_arrayref($statement, { Columns=>[1,2,3] });
+is_deeply($ary_ref, $selectcol_arrayref3, 'selectcol_arrayref($statement, { Columns=>[1,2,3] })')
+    or diag("got: ".Dumper($ary_ref)."\n but expected ".Dumper($selectcol_arrayref3));
+
+};
+
+#########################
+my @row_ary  = $nl->selectrow_array($statement);
+is_deeply(\@row_ary, \@selectrow_array, 'selectrow_array($statement)')
+    or diag("got: ".Dumper(\@row_ary)."\n but expected ".Dumper(\@selectrow_array));
+
+#########################
+$ary_ref  = $nl->selectrow_arrayref($statement);
+is_deeply($ary_ref, $selectrow_arrayref, 'selectrow_arrayref($statement)')
+    or diag("got: ".Dumper($ary_ref)."\n but expected ".Dumper($selectrow_arrayref));
+
+#########################
+$hash_ref = $nl->selectrow_hashref($statement);
+is_deeply($hash_ref, $selectrow_hashref, 'selectrow_hashref($statement)')
+    or diag("got: ".Dumper($hash_ref)."\n but expected ".Dumper($selectrow_hashref));
 
 #########################
 # exit tests
@@ -75,7 +132,6 @@ exit;
 #########################
 # test socket server
 sub create_socket {
-    use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
     my $listener = IO::Socket::UNIX->new(
                                         Type    => SOCK_STREAM,
                                         Listen  => SOMAXCONN,
@@ -85,11 +141,14 @@ sub create_socket {
         my $recv = "";
         while(<$socket>) { $recv .= $_; }
         return if $recv =~ '^exit';
-        if($recv =~ m/^GET hosts\s+Columns: a/m) {
-            print $socket join( chr($line_seperator), map( join( chr($column_seperator), $_->[0]), @{$test_host_result} ) )."\n";
+        if($recv =~ m/^GET hosts\s+Columns: alias/m) {
+            print $socket join( chr($line_seperator), map( join( chr($column_seperator), $_->[0]), @{$test_data} ) )."\n";
+        }
+        elsif($recv =~ m/^GET hosts\s+Columns: name/m) {
+            print $socket join( chr($line_seperator), map( join( chr($column_seperator), $_->[1]), @{$test_data} ) )."\n";
         }
         elsif($recv =~ m/^GET hosts/) {
-            print $socket join( chr($line_seperator), map( join( chr($column_seperator), @{$_}), @{$test_host_result} ) )."\n";
+            print $socket join( chr($line_seperator), map( join( chr($column_seperator), @{$_}), @{$test_data} ) )."\n";
         }
         close($socket);
     }

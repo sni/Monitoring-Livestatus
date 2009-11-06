@@ -1,7 +1,9 @@
 Revision history for Perl extension Nagios::MKLivestatus.
 
 0.14  Fri Nov  6 09:39:56 CET 2009
-	- implemented selectcol_arrayref()
+	- implemented selectcol_arrayref
+	- implemented selectrow_array
+	- implemented selectrow_hashref
 
 0.13  Fri Nov  6 00:03:38 CET 2009
 	- fixed tests on solaris

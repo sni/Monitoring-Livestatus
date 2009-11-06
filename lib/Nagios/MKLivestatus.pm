@@ -110,20 +110,31 @@ send a query an get a array reference of arrays
 
 to get a array of hash references do something like
 
-    my $hash_refs = $nl->selectall_arrayref("GET hosts", { slice => {} });
+    my $hash_refs = $nl->selectall_arrayref("GET hosts", { Slice => {} });
 
 =cut
 
 sub selectall_arrayref {
     my $self      = shift;
     my $statement = shift;
-    my $slice     = shift;
+    my $opt       = shift;
+    my $number    = shift;
 
-    croak("no statement") if !defined $statement;
+    # make opt hash keys lowercase
+    %{$opt} = map { lc $_ => $opt->{$_} } keys %{$opt};
 
     my $result = $self->_send($statement);
 
-    if(defined $slice and ref $slice eq 'HASH') {
+    return if scalar @{$result->{'result'}} == 0;
+
+    # trim result set down to excepted row count
+    if(defined $number and $number >= 1) {
+        if(scalar @{$result->{'result'}} > $number) {
+            @{$result->{'result'}} = @{$result->{'result'}}[0..$number-1];
+        }
+    }
+
+    if(defined $opt and ref $opt eq 'HASH' and exists $opt->{'slice'}) {
         # make an array of hashes
         my @hash_refs;
         for my $res (@{$result->{'result'}}) {
@@ -155,10 +166,9 @@ sub selectall_hashref {
     my $statement = shift;
     my $key_field = shift;
 
-    croak("no statement")                          if !defined $statement;
     croak("key is required for selectall_hashref") if !defined $key_field;
 
-    my $result = $self->selectall_arrayref($statement, { slice => 1 });
+    my $result = $self->selectall_arrayref($statement, { Slice => {} });
     return if !defined $result;
 
     my %indexed;
@@ -182,28 +192,93 @@ send a query an get an arrayref for one column
 sub selectcol_arrayref {
     my $self      = shift;
     my $statement = shift;
+    my $opt       = shift;
 
-    croak("no statement") if !defined $statement;
+    # make opt hash keys lowercase
+    %{$opt} = map { lc $_ => $opt->{$_} } keys %{$opt};
+
+    # if now colums are set, use just the first one
+    if(!defined $opt->{'columns'} or ref $opt->{'columns'} ne 'ARRAY') {
+        @{$opt->{'columns'}} = qw{1};
+    }
 
     my $result = $self->selectall_arrayref($statement);
     return if !defined $result;
 
     my @column;
     for my $row (@{$result}) {
-        push @column, $row->[0];
+        for my $nr (@{$opt->{'columns'}}) {
+            push @column, $row->[$nr-1];
+        }
     }
     return(\@column);
 }
 
-#selectcol_arrayref($statement, \%attr);
-#selectrow_array($statement);
-#selectrow_arrayref($statement);
-#selectrow_hashref($statement);
+########################################
+
+=item selectrow_array($statement);
+
+send a query an get an array for one row
+
+    my @array = $nl->selectrow_array("GET hosts");
+
+=cut
+sub selectrow_array {
+    my $self      = shift;
+    my $statement = shift;
+
+    my @result = @{$self->selectall_arrayref($statement, {}, 1)};
+    return @{$result[0]} if scalar @result > 0;
+    return;
+}
 
 
+########################################
+
+=item selectrow_arrayref($statement);
+
+send a query an get an arrayref for one row
+
+    my $arrayref = $nl->selectrow_arrayref("GET hosts");
+
+=cut
+sub selectrow_arrayref {
+    my $self      = shift;
+    my $statement = shift;
+
+    my @result = @{$self->selectall_arrayref($statement, {}, 1)};
+    return $result[0] if scalar @result > 0;
+    return;
+}
+
+########################################
+
+=item selectrow_hashref($statement);
+
+send a query an get a hashref for one row
+
+    my $hashref = $nl->selectrow_hashref("GET hosts");
+
+=cut
+sub selectrow_hashref {
+    my $self      = shift;
+    my $statement = shift;
+
+    my $result = $self->selectall_arrayref($statement, { Slice => {} }, 1);
+    return $result->[0] if scalar @{$result} > 0;
+    return;
+}
+
+
+########################################
+# INTERNAL SUBS
+########################################
 sub _send {
     my $self      = shift;
     my $statement = shift;
+
+    croak("no statement") if !defined $statement;
+
     if(!-S $self->{'socket'}) {
         croak("failed to open socket $self->{'socket'}: $!");
     }
