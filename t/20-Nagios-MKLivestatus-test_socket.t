@@ -44,7 +44,7 @@ my $selectall_hashref   = {
                           };
 my $selectcol_arrayref1 = [ 'alias1', 'alias2', 'alias3' ];
 my $selectcol_arrayref2 = [ 'alias1', 'host1', 'alias2', 'host2', 'alias3', 'host3' ];
-my $selectcol_arrayref3 = [ 'alias1', 'host1', 'contact1', 'alias2', 'host2', 'contact2', 'alias3', 'host3', 'contact' ];
+my $selectcol_arrayref3 = [ 'alias1', 'host1', 'contact1', 'alias2', 'host2', 'contact2', 'alias3', 'host3', 'contact3' ];
 my @selectrow_array     = ( 'alias1', 'host1', 'contact1' );
 my $selectrow_arrayref  = [ 'alias1', 'host1', 'contact1' ];
 my $selectrow_hashref   = { 'contacts' => 'contact1', 'name' => 'host1', 'alias' => 'alias1' };

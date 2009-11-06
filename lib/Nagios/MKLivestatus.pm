@@ -49,7 +49,6 @@ be a the C<socket> specification.
 
 =cut
 
-########################################
 sub new {
     my $class = shift;
     unshift(@_, "socket") if scalar @_ == 1;
@@ -81,6 +80,7 @@ sub new {
     return $self;
 }
 
+
 ########################################
 
 =head1 METHODS
@@ -89,7 +89,10 @@ sub new {
 
 =item do
 
-send a single statement without fetching the result
+ do($statement)
+
+ Send a single statement without fetching the result.
+ Always returns true.
 
 =cut
 
@@ -100,17 +103,26 @@ sub do {
     return(1);
 }
 
+
 ########################################
 
-=item selectall_arrayref($statement)
+=item selectall_arrayref
 
-send a query an get a array reference of arrays
+ selectall_arrayref($statement)
+ selectall_arrayref($statement, %opts)
+ selectall_arrayref($statement, %opts, $number)
+
+ Sends a query and returns an array reference of arrays
 
     my $arr_refs = $nl->selectall_arrayref("GET hosts");
 
-to get a array of hash references do something like
+ to get an array of hash references do something like
 
     my $hash_refs = $nl->selectall_arrayref("GET hosts", { Slice => {} });
+
+ to get an array of hash references from the first 2 returned rows only
+
+    my $hash_refs = $nl->selectall_arrayref("GET hosts", { Slice => {} }, 2);
 
 =cut
 
@@ -153,9 +165,11 @@ sub selectall_arrayref {
 
 ########################################
 
-=item selectall_hashref($statement, $key_field);
+=item selectall_hashref
 
-send a query an get a hashref
+ selectall_hashref($statement, $key_field)
+
+ Sends a query and returns a hashref with the given key
 
     my $hashrefs = $nl->selectall_hashref("GET hosts", "name");
 
@@ -179,13 +193,28 @@ sub selectall_hashref {
     return(\%indexed);
 }
 
+
 ########################################
 
-=item selectcol_arrayref($statement);
+=item selectcol_arrayref
 
-send a query an get an arrayref for one column
+ selectcol_arrayref($statement)
+ selectcol_arrayref($statement, { Columns => [1,2] } )
+
+ Sends a query an returns an arrayref for the first columns
 
     my $hashrefs = $nl->selectcol_arrayref("GET hosts\nColumns: name");
+
+ to get different columns use this
+
+    my %hash = @{$nl->selectcol_arrayref("GET hosts\nColumns: name, contacts", { Columns => [1,2] } )};
+
+    returns a hash with host the contact assosiation
+
+    $VAR1 = {
+              'localhost' => 'user1',
+              'gateway'   => 'user2'
+            };
 
 =cut
 
@@ -214,11 +243,14 @@ sub selectcol_arrayref {
     return(\@column);
 }
 
+
 ########################################
 
-=item selectrow_array($statement);
+=item selectrow_array
 
-send a query an get an array for one row
+ selectrow_array($statement)
+
+ Sends a query and returns an array for the first row
 
     my @array = $nl->selectrow_array("GET hosts");
 
@@ -235,9 +267,11 @@ sub selectrow_array {
 
 ########################################
 
-=item selectrow_arrayref($statement);
+=item selectrow_arrayref
 
-send a query an get an arrayref for one row
+ selectrow_arrayref($statement)
+
+ Sends a query and returns an array reference for the first row
 
     my $arrayref = $nl->selectrow_arrayref("GET hosts");
 
@@ -251,11 +285,14 @@ sub selectrow_arrayref {
     return;
 }
 
+
 ########################################
 
-=item selectrow_hashref($statement);
+=item selectrow_hashref
 
-send a query an get a hashref for one row
+ selectrow_hashref($statement)
+
+ Sends a query and returns a hash reference for the first row
 
     my $hashref = $nl->selectrow_hashref("GET hosts");
 
@@ -316,7 +353,8 @@ sub _send {
 
 =head1 SEE ALSO
 
-For more information see the Livestatus page: http://mathias-kettner.de/checkmk_livestatus.html
+For more information about the query syntax and the livestatus plugin installation
+see the Livestatus page: http://mathias-kettner.de/checkmk_livestatus.html
 
 =head1 AUTHOR
 
