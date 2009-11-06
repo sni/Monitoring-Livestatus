@@ -137,8 +137,6 @@ sub selectall_arrayref {
 
     my $result = $self->_send($statement);
 
-    return if scalar @{$result->{'result'}} == 0;
-
     # trim result set down to excepted row count
     if(defined $number and $number >= 1) {
         if(scalar @{$result->{'result'}} > $number) {
@@ -183,7 +181,6 @@ sub selectall_hashref {
     croak("key is required for selectall_hashref") if !defined $key_field;
 
     my $result = $self->selectall_arrayref($statement, { Slice => {} });
-    return if !defined $result;
 
     my %indexed;
     for my $row (@{$result}) {
@@ -199,17 +196,29 @@ sub selectall_hashref {
 =item selectcol_arrayref
 
  selectcol_arrayref($statement)
- selectcol_arrayref($statement, { Columns => [1,2] } )
+ selectcol_arrayref($statement, %opt )
 
  Sends a query an returns an arrayref for the first columns
 
-    my $hashrefs = $nl->selectcol_arrayref("GET hosts\nColumns: name");
+    my $array_ref = $nl->selectcol_arrayref("GET hosts\nColumns: name");
+
+    $VAR1 = [
+              'localhost',
+              'gateway',
+            ];
+
+ returns an empty array if nothing was found
+
 
  to get different columns use this
 
+    my $array_ref = $nl->selectcol_arrayref("GET hosts\nColumns: name, contacts", { Columns => [2] } );
+
+ you can link 2 columns in a hash result set
+
     my %hash = @{$nl->selectcol_arrayref("GET hosts\nColumns: name, contacts", { Columns => [1,2] } )};
 
-    returns a hash with host the contact assosiation
+    produces a hash with host the contact assosiation
 
     $VAR1 = {
               'localhost' => 'user1',
@@ -232,7 +241,6 @@ sub selectcol_arrayref {
     }
 
     my $result = $self->selectall_arrayref($statement);
-    return if !defined $result;
 
     my @column;
     for my $row (@{$result}) {
@@ -253,6 +261,8 @@ sub selectcol_arrayref {
  Sends a query and returns an array for the first row
 
     my @array = $nl->selectrow_array("GET hosts");
+
+ returns undef if nothing was found
 
 =cut
 sub selectrow_array {
@@ -275,6 +285,8 @@ sub selectrow_array {
 
     my $arrayref = $nl->selectrow_arrayref("GET hosts");
 
+ returns undef if nothing was found
+
 =cut
 sub selectrow_arrayref {
     my $self      = shift;
@@ -295,6 +307,8 @@ sub selectrow_arrayref {
  Sends a query and returns a hash reference for the first row
 
     my $hashref = $nl->selectrow_hashref("GET hosts");
+
+ returns undef if nothing was found
 
 =cut
 sub selectrow_hashref {
@@ -342,7 +356,15 @@ sub _send {
         push @result, [ split/$col_seperator/, $line ];
     }
 
-    my $keys = shift @result;
+    # for querys with column header, no seperate columns will be returned
+    my $keys;
+    if($statement =~ m/^Columns: (.*)$/m) {
+        my @keys = split/\s+/, $1;
+        $keys = \@keys;
+    } else {
+        $keys = shift @result;
+    }
+
     return({ keys => $keys, result => \@result});
 }
 
