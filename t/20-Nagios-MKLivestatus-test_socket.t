@@ -10,7 +10,7 @@ BEGIN {
   if ( $@ ) {
     plan skip_all => 'need threads support for testing a real socket'
   }else{
-    plan tests => 6
+    plan tests => 8
   }
 }
 
@@ -24,6 +24,7 @@ my $test_host_result         = [ ["a","b","c"], ["d","e","f"], ["g","h","i"] ];
 my $test_host_result_arr     = [ ["d","e","f"], ["g","h","i"] ];
 my $test_host_result_hash    = [ { 'c' => 'f', 'a' => 'd', 'b' => 'e' }, { 'c' => 'i', 'a' => 'g', 'b' => 'h' } ];
 my $test_host_result_hashref = { 'd' => { 'c' => 'f', 'a' => 'd', 'b' => 'e' }, 'g' => { 'c' => 'i', 'a' => 'g', 'b' => 'h' } };
+my $test_col_arr_ref         = ['d', 'g'];
 
 #########################
 # get a temp file from File::Temp and replace it with our socket
@@ -45,13 +46,21 @@ isa_ok($nl, 'Nagios::MKLivestatus');
 
 #########################
 # do some sample querys
+# selectall_arrayref
 my $hosts1 = $nl->selectall_arrayref("GET hosts");
 is_deeply($hosts1, $test_host_result_arr, 'selectall_arrayref GET hosts');
 my $hosts2 = $nl->selectall_arrayref("GET hosts", { slice => {} });
 is_deeply($hosts2, $test_host_result_hash, 'selectall_arrayref GET hosts sliced');
 
+# selectall_hashref
 my $hosts3 = $nl->selectall_hashref("GET hosts", 'a');
 is_deeply($hosts3, $test_host_result_hashref, 'selectall_hashref GET hosts');
+
+# selectcol_arrayref
+my $hosts4 = $nl->selectcol_arrayref("GET hosts");
+is_deeply($hosts4, $test_col_arr_ref, 'selectcol_arrayref GET hosts');
+my $hosts5 = $nl->selectcol_arrayref("GET hosts\nColumns: a");
+is_deeply($hosts5, $test_col_arr_ref, 'selectcol_arrayref GET hosts\nColumns: a');
 
 #########################
 # exit tests
@@ -76,9 +85,13 @@ sub create_socket {
         my $recv = "";
         while(<$socket>) { $recv .= $_; }
         return if $recv =~ '^exit';
-        if($recv =~ '^GET hosts') {
+        if($recv =~ m/^GET hosts\s+Columns: a/m) {
+            print $socket join( chr($line_seperator), map( join( chr($column_seperator), $_->[0]), @{$test_host_result} ) )."\n";
+        }
+        elsif($recv =~ m/^GET hosts/) {
             print $socket join( chr($line_seperator), map( join( chr($column_seperator), @{$_}), @{$test_host_result} ) )."\n";
         }
+        close($socket);
     }
     unlink($socket_path);
 }

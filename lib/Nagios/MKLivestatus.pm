@@ -7,7 +7,7 @@ use IO::Socket;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 
 =head1 NAME
@@ -169,13 +169,37 @@ sub selectall_hashref {
     return(\%indexed);
 }
 
+########################################
 
+=item selectcol_arrayref($statement);
 
-#selectcol_arrayref($statement);
+send a query an get an arrayref for one column
+
+    my $hashrefs = $nl->selectcol_arrayref("GET hosts\nColumns: name");
+
+=cut
+
+sub selectcol_arrayref {
+    my $self      = shift;
+    my $statement = shift;
+
+    croak("no statement") if !defined $statement;
+
+    my $result = $self->selectall_arrayref($statement);
+    return if !defined $result;
+
+    my @column;
+    for my $row (@{$result}) {
+        push @column, $row->[0];
+    }
+    return(\@column);
+}
+
 #selectcol_arrayref($statement, \%attr);
 #selectrow_array($statement);
 #selectrow_arrayref($statement);
 #selectrow_hashref($statement);
+
 
 sub _send {
     my $self      = shift;
@@ -195,6 +219,7 @@ sub _send {
     $sock->shutdown(1) or croak("shutdown failed: $!");
     while(<$sock>) { $recv .= $_; }
     print "< ".Dumper($recv) if $self->{'verbose'};
+    close($sock);
 
     return if !defined $recv;
 
