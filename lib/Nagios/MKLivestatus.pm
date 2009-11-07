@@ -110,7 +110,7 @@ sub do {
 
  selectall_arrayref($statement)
  selectall_arrayref($statement, %opts)
- selectall_arrayref($statement, %opts, $number)
+ selectall_arrayref($statement, %opts, $limit )
 
  Sends a query and returns an array reference of arrays
 
@@ -124,13 +124,15 @@ sub do {
 
     my $hash_refs = $nl->selectall_arrayref("GET hosts", { Slice => {} }, 2);
 
+ use limit to limit the result to this number of rows
+
 =cut
 
 sub selectall_arrayref {
     my $self      = shift;
     my $statement = shift;
     my $opt       = shift;
-    my $number    = shift;
+    my $limit     = shift;
 
     # make opt hash keys lowercase
     %{$opt} = map { lc $_ => $opt->{$_} } keys %{$opt};
@@ -138,9 +140,9 @@ sub selectall_arrayref {
     my $result = $self->_send($statement);
 
     # trim result set down to excepted row count
-    if(defined $number and $number >= 1) {
-        if(scalar @{$result->{'result'}} > $number) {
-            @{$result->{'result'}} = @{$result->{'result'}}[0..$number-1];
+    if(defined $limit and $limit >= 1) {
+        if(scalar @{$result->{'result'}} > $limit) {
+            @{$result->{'result'}} = @{$result->{'result'}}[0..$limit-1];
         }
     }
 
