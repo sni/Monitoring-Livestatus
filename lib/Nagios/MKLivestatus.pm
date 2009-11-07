@@ -210,13 +210,13 @@ sub selectall_hashref {
  returns an empty array if nothing was found
 
 
- to get different columns use this
+ to get a different column use this
 
-    my $array_ref = $nl->selectcol_arrayref("GET hosts\nColumns: name, contacts", { Columns => [2] } );
+    my $array_ref = $nl->selectcol_arrayref("GET hosts\nColumns: name contacts", { Columns => [2] } );
 
  you can link 2 columns in a hash result set
 
-    my %hash = @{$nl->selectcol_arrayref("GET hosts\nColumns: name, contacts", { Columns => [1,2] } )};
+    my %hash = @{$nl->selectcol_arrayref("GET hosts\nColumns: name contacts", { Columns => [1,2] } )};
 
     produces a hash with host the contact assosiation
 
@@ -335,7 +335,7 @@ sub _send {
     }
     my $sock = IO::Socket::UNIX->new($self->{'socket'});
     if(!defined $sock or !$sock->connected()) {
-        croak("failed to connect: $!");
+        croak("failed to connect to ($self->{'socket'}): $!");
     }
 
     my ($recv, @result);
