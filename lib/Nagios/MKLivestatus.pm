@@ -7,7 +7,7 @@ use IO::Socket;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.15';
+our $VERSION = '0.16';
 
 
 =head1 NAME
@@ -364,6 +364,8 @@ sub _send {
     if($statement =~ m/^Columns: (.*)$/m) {
         my @keys = split/\s+/, $1;
         $keys = \@keys;
+    } elsif($statement =~ m/^Stats: (.*)$/m) {
+        @{$keys} = ($statement =~ m/^Stats: (.*)$/gm);
     } else {
         $keys = shift @result;
     }
