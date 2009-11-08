@@ -12,7 +12,7 @@ BEGIN {
   if ( $@ ) {
     plan skip_all => 'need threads support for testing a real socket'
   }else{
-    plan tests => 14
+    plan tests => 18
   }
 }
 
