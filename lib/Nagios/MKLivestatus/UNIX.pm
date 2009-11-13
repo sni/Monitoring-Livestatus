@@ -3,7 +3,7 @@ package Nagios::MKLivestatus::UNIX;
 use 5.000000;
 use strict;
 use warnings;
-use IO::Socket;
+use IO::Socket::UNIX;
 use Carp;
 use base "Nagios::MKLivestatus";
 
@@ -17,10 +17,21 @@ Nagios::MKLivestatus::UNIX - connector with unix sockets
     my $nl = Nagios::MKLivestatus::UNIX->new( '/var/lib/nagios3/rw/livestatus.sock' );
     my $hosts = $nl->selectall_arrayref("GET hosts");
 
+=head1 CONSTRUCTOR
+
+=over 4
+
+=item new ( [ARGS] )
+
+Creates an C<Nagios::MKLivestatus::UNIX> object. C<new> takes at least the socketpath.
+Arguments are the same as in C<Nagios::MKLivestatus>.
+
+If the constructor is only passed a single argument, it is assumed to
+be a the C<socket> specification. Use either socker OR server.
+
 =back
 
 =cut
-
 
 sub new {
     my $class = shift;
@@ -28,8 +39,9 @@ sub new {
     my(%options) = @_;
 
     $options{'backend'} = $class;
-
-    return Nagios::MKLivestatus->new(%options)
+    my $self = Nagios::MKLivestatus->new(%options);
+    bless $self, $class;
+    return $self;
 }
 
 ########################################

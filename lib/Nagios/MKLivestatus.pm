@@ -89,8 +89,7 @@ sub new {
             use Nagios::MKLivestatus::UNIX;
             $self->{'CONNECTOR'} = new Nagios::MKLivestatus::UNIX(%options);
         }
-
-        if(defined $self->{'server'}) {
+        elsif(defined $self->{'server'}) {
             use Nagios::MKLivestatus::INET;
             $self->{'CONNECTOR'} = new Nagios::MKLivestatus::INET(%options);
         }
@@ -157,6 +156,9 @@ sub selectall_arrayref {
     %{$opt} = map { lc $_ => $opt->{$_} } keys %{$opt};
 
     my $result = $self->_send($statement);
+    if(!defined $result) {
+        croak("got undef result for: $statement");
+    }
 
     # trim result set down to excepted row count
     if(defined $limit and $limit >= 1) {
@@ -354,7 +356,7 @@ sub _send {
 
     my $send = "$statement\nSeparators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
     print "> ".Dumper($send) if $self->{'verbose'};
-    my $recv => $self->{'CONNECTOR'}->send($send);
+    my $recv = $self->_send_socket($send);
     print "< ".Dumper($recv) if $self->{'verbose'};
     return if !defined $recv;
 
@@ -362,16 +364,16 @@ sub _send {
     my $col_seperator  = chr($self->{'column_seperator'});
 
     my @result;
-    for my $line (split/$line_seperator/, $recv) {
-        push @result, [ split/$col_seperator/, $line ];
+    for my $line (split/$line_seperator/m, $recv) {
+        push @result, [ split/$col_seperator/m, $line ];
     }
 
     # for querys with column header, no seperate columns will be returned
     my $keys;
-    if($statement =~ m/^Columns: (.*)$/m) {
-        my @keys = split/\s+/, $1;
+    if($statement =~ m/^Columns:\ (.*)$/m) {
+        my @keys = split/\s+/m, $1;
         $keys = \@keys;
-    } elsif($statement =~ m/^Stats: (.*)$/m) {
+    } elsif($statement =~ m/^Stats:\ (.*)$/m) {
         @{$keys} = ($statement =~ m/^Stats: (.*)$/gm);
     } else {
         $keys = shift @result;
@@ -384,8 +386,7 @@ sub _send {
 sub _send_socket {
     my $self      = shift;
     my $statement = shift;
-
-    my $recv => $self->{'CONNECTOR'}->_send_socket($statement);
+    my $recv = $self->{'CONNECTOR'}->_send_socket($statement);
     return($recv);
 }
 

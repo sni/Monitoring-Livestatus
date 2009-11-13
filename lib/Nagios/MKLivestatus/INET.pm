@@ -3,7 +3,7 @@ package Nagios::MKLivestatus::INET;
 use 5.000000;
 use strict;
 use warnings;
-use IO::Socket;
+use IO::Socket::INET;
 use Carp;
 use base "Nagios::MKLivestatus";
 
@@ -17,6 +17,17 @@ Nagios::MKLivestatus::TCP - connector with tcp sockets
     my $nl = Nagios::MKLivestatus::INET->new( 'localhost:9999' );
     my $hosts = $nl->selectall_arrayref("GET hosts");
 
+=head1 CONSTRUCTOR
+
+=over 4
+
+=item new ( [ARGS] )
+
+Creates an C<Nagios::MKLivestatus::INET> object. C<new> takes at least the server.
+Arguments are the same as in C<Nagios::MKLivestatus>.
+If the constructor is only passed a single argument, it is assumed to
+be a the C<server> specification. Use either socker OR server.
+
 =back
 
 =cut
@@ -27,9 +38,11 @@ sub new {
     my(%options) = @_;
 
     $options{'backend'} = $class;
-
-    return Nagios::MKLivestatus->new(%options)
+    my $self = Nagios::MKLivestatus->new(%options);
+    bless $self, $class;
+    return $self;
 }
+
 
 
 ########################################
@@ -39,12 +52,9 @@ sub _send_socket {
 
     croak("no statement") if !defined $statement;
 
-    if(!-S $self->{'server'}) {
-        croak("failed to open socket $self->{'server'}: $!");
-    }
     my $sock = IO::Socket::INET->new($self->{'server'});
     if(!defined $sock or !$sock->connected()) {
-        croak("failed to connect to ($self->{'server'}): $!");
+        croak("failed to connect to $self->{'server'}: $!");
     }
 
     my $recv;
