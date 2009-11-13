@@ -34,7 +34,7 @@ verbose output
 
     server    local socket file or
 
-    server    remote address of livestatus 
+    server    remote address of livestatus
 
 =back
 
@@ -56,6 +56,8 @@ use Pod::Usage;
 use lib 'lib';
 use lib '../lib';
 use Nagios::MKLivestatus;
+
+$Data::Dumper::Sortkeys = 1;
 
 #########################################################################
 # parse and check cmd line arguments
@@ -97,7 +99,8 @@ my $hosts = $nl->selectall_hashref('GET hosts', 'name');
 print Dumper($hosts);
 
 #########################################################################
-my $services = $nl->selectall_hashref('GET services', 'name');
+#my $services = $nl->selectall_arrayref('GET services', { Slice => {}});
+my $services = $nl->selectall_hashref('GET services', 'description');
 print Dumper($services);
 
 #########################################################################
@@ -105,4 +108,3 @@ sub add_file {
     my $file = shift;
     $opt_f   = $file;
 }
-

@@ -207,7 +207,10 @@ sub selectall_hashref {
 
     my %indexed;
     for my $row (@{$result}) {
-        croak("key $key_field not found in result set") if !defined $row->{$key_field};
+        if(!defined $row->{$key_field}) {
+            my %possible_keys = keys %{$row};
+            croak("key $key_field not found in result set, possible keys are: ".join(', ', sort keys %possible_keys));
+        }
         $indexed{$row->{$key_field}} = $row;
     }
     return(\%indexed);
