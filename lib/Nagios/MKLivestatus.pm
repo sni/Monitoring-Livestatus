@@ -1,13 +1,12 @@
 package Nagios::MKLivestatus;
 
-use 5.008000;
+use 5.000000;
 use strict;
 use warnings;
-use IO::Socket;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.16';
+our $VERSION = '0.17';
 
 
 =head1 NAME
@@ -35,7 +34,8 @@ to install and activate the livestatus addon in your nagios installation.
 Creates an C<Nagios::MKLivestatus> object. C<new> takes at least the socketpath.
 Arguments are in key-value pairs.
 
-    socket                    path to the unix socket of check_mk livestatus
+    socket                    path to the UNIX socket of check_mk livestatus
+    server                    use this server for a TCP connection
     verbose                   verbose mode
     line_seperator            ascii code of the line seperator, defaults to 10, (newline)
     column_seperator          ascii code of the column seperator, defaults to 0 (null byte)
@@ -43,7 +43,7 @@ Arguments are in key-value pairs.
     host_service_seperator    ascii code of the host/service seperator, defaults to 124 (pipe)
 
 If the constructor is only passed a single argument, it is assumed to
-be a the C<socket> specification.
+be a the C<socket> specification. Use either socker OR server.
 
 =back
 
@@ -56,11 +56,13 @@ sub new {
 
     my $self = {
                     "verbose"                   => 0,
-                    "socket"                    => undef,
+                    "socket"                    => undef, # use unix sockets
+                    "server"                    => undef, # use tcp connections
                     "line_seperator"            => 10,   # defaults to newline
                     "column_seperator"          => 0,    # defaults to null byte
                     "list_seperator"            => 44,   # defaults to comma
                     "host_service_seperator"    => 124,  # defaults to pipe
+                    "backend"                   => undef,
                };
     bless $self, $class;
 
@@ -73,8 +75,25 @@ sub new {
         }
     }
 
-    if(!defined $self->{'socket'}) {
-        croak('no socket given');
+    if(defined $self->{'socket'} and defined $self->{'server'}) {
+        croak('dont use socket and server at once');
+    }
+
+    if(!defined $self->{'socket'} and !defined $self->{'server'}) {
+        croak('please specify either socket or a server');
+    }
+
+    if(!defined $self->{'backend'}) {
+
+        if(defined $self->{'socket'}) {
+            use Nagios::MKLivestatus::UNIX;
+            $self->{'CONNECTOR'} = new Nagios::MKLivestatus::UNIX(%options);
+        }
+
+        if(defined $self->{'server'}) {
+            use Nagios::MKLivestatus::INET;
+            $self->{'CONNECTOR'} = new Nagios::MKLivestatus::INET(%options);
+        }
     }
 
     return $self;
@@ -331,30 +350,18 @@ sub _send {
     my $statement = shift;
 
     croak("no statement") if !defined $statement;
-
-    if(!-S $self->{'socket'}) {
-        croak("failed to open socket $self->{'socket'}: $!");
-    }
-    my $sock = IO::Socket::UNIX->new($self->{'socket'});
-    if(!defined $sock or !$sock->connected()) {
-        croak("failed to connect to ($self->{'socket'}): $!");
-    }
-
-    my ($recv, @result);
     chomp($statement);
+
     my $send = "$statement\nSeparators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
     print "> ".Dumper($send) if $self->{'verbose'};
-    print $sock $send;
-    $sock->shutdown(1) or croak("shutdown failed: $!");
-    while(<$sock>) { $recv .= $_; }
+    my $recv => $self->{'CONNECTOR'}->send($send);
     print "< ".Dumper($recv) if $self->{'verbose'};
-    close($sock);
-
     return if !defined $recv;
 
     my $line_seperator = chr($self->{'line_seperator'});
     my $col_seperator  = chr($self->{'column_seperator'});
 
+    my @result;
     for my $line (split/$line_seperator/, $recv) {
         push @result, [ split/$col_seperator/, $line ];
     }
@@ -373,6 +380,14 @@ sub _send {
     return({ keys => $keys, result => \@result});
 }
 
+########################################
+sub _send_socket {
+    my $self      = shift;
+    my $statement = shift;
+
+    my $recv => $self->{'CONNECTOR'}->_send_socket($statement);
+    return($recv);
+}
 
 1;
 

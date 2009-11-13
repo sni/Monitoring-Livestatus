@@ -13,13 +13,12 @@ if ( not $ENV{TEST_AUTHOR} ) {
     plan( skip_all => $msg );
 }
 
-eval { require Test::Perl::Critic; };
+eval { require Test::Pod::Coverage; };
 
 if ( $EVAL_ERROR ) {
-   my $msg = 'Test::Perl::Critic required to criticise code';
+   my $msg = 'Test::Pod::Coverage required to criticise pod';
    plan( skip_all => $msg );
 }
 
-my $rcfile = File::Spec->catfile( 't', 'perlcriticrc' );
-Test::Perl::Critic->import( -profile => $rcfile );
-all_critic_ok();
+eval "use Test::Pod::Coverage 1.00";
+all_pod_coverage_ok();
