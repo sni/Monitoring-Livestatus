@@ -9,7 +9,7 @@ use base "Nagios::MKLivestatus";
 
 =head1 NAME
 
-Nagios::MKLivestatus::TCP - connector with tcp sockets
+Nagios::MKLivestatus::INET - connector with tcp sockets
 
 =head1 SYNOPSIS
 

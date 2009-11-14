@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.17';
+our $VERSION = '0.18';
 
 
 =head1 NAME
@@ -55,14 +55,14 @@ sub new {
     my(%options) = @_;
 
     my $self = {
-                    "verbose"                   => 0,
-                    "socket"                    => undef, # use unix sockets
-                    "server"                    => undef, # use tcp connections
-                    "line_seperator"            => 10,   # defaults to newline
-                    "column_seperator"          => 0,    # defaults to null byte
-                    "list_seperator"            => 44,   # defaults to comma
-                    "host_service_seperator"    => 124,  # defaults to pipe
-                    "backend"                   => undef,
+                    "verbose"                   => 0,       # enable verbose output
+                    "socket"                    => undef,   # use unix sockets
+                    "server"                    => undef,   # use tcp connections
+                    "line_seperator"            => 10,      # defaults to newline
+                    "column_seperator"          => 0,       # defaults to null byte
+                    "list_seperator"            => 44,      # defaults to comma
+                    "host_service_seperator"    => 124,     # defaults to pipe
+                    "backend"                   => undef,   # should be keept undef, used internally
                };
     bless $self, $class;
 
