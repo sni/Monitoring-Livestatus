@@ -6,7 +6,9 @@ WriteMakefile(
     NAME           => 'Nagios::MKLivestatus',
     VERSION_FROM   => 'lib/Nagios/MKLivestatus.pm',
     PREREQ_PM      => {
-                          threads => 1.07,
+                          'threads'          => 1.07,
+                          'IO::Socket::UNIX' => 0,
+                          'IO::Socket::INET' => 0,
                       },
     ABSTRACT_FROM  => 'lib/Nagios/MKLivestatus.pm',
     AUTHOR         => 'Sven Nierlein <nierlein@cpan.org>',
