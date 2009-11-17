@@ -33,6 +33,7 @@ be a the C<socket> specification. Use either socker OR server.
 
 =cut
 
+
 sub new {
     my $class = shift;
     unshift(@_, "socket") if scalar @_ == 1;
@@ -44,13 +45,21 @@ sub new {
     return $self;
 }
 
+
 ########################################
-sub _send_socket {
+
+=head1 METHODS
+
+=over 4
+
+=item open
+
+opens and returns the sock or undef on error
+
+=cut
+
+sub open {
     my $self      = shift;
-    my $statement = shift;
-
-    croak("no statement") if !defined $statement;
-
     if(!-S $self->{'socket'}) {
         croak("failed to open socket $self->{'socket'}: $!");
     }
@@ -58,21 +67,52 @@ sub _send_socket {
     if(!defined $sock or !$sock->connected()) {
         croak("failed to connect to ($self->{'socket'}): $!");
     }
+    return($sock);
+}
 
-    my $recv;
+
+########################################
+
+=item close
+
+close the sock
+
+=cut
+
+sub close {
+    my $self = shift;
+    my $sock = shift;
+    return close($sock);
+}
+
+
+########################################
+sub _send_socket {
+    my $self      = shift;
+    my $statement = shift;
+    my($recv,$header);
+
+    croak("no statement") if !defined $statement;
+
+    my $sock = $self->open();
     print $sock $statement;
     $sock->shutdown(1) or croak("shutdown failed: $!");
-    while(<$sock>) { $recv .= $_; }
-    close($sock);
 
-    return if !defined $recv;
+    $sock->read($header, 16) or confess("reading header from socket failed: $!");
+    my($status, $msg, $content_length) = $self->_parse_header($header);
+    return($status, $msg, undef) if !defined $content_length;
+    if($content_length > 0) {
+        $sock->read($recv, $content_length) or confess("reading body from socket failed: $!");
+    }
 
-    return($recv);
+    $self->close($sock);
+    return($status, $msg, $recv);
 }
 
 
 1;
 
+=back
 
 =head1 AUTHOR
 

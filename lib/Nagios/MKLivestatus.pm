@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.18';
+our $VERSION = '0.19_01';
 
 
 =head1 NAME
@@ -353,21 +353,50 @@ sub selectrow_hashref {
 sub _send {
     my $self      = shift;
     my $statement = shift;
+    my $header;
+
+    # reset errors
+    delete $self->{'last_error'};
+    delete $self->{'error_msg'};
 
     croak("no statement") if !defined $statement;
     chomp($statement);
 
-    my $send = "$statement\nSeparators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
+    if($statement =~ m/^Separators:/m) {
+        croak("Separators not allowed in statement. Please use options in new()");
+    }
+
+    $header  = "Separators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
+    $header .= "ResponseHeader: fixed16\n";
+    my $send = "$statement\n$header";
     print "> ".Dumper($send) if $self->{'verbose'};
-    my $recv = $self->_send_socket($send);
-    print "< ".Dumper($recv) if $self->{'verbose'};
-    return if !defined $recv;
+    my($status,$msg,$body) = $self->_send_socket($send);
+    print "< ".Dumper($status) if $self->{'verbose'};
+    print "< ".Dumper($msg)    if $self->{'verbose'};
+    print "< ".Dumper($body)   if $self->{'verbose'};
+
+    #if(!defined $status or $status !~ m/^\d+$/) {
+    #   if($self->{'verbose'}) {
+    #        print "send:   ".Dumper($send);
+    #        print "status: ".Dumper($status);
+    #        print "msg:    ".Dumper($msg);
+    #        print "body:   ".Dumper($body);
+    #    }
+    #    confess("status is not a number: $status\n");
+    #}
+
+    if($status != 200) {
+        $self->{'last_error'} = $status;
+        $self->{'error_msg'}  = $msg;
+    }
+
+    return if !defined $body;
 
     my $line_seperator = chr($self->{'line_seperator'});
     my $col_seperator  = chr($self->{'column_seperator'});
 
     my @result;
-    for my $line (split/$line_seperator/m, $recv) {
+    for my $line (split/$line_seperator/m, $body) {
         push @result, [ split/$col_seperator/m, $line ];
     }
 
@@ -389,8 +418,46 @@ sub _send {
 sub _send_socket {
     my $self      = shift;
     my $statement = shift;
-    my $recv = $self->{'CONNECTOR'}->_send_socket($statement);
-    return($recv);
+    my($status, $msg, $recv) = $self->{'CONNECTOR'}->_send_socket($statement);
+    return($status, $msg, $recv);
+}
+
+########################################
+sub _parse_header {
+    my $self   = shift;
+    my $header = shift;
+
+    if(!defined $header) {
+        return(497, 'got no header', undef);
+    }
+
+    my $headerlength = length($header);
+    if($headerlength != 16) {
+        return(498, 'header is not exactly 16byte long', undef);
+    }
+    chomp($header);
+
+    my $status         = substr($header,0,3);
+    my $content_length = substr($header,5);
+    if($content_length !~ m/^\s*(\d+)$/) {
+        return(499, 'failed to get content-length from header', undef);
+    } else {
+        $content_length = $1;
+    }
+
+    #print "status: ".$status."\n";
+    #print "length: ".$content_length."\n";
+
+    my $codes = {
+        '200' => 'OK. Reponse contains the queried data.',
+        '401' => 'The request contains an invalid header.',
+        '402' => 'The request is completely invalid.',
+        '403' => 'The request is incomplete.',
+        '404' => 'The target of the GET has not been found (e.g. the table).',
+        '405' => 'A non-existing column was being referred to',
+    };
+
+    return($status, $codes->{$status}, $content_length);
 }
 
 1;

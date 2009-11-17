@@ -226,22 +226,30 @@ sub create_socket {
     while( my $socket = $listener->accept() or die('cannot accept: $!') ) {
         my $recv = "";
         while(<$socket>) { $recv .= $_; }
+        my $data;
+        my $status = 200;
+        if($recv =~ '^exit') {
+            $data = "";
+        }
+        elsif($recv =~ m/^GET hosts\s+Columns: alias/m) {
+            $data = join( chr($line_seperator), map( join( chr($column_seperator), $_->[0]), @{$test_data} ) )."\n";
+        }
+        elsif($recv =~ m/^GET hosts\s+Columns: name/m) {
+            $data = join( chr($line_seperator), map( join( chr($column_seperator), $_->[1]), @{$test_data} ) )."\n";
+        }
+        elsif($recv =~ m/^GET hosts/) {
+            $data = join( chr($line_seperator), map( join( chr($column_seperator), @{$_}), @{$test_data} ) )."\n";
+        }
+        elsif($recv =~ m/^GET services/ and $recv =~ m/Stats:/m) {
+            $data = join( chr($line_seperator), map( join( chr($column_seperator), @{$_}), @{$stats_data} ) )."\n";
+        }
+        my $content_length = sprintf("%11s", length($data));
+        print $socket $status." ".$content_length."\n";
+        print $socket $data;
+        close($socket);
         if($recv =~ '^exit') {
             return;
         }
-        elsif($recv =~ m/^GET hosts\s+Columns: alias/m) {
-            print $socket join( chr($line_seperator), map( join( chr($column_seperator), $_->[0]), @{$test_data} ) )."\n";
-        }
-        elsif($recv =~ m/^GET hosts\s+Columns: name/m) {
-            print $socket join( chr($line_seperator), map( join( chr($column_seperator), $_->[1]), @{$test_data} ) )."\n";
-        }
-        elsif($recv =~ m/^GET hosts/) {
-            print $socket join( chr($line_seperator), map( join( chr($column_seperator), @{$_}), @{$test_data} ) )."\n";
-        }
-        elsif($recv =~ m/^GET services/ and $recv =~ m/Stats:/m) {
-            print $socket join( chr($line_seperator), map( join( chr($column_seperator), @{$_}), @{$stats_data} ) )."\n";
-        }
-        close($socket);
     }
     unlink($socket_path);
 }
