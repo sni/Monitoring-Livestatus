@@ -415,12 +415,50 @@ sub _send {
 }
 
 ########################################
+sub _open {
+    my $self      = shift;
+    my $statement = shift;
+    my $sock = $self->{'CONNECTOR'}->_open();
+    return($sock);
+}
+
+########################################
+sub _close {
+    my $self  = shift;
+    my $sock  = shift;
+    return($self->{'CONNECTOR'}->_close($sock));
+}
+
+########################################
 sub _send_socket {
     my $self      = shift;
     my $statement = shift;
-    my($status, $msg, $recv) = $self->{'CONNECTOR'}->_send_socket($statement);
+    my($recv,$header);
+
+    croak("no statement") if !defined $statement;
+
+    my $sock = $self->_open();
+    print $sock $statement;
+    $sock->shutdown(1) or croak("shutdown failed: $!");
+
+    $sock->read($header, 16) or confess("reading header from socket failed: $!");
+    my($status, $msg, $content_length) = $self->_parse_header($header);
+    return($status, $msg, undef) if !defined $content_length;
+    if($content_length > 0) {
+        $sock->read($recv, $content_length) or confess("reading body from socket failed: $!");
+    }
+
+    $self->_close($sock);
     return($status, $msg, $recv);
 }
+
+########################################
+#sub _send_socket {
+#    my $self      = shift;
+#    my $statement = shift;
+#    my($status, $msg, $recv) = $self->{'CONNECTOR'}->_send_socket($statement);
+#    return($status, $msg, $recv);
+#}
 
 ########################################
 sub _parse_header {
