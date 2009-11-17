@@ -362,7 +362,7 @@ sub _send {
     croak("no statement") if !defined $statement;
     chomp($statement);
 
-    if($statement =~ m/^Separators:/m) {
+    if($statement =~ m/^Separators:/mx) {
         croak("Separators not allowed in statement. Please use options in new()");
     }
 
@@ -388,6 +388,7 @@ sub _send {
     if($status != 200) {
         $self->{'last_error'} = $status;
         $self->{'error_msg'}  = $msg;
+        croak("ERROR ".$status." - ".$msg."\nin query:\n".$statement);
     }
 
     return if !defined $body;

@@ -73,7 +73,7 @@ unlink($socket_path);
 my $thr1 = threads->create('create_socket', 'unix');
 #########################
 # get a temp file from File::Temp and replace it with our socket
-my $server              = 'localhost:9999';
+my $server              = 'localhost:32987';
 my $thr2 = threads->create('create_socket', 'inet');
 sleep(1);
 
