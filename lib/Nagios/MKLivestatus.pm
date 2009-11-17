@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.19_01';
+our $VERSION = '0.19_02';
 
 
 =head1 NAME
@@ -366,6 +366,7 @@ sub _send {
         croak("Separators not allowed in statement. Please use options in new()");
     }
 
+    # Commands need no additional header
     if($statement !~ m/^COMMAND/) {
         $header .= "Separators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
         $header .= "ResponseHeader: fixed16\n";
@@ -376,16 +377,6 @@ sub _send {
     print "< ".Dumper($status) if $self->{'verbose'};
     print "< ".Dumper($msg)    if $self->{'verbose'};
     print "< ".Dumper($body)   if $self->{'verbose'};
-
-    #if(!defined $status or $status !~ m/^\d+$/) {
-    #   if($self->{'verbose'}) {
-    #        print "send:   ".Dumper($send);
-    #        print "status: ".Dumper($status);
-    #        print "msg:    ".Dumper($msg);
-    #        print "body:   ".Dumper($body);
-    #    }
-    #    confess("status is not a number: $status\n");
-    #}
 
     if($status != 200) {
         $self->{'last_error'} = $status;
