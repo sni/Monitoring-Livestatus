@@ -10,7 +10,7 @@ if ( ! defined $ENV{TEST_SOCKET} and !defined $ENV{TEST_SERVER} ) {
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} to run';
     plan( skip_all => $msg );
 } else {
-    plan(tests => 55);
+    plan(tests => 61);
 }
 
 use_ok('Nagios::MKLivestatus');
@@ -80,10 +80,15 @@ for my $key (keys %{$objects_to_test}) {
         my $expected_keys = $excpected_keys->{$type};
         my $statement = "GET $type\nLimit: 1";
         my $hash_ref  = $nl->selectrow_hashref($statement );
-        my @keys  = sort keys %{$hash_ref};
-$Data::Dumper::Indent = 0;
-        is_deeply(\@keys, $expected_keys, $key.' '.$type.'keys') or ( diag(Dumper(\@keys)) or die("***************\n".$type."\n***************\n") );
+        my @keys      = sort keys %{$hash_ref};
+        #$Data::Dumper::Indent = 0;
+        is_deeply(\@keys, $expected_keys, $key.' '.$type.'keys');# or ( diag(Dumper(\@keys)) or die("***************\n".$type."\n***************\n") );
     }
+
+    #########################
+    # send a test command
+    my $rt = $nl->do('COMMAND ['.time().'] SAVE_STATE_INFORMATION');
+    is($rt, '1', $key.' test command');
 
     #########################
     # check service keys

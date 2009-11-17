@@ -353,7 +353,7 @@ sub selectrow_hashref {
 sub _send {
     my $self      = shift;
     my $statement = shift;
-    my $header;
+    my $header = "";
 
     # reset errors
     delete $self->{'last_error'};
@@ -362,12 +362,14 @@ sub _send {
     croak("no statement") if !defined $statement;
     chomp($statement);
 
-    if($statement =~ m/^Separators:/mx) {
+    if($statement =~ m/^Separators:/) {
         croak("Separators not allowed in statement. Please use options in new()");
     }
 
-    $header  = "Separators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
-    $header .= "ResponseHeader: fixed16\n";
+    if($statement !~ m/^COMMAND/) {
+        $header .= "Separators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
+        $header .= "ResponseHeader: fixed16\n";
+    }
     my $send = "$statement\n$header";
     print "> ".Dumper($send) if $self->{'verbose'};
     my($status,$msg,$body) = $self->_send_socket($send);
@@ -442,7 +444,22 @@ sub _send_socket {
     print $sock $statement;
     $sock->shutdown(1) or croak("shutdown failed: $!");
 
-    $sock->read($header, 16) or confess("reading header from socket failed: $!");
+    # COMMAND statements never return something
+    if($statement =~ m/^COMMAND/mx) {
+        #my $rest = <$sock>; # read rest of socket
+        $self->_close($sock);
+        return('200', 'COMMANDs never return something', undef);
+    }
+
+    if(!$sock->opened()) {
+        confess("socket is not open, cannot read");
+    }
+
+    if($sock->error()) {
+        confess("socket has errors, cannot read");
+    }
+
+    $sock->read($header, 16) or confess("reading header from socket failed: $!".Dumper($sock));
     my($status, $msg, $content_length) = $self->_parse_header($header);
     return($status, $msg, undef) if !defined $content_length;
     if($content_length > 0) {
@@ -452,14 +469,6 @@ sub _send_socket {
     $self->_close($sock);
     return($status, $msg, $recv);
 }
-
-########################################
-#sub _send_socket {
-#    my $self      = shift;
-#    my $statement = shift;
-#    my($status, $msg, $recv) = $self->{'CONNECTOR'}->_send_socket($statement);
-#    return($status, $msg, $recv);
-#}
 
 ########################################
 sub _parse_header {
