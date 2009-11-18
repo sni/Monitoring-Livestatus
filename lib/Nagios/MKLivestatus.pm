@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.19_02';
+our $VERSION = '0.19_03';
 
 
 =head1 NAME
