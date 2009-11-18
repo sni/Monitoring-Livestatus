@@ -41,6 +41,7 @@ Arguments are in key-value pairs.
     column_seperator          ascii code of the column seperator, defaults to 0 (null byte)
     list_seperator            ascii code of the list seperator, defaults to 44 (comma)
     host_service_seperator    ascii code of the host/service seperator, defaults to 124 (pipe)
+    keepalive                 enable keepalive. Default is off
 
 If the constructor is only passed a single argument, it is assumed to
 be a the C<socket> specification. Use either socker OR server.
@@ -62,6 +63,7 @@ sub new {
                     "column_seperator"          => 0,       # defaults to null byte
                     "list_seperator"            => 44,      # defaults to comma
                     "host_service_seperator"    => 124,     # defaults to pipe
+                    "keepalive"                 => 0,       # enable keepalive?
                     "backend"                   => undef,   # should be keept undef, used internally
                };
     bless $self, $class;
@@ -342,6 +344,7 @@ sub selectrow_hashref {
     my $statement = shift;
 
     my $result = $self->selectall_arrayref($statement, { Slice => {} }, 1);
+    return if !defined $result;
     return $result->[0] if scalar @{$result} > 0;
     return;
 }
@@ -355,9 +358,8 @@ sub _send {
     my $statement = shift;
     my $header = "";
 
-    # reset errors
-    delete $self->{'last_error'};
-    delete $self->{'error_msg'};
+    undef $Nagios::MKLivestatus::ErrorCode;
+    undef $Nagios::MKLivestatus::ErrorMessage;
 
     croak("no statement") if !defined $statement;
     chomp($statement);
@@ -371,16 +373,23 @@ sub _send {
         $header .= "Separators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
         $header .= "ResponseHeader: fixed16\n";
     }
+    if($self->{'keepalive'}) {
+        $header .= "KeepAlive: on\n";
+    }
     my $send = "$statement\n$header";
     print "> ".Dumper($send) if $self->{'verbose'};
     my($status,$msg,$body) = $self->_send_socket($send);
-    print "< ".Dumper($status) if $self->{'verbose'};
-    print "< ".Dumper($msg)    if $self->{'verbose'};
-    print "< ".Dumper($body)   if $self->{'verbose'};
+    if($self->{'verbose'}) {
+        print "status: ".Dumper($status);
+        print "msg:    ".Dumper($msg);
+        print "< ".Dumper($body);
+    }
 
     if($status != 200) {
-        $self->{'last_error'} = $status;
-        $self->{'error_msg'}  = $msg;
+        chomp($body);
+        $msg = "$msg\n$body";
+        $Nagios::MKLivestatus::ErrorCode    = $status;
+        $Nagios::MKLivestatus::ErrorMessage = $msg;
         croak("ERROR ".$status." - ".$msg."\nin query:\n".$statement);
     }
 
@@ -412,7 +421,19 @@ sub _send {
 sub _open {
     my $self      = shift;
     my $statement = shift;
+
+    # return the current socket in keep alive mode
+    if($self->{'keepalive'} and defined $self->{'sock'} and $self->{'sock'}->connected()) {
+        return($self->{'sock'});
+    }
+
     my $sock = $self->{'CONNECTOR'}->_open();
+
+    # store socket for later retrieval
+    if($self->{'keepalive'}) {
+        $self->{'sock'} = $sock;
+    }
+
     return($sock);
 }
 
@@ -433,12 +454,15 @@ sub _send_socket {
 
     my $sock = $self->_open();
     print $sock $statement;
-    $sock->shutdown(1) or croak("shutdown failed: $!");
+    if($self->{'keepalive'}) {
+        print $sock "\n";
+    }else {
+        $sock->shutdown(1) or croak("shutdown failed: $!");
+    }
 
     # COMMAND statements never return something
     if($statement =~ m/^COMMAND/mx) {
-        #my $rest = <$sock>; # read rest of socket
-        $self->_close($sock);
+        $self->_close($sock) unless $self->{'keepalive'};
         return('200', 'COMMANDs never return something', undef);
     }
 
@@ -450,15 +474,30 @@ sub _send_socket {
         confess("socket has errors, cannot read");
     }
 
-    $sock->read($header, 16) or confess("reading header from socket failed: $!".Dumper($sock));
+    $sock->read($header, 16) or $self->_socket_error($statement, $sock, 'reading header from socket failed');
+    print "header: $header\n" if $self->{'verbose'};
     my($status, $msg, $content_length) = $self->_parse_header($header);
     return($status, $msg, undef) if !defined $content_length;
     if($content_length > 0) {
-        $sock->read($recv, $content_length) or confess("reading body from socket failed: $!");
+        $sock->read($recv, $content_length) or $self->_socket_error($statement, $sock, 'reading body from socket failed');
     }
 
-    $self->_close($sock);
+    $self->_close($sock) unless $self->{'keepalive'};
     return($status, $msg, $recv);
+}
+
+########################################
+sub _socket_error {
+    my $self      = shift;
+    my $statement = shift;
+    my $sock      = shift;
+    my $message   = shift;
+    print "statement           ".Dumper($statement)."\n";
+    print "socket->sockname()  ".Dumper($sock->sockname())."\n";
+    print "socket->connected() ".Dumper($sock->connected())."\n";
+    print "socket->error()     ".Dumper($sock->error())."\n";
+    print "message             ".Dumper($message)."\n";
+    confess($message);
 }
 
 ########################################

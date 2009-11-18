@@ -35,7 +35,7 @@ my $objects_to_test = {
   'unix_keepalive' => Nagios::MKLivestatus->new(
                                       verbose             => 0,
                                       socket              => $ENV{TEST_SOCKET},
-#                                      keepalive           => 1,
+                                      keepalive           => 1,
                                     ),
 
   # TCP
@@ -55,7 +55,7 @@ my $objects_to_test = {
   'inet_keepalive' => Nagios::MKLivestatus->new(
                                       verbose             => 0,
                                       server              => $ENV{TEST_SERVER},
-#                                      keepalive           => 1,
+                                      keepalive           => 1,
                                     ),
 };
 
@@ -75,6 +75,9 @@ for my $key (keys %{$objects_to_test}) {
     isa_ok($nl, 'Nagios::MKLivestatus') or BAIL_OUT("no need to continue without a proper Nagios::MKLivestatus object: ".$key);
 
     #########################
+    # TODO: set downtime for a host and service
+
+    #########################
     # check keys
     for my $type (keys %{$excpected_keys}) {
         my $expected_keys = $excpected_keys->{$type};
@@ -91,11 +94,30 @@ for my $key (keys %{$objects_to_test}) {
     is($rt, '1', $key.' test command');
 
     #########################
-    # check service keys
-    #$statement      = "GET services\nLimit: 1";
-    #$hash_ref       = $nl->selectrow_hashref($statement );
-    #my @servicekeys = sort keys %{$hash_ref};
-    #is_deeply(\@servicekeys, $expected_servicekeys, $key.' servicekeys');
-    #print Dumper(\@servicekeys);
-    #diag($ary_ref);
+    # check for errors
+    #$nl->{'verbose'} = 1;
+    my $statement = "GET hosts\nLimit: 1";
+    my $hash_ref  = $nl->selectrow_hashref($statement );
+    isnt($hash_ref, undef, $key.' test error 200 body');
+    is($Nagios::MKLivestatus::ErrorCode, undef, $key.' test error 200 status');
+
+    $statement = "BLAH hosts";
+    $hash_ref  = $nl->selectrow_hashref($statement );
+    is($hash_ref, undef, $key.' test error 401 body');
+    is($Nagios::MKLivestatus::ErrorCode, '401', $key.' test error 401 status');
+
+    $statement = "GET hosts\nLimit: ";
+    $hash_ref  = $nl->selectrow_hashref($statement );
+    is($hash_ref, undef, $key.' test error 403 body');
+    is($Nagios::MKLivestatus::ErrorCode, '403', $key.' test error 403 status');
+
+    $statement = "GET unknowntable\nLimit: 1";
+    $hash_ref  = $nl->selectrow_hashref($statement );
+    is($hash_ref, undef, $key.' test error 404 body');
+    is($Nagios::MKLivestatus::ErrorCode, '404', $key.' test error 404 status');
+
+    $statement = "GET hosts\nColumns: unknown";
+    $hash_ref  = $nl->selectrow_hashref($statement );
+    is($hash_ref, undef, $key.' test error 405 body');
+    is($Nagios::MKLivestatus::ErrorCode, '405', $key.' test error 405 status');
 }
