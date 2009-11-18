@@ -42,6 +42,7 @@ Arguments are in key-value pairs.
     list_seperator            ascii code of the list seperator, defaults to 44 (comma)
     host_service_seperator    ascii code of the host/service seperator, defaults to 124 (pipe)
     keepalive                 enable keepalive. Default is off
+    errors_are_fatal          errors will die with an error message. Default: on
 
 If the constructor is only passed a single argument, it is assumed to
 be a the C<socket> specification. Use either socker OR server.
@@ -64,6 +65,7 @@ sub new {
                     "list_seperator"            => 44,      # defaults to comma
                     "host_service_seperator"    => 124,     # defaults to pipe
                     "keepalive"                 => 0,       # enable keepalive?
+                    "errors_are_fatal"          => 1,       # die on errors
                     "backend"                   => undef,   # should be keept undef, used internally
                };
     bless $self, $class;
@@ -159,6 +161,7 @@ sub selectall_arrayref {
 
     my $result = $self->_send($statement);
     if(!defined $result) {
+        return unless $self->{'errors_are_fatal'};
         croak("got undef result for: $statement");
     }
 
@@ -320,8 +323,9 @@ sub selectrow_arrayref {
     my $self      = shift;
     my $statement = shift;
 
-    my @result = @{$self->selectall_arrayref($statement, {}, 1)};
-    return $result[0] if scalar @result > 0;
+    my $result = $self->selectall_arrayref($statement, {}, 1);
+    return if !defined $result;
+    return $result->[0] if scalar @{$result} > 0;
     return;
 }
 
@@ -351,6 +355,52 @@ sub selectrow_hashref {
 
 
 ########################################
+
+=item select_scalar_value
+
+ select_scalar_value($statement)
+
+ Sends a query and returns a single scalar
+
+    my $count = $nl->select_scalar_value("GET hosts\nStats: state = 0");
+
+ returns undef if nothing was found
+
+=cut
+sub select_scalar_value {
+    my $self      = shift;
+    my $statement = shift;
+
+    my $row = $self->selectrow_arrayref($statement);
+    return if !defined $row;
+    return $row->[0] if scalar @{$row} > 0;
+    return;
+}
+
+########################################
+
+=item errors_are_fatal
+
+ errors_are_fatal($values)
+
+ Enable or disable fatal errors. When enabled the module will croak on any error.
+
+ returns always undef
+
+=cut
+sub errors_are_fatal {
+    my $self  = shift;
+    my $value = shift;
+
+    $self->{'errors_are_fatal'}                = $value;
+    $self->{'CONNECTOR'}->{'errors_are_fatal'} = $value;
+
+    return;
+}
+
+
+
+########################################
 # INTERNAL SUBS
 ########################################
 sub _send {
@@ -364,12 +414,38 @@ sub _send {
     croak("no statement") if !defined $statement;
     chomp($statement);
 
-    if($statement =~ m/^Separators:/) {
-        croak("Separators not allowed in statement. Please use options in new()");
+    if($statement =~ m/^Separators:/mx) {
+        $Nagios::MKLivestatus::ErrorCode    = 492;
+        $Nagios::MKLivestatus::ErrorMessage = "Separators not allowed in statement. Please use the seperator options in new()";
+        return;
+    }
+
+    if($statement =~ m/^KeepAlive:/mx) {
+        $Nagios::MKLivestatus::ErrorCode    = 496;
+        $Nagios::MKLivestatus::ErrorMessage = "Keepalive not allowed in statement. Please use the keepalive option in new()";
+        return;
+    }
+
+    if($statement =~ m/^ResponseHeader:/mx) {
+        $Nagios::MKLivestatus::ErrorCode    = 495;
+        $Nagios::MKLivestatus::ErrorMessage = "ResponseHeader not allowed in statement. Header will be set automatically";
+        return;
+    }
+
+    if($statement =~ m/^ColumnHeaders:/mx) {
+        $Nagios::MKLivestatus::ErrorCode    = 494;
+        $Nagios::MKLivestatus::ErrorMessage = "ColumnHeaders not allowed in statement. Header will be set automatically";
+        return;
+    }
+
+    if($statement =~ m/^OuputFormat:/mx) {
+        $Nagios::MKLivestatus::ErrorCode    = 493;
+        $Nagios::MKLivestatus::ErrorMessage = "OuputFormat not allowed in statement. Header will be set automatically";
+        return;
     }
 
     # Commands need no additional header
-    if($statement !~ m/^COMMAND/) {
+    if($statement !~ m/^COMMAND/mx) {
         $header .= "Separators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
         $header .= "ResponseHeader: fixed16\n";
     }
@@ -386,11 +462,15 @@ sub _send {
     }
 
     if($status != 200) {
+        $body = '' if !defined $body;
         chomp($body);
         $msg = "$msg\n$body";
         $Nagios::MKLivestatus::ErrorCode    = $status;
         $Nagios::MKLivestatus::ErrorMessage = $msg;
-        croak("ERROR ".$status." - ".$msg."\nin query:\n".$statement);
+        if($self->{'errors_are_fatal'}) {
+            croak("ERROR ".$status." - ".$msg."\nin query:\n".$statement);
+        }
+        return;
     }
 
     return if !defined $body;
@@ -399,17 +479,19 @@ sub _send {
     my $col_seperator  = chr($self->{'column_seperator'});
 
     my @result;
+    ## no critic
     for my $line (split/$line_seperator/m, $body) {
         push @result, [ split/$col_seperator/m, $line ];
     }
+    ## use critic
 
     # for querys with column header, no seperate columns will be returned
     my $keys;
-    if($statement =~ m/^Columns:\ (.*)$/m) {
-        my @keys = split/\s+/m, $1;
+    if($statement =~ m/^Columns:\ (.*)$/mx) {
+        my @keys = split/\s+/mx, $1;
         $keys = \@keys;
-    } elsif($statement =~ m/^Stats:\ (.*)$/m) {
-        @{$keys} = ($statement =~ m/^Stats: (.*)$/gm);
+    } elsif($statement =~ m/^Stats:\ (.*)$/mx) {
+        @{$keys} = ($statement =~ m/^Stats:\ (.*)$/gmx);
     } else {
         $keys = shift @result;
     }
@@ -452,7 +534,7 @@ sub _send_socket {
 
     croak("no statement") if !defined $statement;
 
-    my $sock = $self->_open();
+    my $sock = $self->_open() or return(491, 'failed to connect', undef);
     print $sock $statement;
     if($self->{'keepalive'}) {
         print $sock "\n";
@@ -474,12 +556,12 @@ sub _send_socket {
         confess("socket has errors, cannot read");
     }
 
-    $sock->read($header, 16) or $self->_socket_error($statement, $sock, 'reading header from socket failed');
+    $sock->read($header, 16) or return($self->_socket_error($statement, $sock, 'reading header from socket failed'));
     print "header: $header\n" if $self->{'verbose'};
     my($status, $msg, $content_length) = $self->_parse_header($header);
     return($status, $msg, undef) if !defined $content_length;
     if($content_length > 0) {
-        $sock->read($recv, $content_length) or $self->_socket_error($statement, $sock, 'reading body from socket failed');
+        $sock->read($recv, $content_length) or return($self->_socket_error($statement, $sock, 'reading body from socket failed'));
     }
 
     $self->_close($sock) unless $self->{'keepalive'};
@@ -492,12 +574,17 @@ sub _socket_error {
     my $statement = shift;
     my $sock      = shift;
     my $message   = shift;
-    print "statement           ".Dumper($statement)."\n";
-    print "socket->sockname()  ".Dumper($sock->sockname())."\n";
-    print "socket->connected() ".Dumper($sock->connected())."\n";
-    print "socket->error()     ".Dumper($sock->error())."\n";
-    print "message             ".Dumper($message)."\n";
-    confess($message);
+    print "statement           ".Dumper($statement);
+    print "socket->sockname()  ".Dumper($sock->sockname());
+    print "socket->connected() ".Dumper($sock->connected());
+    print "socket->error()     ".Dumper($sock->error());
+    print "message             ".Dumper($message);
+    if($self->{'errors_are_fatal'}) {
+        confess($message);
+    } else {
+        carp($message);
+    }
+    return(500, 'socket error', undef);
 }
 
 ########################################
@@ -517,7 +604,7 @@ sub _parse_header {
 
     my $status         = substr($header,0,3);
     my $content_length = substr($header,5);
-    if($content_length !~ m/^\s*(\d+)$/) {
+    if($content_length !~ m/^\s*(\d+)$/mx) {
         return(499, 'failed to get content-length from header', undef);
     } else {
         $content_length = $1;

@@ -61,7 +61,13 @@ sub _open {
     }
     my $sock = IO::Socket::UNIX->new($self->{'socket'});
     if(!defined $sock or !$sock->connected()) {
-        croak("failed to connect to ($self->{'socket'}): $!");
+        my $msg = "failed to connect to $self->{'socket'} :$!";
+        if($self->{'errors_are_fatal'}) {
+            croak($msg);
+        }
+        $Nagios::MKLivestatus::ErrorCode    = 500;
+        $Nagios::MKLivestatus::ErrorMessage = $msg;
+        return;
     }
     return($sock);
 }

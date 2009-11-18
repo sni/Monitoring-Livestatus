@@ -1,9 +1,12 @@
 Revision history for Perl extension Nagios::MKLivestatus.
 
 0.20  not finished yet
-	- error handling with ResponseHeader: fixed16
+	- added keepalive support
+	- added support for ResponseHeader: fixed16
+	- added error handling
 	- added pod test
 	- added tests with real socket / server
+	- fixed perl::critic tests
 
 0.18  Sat Nov 14 2009 08:58:02 GMT
 	- fixed requirements
