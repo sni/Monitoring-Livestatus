@@ -6,6 +6,7 @@ Revision history for Perl extension Nagios::MKLivestatus.
 	- added error handling
 	- added pod test
 	- added tests with real socket / server
+	- added column aliases
 	- fixed perl::critic tests
 
 0.18  Sat Nov 14 2009 08:58:02 GMT

@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.19_03';
+our $VERSION = '0.19_04';
 
 
 =head1 NAME
@@ -148,6 +148,10 @@ sub do {
 
  use limit to limit the result to this number of rows
 
+ column aliases can be defined with a rename hash
+
+    my $hash_refs = $nl->selectall_arrayref("GET hosts", { Slice => {}, rename => { 'name' => 'host_name' } });
+
 =cut
 
 sub selectall_arrayref {
@@ -178,7 +182,11 @@ sub selectall_arrayref {
         for my $res (@{$result->{'result'}}) {
             my $hash_ref;
             for(my $x=0;$x<scalar @{$res};$x++) {
-                $hash_ref->{$result->{'keys'}->[$x]} = $res->[$x];
+                my $key = $result->{'keys'}->[$x];
+                if(exists $opt->{'rename'} and defined $opt->{'rename'}->{$key}) {
+                    $key = $opt->{'rename'}->{$key};
+                }
+                $hash_ref->{$key} = $res->[$x];
             }
             push @hash_refs, $hash_ref;
         }
