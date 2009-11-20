@@ -53,7 +53,10 @@ sub _open {
     if(!-S $self->{'socket'}) {
         croak("failed to open socket $self->{'socket'}: $!");
     }
-    my $sock = IO::Socket::UNIX->new($self->{'socket'});
+    my $sock = IO::Socket::UNIX->new(
+                                        Peer     => $self->{'socket'},
+                                        timeout  => $self->{'timeout'},
+                                     );
     if(!defined $sock or !$sock->connected()) {
         my $msg = "failed to connect to $self->{'socket'} :$!";
         if($self->{'errors_are_fatal'}) {

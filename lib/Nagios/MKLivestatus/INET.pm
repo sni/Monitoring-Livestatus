@@ -48,7 +48,10 @@ sub new {
 
 sub _open {
     my $self = shift;
-    my $sock = IO::Socket::INET->new($self->{'server'});
+    my $sock = IO::Socket::INET->new(
+                                     PeerAddr => $self->{'server'},
+                                     timeout  => $self->{'timeout'},
+                                     );
     if(!defined $sock or !$sock->connected()) {
         my $msg = "failed to connect to $self->{'server'} :$!";
         if($self->{'errors_are_fatal'}) {

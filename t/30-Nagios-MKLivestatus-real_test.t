@@ -79,12 +79,12 @@ for my $key (keys %{$objects_to_test}) {
 
     #########################
     # set downtime for a host and service
-    $nl->verbose(1);
+    #$nl->verbose(1);
     my $firsthost = $nl->select_scalar_value("GET hosts\nColumns: name\nLimit: 1");
     $nl->do('COMMAND ['.time().'] SCHEDULE_HOST_DOWNTIME;'.$firsthost.';'.time().';'.(time()+30).';0;0;30;'.$0.';Some Downtime Comment');
     my $firstservice = $nl->select_scalar_value("GET services\nColumns: description\nFilter: host_name = $firsthost\nLimit: 1");
     $nl->do('COMMAND ['.time().'] SCHEDULE_SERVICE_DOWNTIME;'.$firsthost.';'.$firstservice.';'.time().';'.(time()+30).';0;0;30;'.$0.';Some Downtime Comment');
-    $nl->verbose(0);
+    #$nl->verbose(0);
 
     #########################
     # check keys
