@@ -12,7 +12,7 @@ BEGIN {
   if ( $@ ) {
     plan skip_all => 'need threads support for testing a real socket'
   }else{
-    plan tests => 67
+    plan tests => 107
   }
 }
 
@@ -52,6 +52,12 @@ my $selectrow_arrayref  = [ 'alias1', 'host1', 'contact1' ];
 my $selectrow_hashref   = { 'contacts' => 'contact1', 'name' => 'host1', 'alias' => 'alias1' };
 
 #########################
+# Single Querys
+#########################
+my $single_statement    = "GET hosts\nColumns: alias\nFilter: name = host1";
+my $select_scalar_value = 'alias1';
+
+#########################
 # Stats Querys
 #########################
 my $stats_statement = "GET services\nStats: state = 0\nStats: state = 1\nStats: state = 2\nStats: state = 3";
@@ -64,6 +70,19 @@ my $stats_selectcol_arrayref  = [ '4297' ];
 my @stats_selectrow_array     = ( '4297', '13', '9', '0' );
 my $stats_selectrow_arrayref  = [ '4297', '13', '9', '0' ];
 my $stats_selectrow_hashref   = { 'state = 0' => '4297', 'state = 1' => '13', 'state = 2' => '9', 'state = 3' => 0 };
+
+#########################
+# Empty Querys
+#########################
+my $empty_statement = "GET services\nFilter: description = empty";
+
+# expected results
+my $empty_selectall_arrayref = [];
+my $empty_selectcol_arrayref = [];
+my @empty_selectrow_array;
+my $empty_selectrow_arrayref;
+my $empty_selectrow_hashref;
+
 
 #########################
 # get a temp file from File::Temp and replace it with our socket
@@ -106,6 +125,18 @@ my $objects_to_test = {
 for my $key (keys %{$objects_to_test}) {
     my $nl = $objects_to_test->{$key};
     isa_ok($nl, 'Nagios::MKLivestatus');
+
+    ##################################################
+    # test settings
+    my $rt = $nl->verbose(1);
+    is($rt, '1', 'enable verbose');
+    $rt = $nl->verbose(0);
+    is($rt, '1', 'disable verbose');
+
+    $rt = $nl->errors_are_fatal(0);
+    is($rt, '1', 'disable errors_are_fatal');
+    $rt = $nl->errors_are_fatal(1);
+    is($rt, '1', 'enable errors_are_fatal');
 
     ##################################################
     # do some sample querys
@@ -181,6 +212,34 @@ for my $key (keys %{$objects_to_test}) {
     $hash_ref = $nl->selectrow_hashref($stats_statement);
     is_deeply($hash_ref, $stats_selectrow_hashref, 'selectrow_hashref($stats_statement)')
         or diag("got: ".Dumper($hash_ref)."\nbut expected ".Dumper($stats_selectrow_hashref));
+
+    my $scal = $nl->select_scalar_value($single_statement);
+    is($scal, $select_scalar_value, 'select_scalar_value($single_statement)')
+        or diag("got: ".Dumper($scal)."\nbut expected ".Dumper($select_scalar_value));
+
+    ##################################################
+    # empty querys
+    ##################################################
+    $ary_ref  = $nl->selectall_arrayref($empty_statement);
+    is_deeply($ary_ref, $empty_selectall_arrayref, 'selectall_arrayref($empty_statement)')
+        or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($empty_selectall_arrayref));
+
+    $ary_ref  = $nl->selectcol_arrayref($empty_statement);
+    is_deeply($ary_ref, $empty_selectcol_arrayref, 'selectcol_arrayref($empty_statement)')
+        or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($empty_selectcol_arrayref));
+
+    @row_ary = $nl->selectrow_array($empty_statement);
+    is_deeply(\@row_ary, \@empty_selectrow_array, 'selectrow_arrayref($empty_statement)')
+        or diag("got: ".Dumper(\@row_ary)."\nbut expected ".Dumper(\@empty_selectrow_array));
+
+    $ary_ref  = $nl->selectrow_arrayref($empty_statement);
+    is_deeply($ary_ref, $empty_selectrow_arrayref, 'selectrow_arrayref($empty_statement)')
+        or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($empty_selectrow_arrayref));
+
+    $hash_ref = $nl->selectrow_hashref($empty_statement);
+    is_deeply($hash_ref, $empty_selectrow_hashref, 'selectrow_hashref($empty_statement)')
+        or diag("got: ".Dumper($hash_ref)."\nbut expected ".Dumper($empty_selectrow_hashref));
+
 }
 
 ##################################################
@@ -231,11 +290,14 @@ sub create_socket {
         if($recv =~ '^exit') {
             $data = "";
         }
+        elsif($recv =~ m/^GET .*?\s+Filter:.*?empty/m) {
+            $data = '';
+        }
         elsif($recv =~ m/^GET hosts\s+Columns: alias/m) {
-            $data = join( chr($line_seperator), map( join( chr($column_seperator), $_->[0]), @{$test_data} ) )."\n";
+            $data = join( chr($line_seperator), map( join( chr($column_seperator), $_->[0]), @{$test_data}[1..3] ) )."\n";
         }
         elsif($recv =~ m/^GET hosts\s+Columns: name/m) {
-            $data = join( chr($line_seperator), map( join( chr($column_seperator), $_->[1]), @{$test_data} ) )."\n";
+            $data = join( chr($line_seperator), map( join( chr($column_seperator), $_->[1]), @{$test_data}[1..3] ) )."\n";
         }
         elsif($recv =~ m/^GET hosts/) {
             $data = join( chr($line_seperator), map( join( chr($column_seperator), @{$_}), @{$test_data} ) )."\n";

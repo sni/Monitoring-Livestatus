@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.19_04';
+our $VERSION = '0.19_05';
 
 
 =head1 NAME
@@ -27,9 +27,7 @@ to install and activate the livestatus addon in your nagios installation.
 
 =head1 CONSTRUCTOR
 
-=over 4
-
-=item new ( [ARGS] )
+=head2 new ( [ARGS] )
 
 Creates an C<Nagios::MKLivestatus> object. C<new> takes at least the socketpath.
 Arguments are in key-value pairs.
@@ -43,11 +41,10 @@ Arguments are in key-value pairs.
     host_service_seperator    ascii code of the host/service seperator, defaults to 124 (pipe)
     keepalive                 enable keepalive. Default is off
     errors_are_fatal          errors will die with an error message. Default: on
+    timeout                   set a general timeout. Used for connect and querys, Default 10sec
 
 If the constructor is only passed a single argument, it is assumed to
 be a the C<socket> specification. Use either socker OR server.
-
-=back
 
 =cut
 
@@ -67,6 +64,7 @@ sub new {
                     "keepalive"                 => 0,       # enable keepalive?
                     "errors_are_fatal"          => 1,       # die on errors
                     "backend"                   => undef,   # should be keept undef, used internally
+                    "timeout"                   => 10,
                };
     bless $self, $class;
 
@@ -107,9 +105,7 @@ sub new {
 
 =head1 METHODS
 
-=over 4
-
-=item do
+=head2 do
 
  do($statement)
 
@@ -128,7 +124,7 @@ sub do {
 
 ########################################
 
-=item selectall_arrayref
+=head2 selectall_arrayref
 
  selectall_arrayref($statement)
  selectall_arrayref($statement, %opts)
@@ -199,7 +195,7 @@ sub selectall_arrayref {
 
 ########################################
 
-=item selectall_hashref
+=head2 selectall_hashref
 
  selectall_hashref($statement, $key_field)
 
@@ -232,7 +228,7 @@ sub selectall_hashref {
 
 ########################################
 
-=item selectcol_arrayref
+=head2 selectcol_arrayref
 
  selectcol_arrayref($statement)
  selectcol_arrayref($statement, %opt )
@@ -293,7 +289,7 @@ sub selectcol_arrayref {
 
 ########################################
 
-=item selectrow_array
+=head2 selectrow_array
 
  selectrow_array($statement)
 
@@ -316,7 +312,7 @@ sub selectrow_array {
 
 ########################################
 
-=item selectrow_arrayref
+=head2 selectrow_arrayref
 
  selectrow_arrayref($statement)
 
@@ -340,7 +336,7 @@ sub selectrow_arrayref {
 
 ########################################
 
-=item selectrow_hashref
+=head2 selectrow_hashref
 
  selectrow_hashref($statement)
 
@@ -364,7 +360,7 @@ sub selectrow_hashref {
 
 ########################################
 
-=item select_scalar_value
+=head2 select_scalar_value
 
  select_scalar_value($statement)
 
@@ -380,14 +376,13 @@ sub select_scalar_value {
     my $statement = shift;
 
     my $row = $self->selectrow_arrayref($statement);
-    return if !defined $row;
     return $row->[0] if scalar @{$row} > 0;
     return;
 }
 
 ########################################
 
-=item errors_are_fatal
+=head2 errors_are_fatal
 
  errors_are_fatal($values)
 
@@ -403,7 +398,29 @@ sub errors_are_fatal {
     $self->{'errors_are_fatal'}                = $value;
     $self->{'CONNECTOR'}->{'errors_are_fatal'} = $value;
 
-    return;
+    return 1;
+}
+
+
+########################################
+
+=head2 verbose
+
+ verbose($values)
+
+ Enable or disable verbose output. When enabled the module will dump out debug output
+
+ returns always true
+
+=cut
+sub verbose {
+    my $self  = shift;
+    my $value = shift;
+
+    $self->{'verbose'}                = $value;
+    $self->{'CONNECTOR'}->{'verbose'} = $value;
+
+    return 1;
 }
 
 
@@ -422,66 +439,67 @@ sub _send {
     croak("no statement") if !defined $statement;
     chomp($statement);
 
+    my($status,$msg,$body);
     if($statement =~ m/^Separators:/mx) {
-        $Nagios::MKLivestatus::ErrorCode    = 492;
-        $Nagios::MKLivestatus::ErrorMessage = "Separators not allowed in statement. Please use the seperator options in new()";
-        return;
+        $status = 492;
+        #$Nagios::MKLivestatus::ErrorMessage = "Separators not allowed in statement. Please use the seperator options in new()";
     }
 
-    if($statement =~ m/^KeepAlive:/mx) {
-        $Nagios::MKLivestatus::ErrorCode    = 496;
-        $Nagios::MKLivestatus::ErrorMessage = "Keepalive not allowed in statement. Please use the keepalive option in new()";
-        return;
+    elsif($statement =~ m/^KeepAlive:/mx) {
+        $status = 496;
+        #$Nagios::MKLivestatus::ErrorMessage = "Keepalive not allowed in statement. Please use the keepalive option in new()";
     }
 
-    if($statement =~ m/^ResponseHeader:/mx) {
-        $Nagios::MKLivestatus::ErrorCode    = 495;
-        $Nagios::MKLivestatus::ErrorMessage = "ResponseHeader not allowed in statement. Header will be set automatically";
-        return;
+    elsif($statement =~ m/^ResponseHeader:/mx) {
+        $status = 495;
+        #$Nagios::MKLivestatus::ErrorMessage = "ResponseHeader not allowed in statement. Header will be set automatically";
     }
 
-    if($statement =~ m/^ColumnHeaders:/mx) {
-        $Nagios::MKLivestatus::ErrorCode    = 494;
-        $Nagios::MKLivestatus::ErrorMessage = "ColumnHeaders not allowed in statement. Header will be set automatically";
-        return;
+    elsif($statement =~ m/^ColumnHeaders:/mx) {
+        $status = 494;
+        #$Nagios::MKLivestatus::ErrorMessage = "ColumnHeaders not allowed in statement. Header will be set automatically";
     }
 
-    if($statement =~ m/^OuputFormat:/mx) {
-        $Nagios::MKLivestatus::ErrorCode    = 493;
-        $Nagios::MKLivestatus::ErrorMessage = "OuputFormat not allowed in statement. Header will be set automatically";
-        return;
+    elsif($statement =~ m/^OuputFormat:/mx) {
+        $status = 493;
+        #$Nagios::MKLivestatus::ErrorMessage = "OuputFormat not allowed in statement. Header will be set automatically";
     }
+    else {
 
-    # Commands need no additional header
-    if($statement !~ m/^COMMAND/mx) {
-        $header .= "Separators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
-        $header .= "ResponseHeader: fixed16\n";
-    }
-    if($self->{'keepalive'}) {
-        $header .= "KeepAlive: on\n";
-    }
-    my $send = "$statement\n$header";
-    print "> ".Dumper($send) if $self->{'verbose'};
-    my($status,$msg,$body) = $self->_send_socket($send);
-    if($self->{'verbose'}) {
-        print "status: ".Dumper($status);
-        print "msg:    ".Dumper($msg);
-        print "< ".Dumper($body);
+        # Commands need no additional header
+        if($statement !~ m/^COMMAND/mx) {
+            $header .= "Separators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
+            $header .= "ResponseHeader: fixed16\n";
+        }
+        if($self->{'keepalive'}) {
+            $header .= "KeepAlive: on\n";
+        }
+        my $send = "$statement\n$header";
+        print "> ".Dumper($send) if $self->{'verbose'};
+        ($status,$msg,$body) = $self->_send_socket($send);
+        if($self->{'verbose'}) {
+            print "status: ".Dumper($status);
+            print "msg:    ".Dumper($msg);
+            print "< ".Dumper($body);
+        }
     }
 
     if($status != 200) {
-        $body = '' if !defined $body;
         chomp($body);
-        $msg = "$msg\n$body";
         $Nagios::MKLivestatus::ErrorCode    = $status;
-        $Nagios::MKLivestatus::ErrorMessage = $msg;
+        if(defined $body and $body ne '') {
+            $Nagios::MKLivestatus::ErrorMessage = $body;
+        } else {
+            $Nagios::MKLivestatus::ErrorMessage = $msg;
+        }
         if($self->{'errors_are_fatal'}) {
-            croak("ERROR ".$status." - ".$msg."\nin query:\n".$statement);
+            croak("ERROR ".$status." - ".$Nagios::MKLivestatus::ErrorMessage."\nin query:\n".$statement);
         }
         return;
     }
 
-    return if !defined $body;
+    # return a empty result set if nothing found
+    return({ keys => [], result => []}) if !defined $body;
 
     my $line_seperator = chr($self->{'line_seperator'});
     my $col_seperator  = chr($self->{'column_seperator'});
@@ -565,7 +583,7 @@ sub _send_socket {
     }
 
     $sock->read($header, 16) or return($self->_socket_error($statement, $sock, 'reading header from socket failed'));
-    print "header: $header\n" if $self->{'verbose'};
+    print "header: $header" if $self->{'verbose'};
     my($status, $msg, $content_length) = $self->_parse_header($header);
     return($status, $msg, undef) if !defined $content_length;
     if($content_length > 0) {
@@ -634,8 +652,6 @@ sub _parse_header {
 }
 
 1;
-
-=back
 
 =head1 SEE ALSO
 
