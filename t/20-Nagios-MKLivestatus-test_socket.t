@@ -12,7 +12,7 @@ BEGIN {
   if ( $@ ) {
     plan skip_all => 'need threads support for testing a real socket'
   }else{
-    plan tests => 107
+    plan tests => 105
   }
 }
 
@@ -243,15 +243,9 @@ for my $key (keys %{$objects_to_test}) {
 }
 
 ##################################################
-# exit tests
-my $exited_ok = $objects_to_test->{'unix_single_arg'}->do("COMMAND exit");
-is($exited_ok, 1, 'exiting test socket');
-
-my $exited_ok2 = $objects_to_test->{'inet_single_arg'}->do("COMMAND exit");
-is($exited_ok2, 1, 'exiting test socket');
-
-$thr1->join();
-$thr2->join();
+# exit threads
+$thr1->kill('KILL')->detach();
+$thr2->kill('KILL')->detach();
 exit;
 
 
@@ -287,10 +281,7 @@ sub create_socket {
         while(<$socket>) { $recv .= $_; }
         my $data;
         my $status = 200;
-        if($recv =~ '^COMMAND exit') {
-            $data = "";
-        }
-        elsif($recv =~ m/^GET .*?\s+Filter:.*?empty/m) {
+        if($recv =~ m/^GET .*?\s+Filter:.*?empty/m) {
             $data = '';
         }
         elsif($recv =~ m/^GET hosts\s+Columns: alias/m) {
@@ -309,9 +300,6 @@ sub create_socket {
         print $socket $status." ".$content_length."\n";
         print $socket $data;
         close($socket);
-        if($recv =~ '^COMMAND exit') {
-            return;
-        }
     }
     unlink($socket_path);
 }
