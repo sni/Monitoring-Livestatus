@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.19_05';
+our $VERSION = '0.19_06';
 
 
 =head1 NAME
@@ -376,6 +376,7 @@ sub select_scalar_value {
     my $statement = shift;
 
     my $row = $self->selectrow_arrayref($statement);
+    return if !defined $row;
     return $row->[0] if scalar @{$row} > 0;
     return;
 }
@@ -433,43 +434,65 @@ sub _send {
     my $statement = shift;
     my $header = "";
 
-    undef $Nagios::MKLivestatus::ErrorCode;
+    $Nagios::MKLivestatus::ErrorCode = 0;
     undef $Nagios::MKLivestatus::ErrorMessage;
 
-    croak("no statement") if !defined $statement;
+    return(490, $self->_get_error(490), undef) if !defined $statement;
     chomp($statement);
 
     my($status,$msg,$body);
     if($statement =~ m/^Separators:/mx) {
         $status = 492;
-        #$Nagios::MKLivestatus::ErrorMessage = "Separators not allowed in statement. Please use the seperator options in new()";
+        $msg    = $self->_get_error($status);
     }
 
     elsif($statement =~ m/^KeepAlive:/mx) {
         $status = 496;
-        #$Nagios::MKLivestatus::ErrorMessage = "Keepalive not allowed in statement. Please use the keepalive option in new()";
+        $msg    = $self->_get_error($status);
     }
 
     elsif($statement =~ m/^ResponseHeader:/mx) {
         $status = 495;
-        #$Nagios::MKLivestatus::ErrorMessage = "ResponseHeader not allowed in statement. Header will be set automatically";
+        $msg    = $self->_get_error($status);
     }
 
     elsif($statement =~ m/^ColumnHeaders:/mx) {
         $status = 494;
-        #$Nagios::MKLivestatus::ErrorMessage = "ColumnHeaders not allowed in statement. Header will be set automatically";
+        $msg    = $self->_get_error($status);
     }
 
     elsif($statement =~ m/^OuputFormat:/mx) {
         $status = 493;
-        #$Nagios::MKLivestatus::ErrorMessage = "OuputFormat not allowed in statement. Header will be set automatically";
+        $msg    = $self->_get_error($status);
     }
+
+    # should be cought in mlivestatus directly
+    elsif($statement =~ m/^Limit:\ (.*)$/mx and $1 !~ m/^\d+$/mx) {
+        $status = 403;
+        $msg    = $self->_get_error($status);
+    }
+    elsif($statement =~ m/^GET\ (.*)$/mx and $1 =~ m/^\s*$/mx) {
+        $status = 403;
+        $msg    = $self->_get_error($status);
+    }
+
+    elsif($statement =~ m/^Columns:\ (.*)$/mx and ($1 =~ m/,/mx or $1 =~ /^\s*$/mx)) {
+        $status = 405;
+        $msg    = $self->_get_error($status);
+    }
+    elsif($statement !~ m/^GET\ /mx and $statement !~ m/^COMMAND\ /mx) {
+        $status = 401;
+        $msg    = $self->_get_error($status);
+    }
+
     else {
 
         # Commands need no additional header
         if($statement !~ m/^COMMAND/mx) {
             $header .= "Separators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
             $header .= "ResponseHeader: fixed16\n";
+            #$header .= "ColumnHeaders: on\n";
+
         }
         if($self->{'keepalive'}) {
             $header .= "KeepAlive: on\n";
@@ -484,7 +507,8 @@ sub _send {
         }
     }
 
-    if($status != 200) {
+    if($status >= 300) {
+        $body = '' if !defined $body;
         chomp($body);
         $Nagios::MKLivestatus::ErrorCode    = $status;
         if(defined $body and $body ne '') {
@@ -493,7 +517,9 @@ sub _send {
             $Nagios::MKLivestatus::ErrorMessage = $msg;
         }
         if($self->{'errors_are_fatal'}) {
-            croak("ERROR ".$status." - ".$Nagios::MKLivestatus::ErrorMessage."\nin query:\n".$statement);
+            my $nicestatement = $statement;
+            $nicestatement    =~ s/\n/\\n/gmx;
+            croak("ERROR ".$status." - ".$Nagios::MKLivestatus::ErrorMessage." in query:\n'".$nicestatement."'\n");
         }
         return;
     }
@@ -558,9 +584,7 @@ sub _send_socket {
     my $statement = shift;
     my($recv,$header);
 
-    croak("no statement") if !defined $statement;
-
-    my $sock = $self->_open() or return(491, 'failed to connect', undef);
+    my $sock = $self->_open() or return(491, $self->_get_error(491), $!);
     print $sock $statement;
     if($self->{'keepalive'}) {
         print $sock "\n";
@@ -571,15 +595,7 @@ sub _send_socket {
     # COMMAND statements never return something
     if($statement =~ m/^COMMAND/mx) {
         $self->_close($sock) unless $self->{'keepalive'};
-        return('200', 'COMMANDs never return something', undef);
-    }
-
-    if(!$sock->opened()) {
-        confess("socket is not open, cannot read");
-    }
-
-    if($sock->error()) {
-        confess("socket has errors, cannot read");
+        return('201', $self->_get_error(201), undef);
     }
 
     $sock->read($header, 16) or return($self->_socket_error($statement, $sock, 'reading header from socket failed'));
@@ -610,7 +626,7 @@ sub _socket_error {
     } else {
         carp($message);
     }
-    return(500, 'socket error', undef);
+    return(500, $self->_get_error(500), undef);
 }
 
 ########################################
@@ -619,36 +635,69 @@ sub _parse_header {
     my $header = shift;
 
     if(!defined $header) {
-        return(497, 'got no header', undef);
+        return(497, $self->_get_error(497), undef);
     }
 
     my $headerlength = length($header);
     if($headerlength != 16) {
-        return(498, 'header is not exactly 16byte long', undef);
+        return(498, $self->_get_error(498), undef);
     }
     chomp($header);
 
     my $status         = substr($header,0,3);
     my $content_length = substr($header,5);
     if($content_length !~ m/^\s*(\d+)$/mx) {
-        return(499, 'failed to get content-length from header', undef);
+        return(499, $self->_get_error(499), undef);
     } else {
         $content_length = $1;
     }
 
-    #print "status: ".$status."\n";
-    #print "length: ".$content_length."\n";
+    return($status, $self->_get_error($status), $content_length);
+}
+
+########################################
+
+=head1 ERROR HANDLING
+
+Errorhandling can be done like this:
+
+    use Nagios::MKLivestatus;
+    my $nl = Nagios::MKLivestatus->new( socket => '/var/lib/nagios3/rw/livestatus.sock' );
+    $nl->errors_are_fatal(0);
+    my $hosts = $nl->selectall_arrayref("GET hosts");
+    if($Nagios::MKLivestatus::ErrorCode)Ê{
+        croak($Nagios::MKLivestatus::ErrorMessage);
+    }
+
+=cut
+sub _get_error {
+    my $self = shift;
+    my $code = shift;
 
     my $codes = {
         '200' => 'OK. Reponse contains the queried data.',
+        '201' => 'COMMANDs never return something',
         '401' => 'The request contains an invalid header.',
         '402' => 'The request is completely invalid.',
         '403' => 'The request is incomplete.',
         '404' => 'The target of the GET has not been found (e.g. the table).',
         '405' => 'A non-existing column was being referred to',
+        '490' => 'no query',
+        '491' => 'failed to connect',
+        '492' => 'Separators not allowed in statement. Please use the seperator options in new()',
+        '493' => 'OuputFormat not allowed in statement. Header will be set automatically',
+        '494' => 'ColumnHeaders not allowed in statement. Header will be set automatically',
+        '495' => 'ResponseHeader not allowed in statement. Header will be set automatically',
+        '496' => 'Keepalive not allowed in statement. Please use the keepalive option in new()',
+        '497' => 'got no header',
+        '498' => 'header is not exactly 16byte long',
+        '499' => 'failed to get content-length from header',
+        '500' => 'socket error',
     };
 
-    return($status, $codes->{$status}, $content_length);
+    confess('non existant error code: '.$code) if !defined $codes->{$code};
+
+    return($codes->{$code});
 }
 
 1;

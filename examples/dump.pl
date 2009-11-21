@@ -89,22 +89,17 @@ if(!defined $opt_f) {
 #########################################################################
 my $nl;
 if(index($opt_f, ':') > 0) {
-    $nl = Nagios::MKLivestatus->new( server => $opt_f, verbose => 1 );
+    $nl = Nagios::MKLivestatus->new( server => $opt_f, verbose => $opt_v );
 } else {
-    $nl = Nagios::MKLivestatus->new( socket => $opt_f, verbose => 1 );
+    $nl = Nagios::MKLivestatus->new( socket => $opt_f, verbose => $opt_v );
 }
 
 #########################################################################
-my $cmd = $nl->do('COMMAND blah [12345678] do something');
-print Dumper($cmd);
-
-#########################################################################
-my $hosts = $nl->selectall_hashref('GET hostsa', 'name');
+my $hosts = $nl->selectall_hashref('GET hosts', 'name');
 print Dumper($hosts);
 
 #########################################################################
-#my $services = $nl->selectall_arrayref('GET services', { Slice => {}});
-my $services = $nl->selectall_hashref('GET servicesa', 'description');
+my $services = $nl->selectall_arrayref('GET services', { Slice => {}});
 print Dumper($services);
 
 #########################################################################
