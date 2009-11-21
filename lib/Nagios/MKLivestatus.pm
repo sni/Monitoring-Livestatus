@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.19_06';
+our $VERSION = '0.20';
 
 
 =head1 NAME
@@ -665,7 +665,7 @@ Errorhandling can be done like this:
     my $nl = Nagios::MKLivestatus->new( socket => '/var/lib/nagios3/rw/livestatus.sock' );
     $nl->errors_are_fatal(0);
     my $hosts = $nl->selectall_arrayref("GET hosts");
-    if($Nagios::MKLivestatus::ErrorCode)Ê{
+    if($Nagios::MKLivestatus::ErrorCode) {
         croak($Nagios::MKLivestatus::ErrorMessage);
     }
 
