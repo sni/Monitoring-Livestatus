@@ -615,18 +615,20 @@ sub _socket_error {
     my $self      = shift;
     my $statement = shift;
     my $sock      = shift;
-    my $message   = shift;
-    print "statement           ".Dumper($statement);
-    print "socket->sockname()  ".Dumper($sock->sockname());
-    print "socket->connected() ".Dumper($sock->connected());
-    print "socket->error()     ".Dumper($sock->error());
-    print "message             ".Dumper($message);
+    my $body      = shift;
+
+    my $message = "\n";
+    $message   .= "statement           ".Dumper($statement);
+    $message   .= "socket->sockname()  ".Dumper($sock->sockname());
+    $message   .= "socket->connected() ".Dumper($sock->connected());
+    $message   .= "socket->error()     ".Dumper($sock->error());
+    $message   .= "message             ".Dumper($body);
     if($self->{'errors_are_fatal'}) {
         confess($message);
     } else {
         carp($message);
     }
-    return(500, $self->_get_error(500), undef);
+    return(500, $self->_get_error(500), $message);
 }
 
 ########################################
