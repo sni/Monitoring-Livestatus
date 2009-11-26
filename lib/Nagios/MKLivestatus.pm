@@ -491,11 +491,10 @@ sub _send {
         if($statement !~ m/^COMMAND/mx) {
             $header .= "Separators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
             $header .= "ResponseHeader: fixed16\n";
+            if($self->{'keepalive'}) {
+                $header .= "KeepAlive: on\n";
+            }
             #$header .= "ColumnHeaders: on\n";
-
-        }
-        if($self->{'keepalive'}) {
-            $header .= "KeepAlive: on\n";
         }
         my $send = "$statement\n$header";
         print "> ".Dumper($send) if $self->{'verbose'};
@@ -594,7 +593,7 @@ sub _send_socket {
 
     # COMMAND statements never return something
     if($statement =~ m/^COMMAND/mx) {
-        $self->_close($sock) unless $self->{'keepalive'};
+        $self->_close($sock);
         return('201', $self->_get_error(201), undef);
     }
 
