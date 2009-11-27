@@ -438,13 +438,17 @@ sub verbose {
 sub _send {
     my $self      = shift;
     my $statement = shift;
-    my $header = "";
+    my $header    = "";
+    my $keys;
 
     $Nagios::MKLivestatus::ErrorCode = 0;
     undef $Nagios::MKLivestatus::ErrorMessage;
 
     return(490, $self->_get_error(490), undef) if !defined $statement;
     chomp($statement);
+
+    # remove empty lines from statement
+    $statement =~ s/^\s*$//gmx;
 
     my($status,$msg,$body);
     if($statement =~ m/^Separators:/mx) {
@@ -493,6 +497,14 @@ sub _send {
 
     else {
 
+        # for querys with column header, no seperate columns will be returned
+        if($statement =~ m/^Columns:\ (.*)$/mx) {
+            my @keys = split/\s+/mx, $1;
+            $keys = \@keys;
+        } elsif($statement =~ m/^Stats:\ (.*)$/mx) {
+            ($statement,$keys) = $self->_extract_keys_from_stats_statement($statement);
+        }
+
         # Commands need no additional header
         if($statement !~ m/^COMMAND/mx) {
             $header .= "Separators: $self->{'line_seperator'} $self->{'column_seperator'} $self->{'list_seperator'} $self->{'host_service_seperator'}\n";
@@ -501,6 +513,7 @@ sub _send {
                 $header .= "KeepAlive: on\n";
             }
         }
+        chomp($statement);
         my $send = "$statement\n$header";
         print "> ".Dumper($send) if $self->{'verbose'};
         ($status,$msg,$body) = $self->_send_socket($send);
@@ -542,14 +555,7 @@ sub _send {
     ## use critic
 
     # for querys with column header, no seperate columns will be returned
-    my $keys;
-    if($statement =~ m/^Columns:\ (.*)$/mx) {
-        my @keys = split/\s+/mx, $1;
-        $keys = \@keys;
-    } elsif($statement =~ m/^Stats:\ (.*)$/mx) {
-        #@{$keys} = ($statement =~ m/^Stats:\ (.*)$/gmx);
-        @{$keys} = @{$self->_extract_keys_from_stats_statement($statement)};
-    } else {
+    if(!defined $keys) {
         $keys = shift @result;
     }
 
@@ -667,29 +673,49 @@ sub _extract_keys_from_stats_statement {
     my $self      = shift;
     my $statement = shift;
 
-    my @header;
+    my(@header, $new_statement);
 
     for my $line (split/\n/mx, $statement) {
-        if($line =~ m/^Stats:\ (.*)$/mx) {
+        if($line =~ m/^Stats:\ (.*)\s+as\s+(.*)$/mxi) {
+            push @header, $2;
+            $line = 'Stats: '.$1;
+        }
+        elsif($line =~ m/^Stats:\ (.*)$/mx) {
             push @header, $1;
         }
-        if($line =~ m/^StatsAnd:\ (\d+)$/mx) {
+        if($line =~ m/^StatsAnd:\ (\d+)\s+as\s+(.*)$/mx) {
+            for(my $x = 0; $x < $1; $x++) {
+                pop @header;
+            }
+            $line = 'StatsAnd: '.$1;
+            push @header, $2;
+        }
+        elsif($line =~ m/^StatsAnd:\ (\d+)$/mx) {
             my @to_join;
             for(my $x = 0; $x < $1; $x++) {
                 unshift @to_join, pop @header;
             }
             push @header, join(' && ', @to_join);
         }
-        if($line =~ m/^StatsOr:\ (\d+)$/mx) {
+
+        if($line =~ m/^StatsOr:\ (\d+)\s+as\s+(.*)$/mx) {
+            for(my $x = 0; $x < $1; $x++) {
+                pop @header;
+            }
+            $line = 'StatsOr: '.$1;
+            push @header, $2;
+        }
+        elsif($line =~ m/^StatsOr:\ (\d+)$/mx) {
             my @to_join;
             for(my $x = 0; $x < $1; $x++) {
                 unshift @to_join, pop @header;
             }
             push @header, join(' || ', @to_join);
         }
+        $new_statement .= $line."\n";
     }
 
-    return(\@header);
+    return($new_statement, \@header);
 }
 
 ########################################

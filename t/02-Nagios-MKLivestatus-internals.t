@@ -3,7 +3,7 @@
 #########################
 
 use strict;
-use Test::More tests => 5;
+use Test::More tests => 6;
 use File::Temp;
 use Data::Dumper;
 use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
@@ -52,7 +52,7 @@ StatsAnd: 3
 Stats: state = 3
 Stats: active_checks = 1
 StatsOr: 2";
-my @expected_keys = (
+my @expected_keys1 = (
             'state = 0',
             'state = 1',
             'state = 2',
@@ -64,10 +64,49 @@ my @expected_keys = (
             'host_state != 0 && state = 3 && active_checks = 1',
             'state = 3 || active_checks = 1',
         );
-my @got_keys = @{$nl->_extract_keys_from_stats_statement($stats_query1)};
-is_deeply(\@got_keys, \@expected_keys, 'statsAnd, statsOr query keys')
-    or ( diag('got keys: '.Dumper(\@got_keys)) );
+my @got_keys1 = @{$nl->_extract_keys_from_stats_statement($stats_query1)};
+is_deeply(\@got_keys1, \@expected_keys1, 'statsAnd, statsOr query keys')
+    or ( diag('got keys: '.Dumper(\@got_keys1)) );
 
+
+#########################
+my $stats_query2 = "GET services
+Stats: state = 0 as all_ok
+Stats: state = 1 as all_warning
+Stats: state = 2 as all_critical
+Stats: state = 3 as all_unknown
+Stats: state = 4 as all_pending
+Stats: host_state != 0
+Stats: state = 1
+StatsAnd: 2 as all_warning_on_down_hosts
+Stats: host_state != 0
+Stats: state = 2
+StatsAnd: 2 as all_critical_on_down_hosts
+Stats: host_state != 0
+Stats: state = 3
+StatsAnd: 2 as all_unknown_on_down_hosts
+Stats: host_state != 0
+Stats: state = 3
+Stats: active_checks_enabled = 1
+StatsAnd: 3 as all_unknown_active_on_down_hosts
+Stats: state = 3
+Stats: active_checks_enabled = 1
+StatsOr: 2 as all_active_or_unknown";
+my @expected_keys2 = (
+            'all_ok',
+            'all_warning',
+            'all_critical',
+            'all_unknown',
+            'all_pending',
+            'all_warning_on_down_hosts',
+            'all_critical_on_down_hosts',
+            'all_unknown_on_down_hosts',
+            'all_unknown_active_on_down_hosts',
+            'all_active_or_unknown',
+        );
+my @got_keys2 = @{$nl->_extract_keys_from_stats_statement($stats_query2)};
+is_deeply(\@got_keys2, \@expected_keys2, 'stats query keys2')
+    or ( diag('got keys: '.Dumper(\@got_keys2)) );
 
 #########################
 unlink($socket_path);

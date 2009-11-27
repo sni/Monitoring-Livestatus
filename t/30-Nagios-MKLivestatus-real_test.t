@@ -10,7 +10,7 @@ if ( ! defined $ENV{TEST_SOCKET} and !defined $ENV{TEST_SERVER} ) {
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} to run';
     plan( skip_all => $msg );
 } else {
-    plan(tests => 223);
+    plan(tests => 229);
 }
 
 use_ok('Nagios::MKLivestatus');
@@ -99,6 +99,7 @@ for my $key (keys %{$objects_to_test}) {
         is_deeply(\@keys, $expected_keys, $key.' '.$type.'keys');# or ( diag(Dumper(\@keys)) or die("***************\n".$type."\n***************\n") );
     }
 
+
     #########################
     # send a test command
     # commands still dont work and breaks livestatus
@@ -134,9 +135,9 @@ for my $key (keys %{$objects_to_test}) {
 
     $statement = "GET hosts\nColumns: unknown";
     $hash_ref  = $nl->selectrow_hashref($statement );
+    is($hash_ref, undef, $key.' test error 405 body');
     TODO: {
         local $TODO = 'livestatus returns wrong status';
-        is($hash_ref, undef, $key.' test error 405 body');
         is($Nagios::MKLivestatus::ErrorCode, '405', $key.' test error 405 status') or
             diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
     };
@@ -192,4 +193,34 @@ for my $key (keys %{$objects_to_test}) {
     is($hash_ref, undef, $key.' test error 492 body');
     is($Nagios::MKLivestatus::ErrorCode, '492', $key.' test error 492 status: Seperators: 0 1 2 3') or
         diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+
+
+    #########################
+    # check some fancy stats queries
+    my $stats_query = "GET services
+Stats: state = 0 as all_ok
+Stats: state = 1 as all_warning
+Stats: state = 2 as all_critical
+Stats: state = 3 as all_unknown
+Stats: state = 4 as all_pending
+Stats: host_state != 0
+Stats: state = 1
+StatsAnd: 2 as all_warning_on_down_hosts
+Stats: host_state != 0
+Stats: state = 2
+StatsAnd: 2 as all_critical_on_down_hosts
+Stats: host_state != 0
+Stats: state = 3
+StatsAnd: 2 as all_unknown_on_down_hosts
+Stats: host_state != 0
+Stats: state = 3
+Stats: active_checks_enabled = 1
+StatsAnd: 3 as all_unknown_active_on_down_hosts
+Stats: state = 3
+Stats: active_checks_enabled = 1
+StatsOr: 2 as all_active_or_unknown";
+    $hash_ref  = $nl->selectrow_hashref($stats_query );
+    isnt($hash_ref, undef, $key.' test fancy stats query') or
+        diag('got error: '.Dumper($hash_ref));
+
 }
