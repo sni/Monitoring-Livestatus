@@ -1,5 +1,8 @@
 Revision history for Perl extension Nagios::MKLivestatus.
 
+0.24  Fri Nov 27 09:06:11 CET 2009
+	- added support for StatsAnd: and StatsOr: queries
+
 0.22  Mon Nov 23 09:13:19 CET 2009
 	- fixed errors on socket problems
 

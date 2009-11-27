@@ -542,7 +542,8 @@ sub _send {
         my @keys = split/\s+/mx, $1;
         $keys = \@keys;
     } elsif($statement =~ m/^Stats:\ (.*)$/mx) {
-        @{$keys} = ($statement =~ m/^Stats:\ (.*)$/gmx);
+        #@{$keys} = ($statement =~ m/^Stats:\ (.*)$/gmx);
+        @{$keys} = @{$self->_extract_keys_from_stats_statement($statement)};
     } else {
         $keys = shift @result;
     }
@@ -654,6 +655,36 @@ sub _parse_header {
     }
 
     return($status, $self->_get_error($status), $content_length);
+}
+
+########################################
+sub _extract_keys_from_stats_statement {
+    my $self      = shift;
+    my $statement = shift;
+
+    my @header;
+
+    for my $line (split/\n/mx, $statement) {
+        if($line =~ m/^Stats:\ (.*)$/mx) {
+            push @header, $1;
+        }
+        if($line =~ m/^StatsAnd:\ (\d+)$/mx) {
+            my @to_join;
+            for(my $x = 0; $x < $1; $x++) {
+                unshift @to_join, pop @header;
+            }
+            push @header, join(' && ', @to_join);
+        }
+        if($line =~ m/^StatsOr:\ (\d+)$/mx) {
+            my @to_join;
+            for(my $x = 0; $x < $1; $x++) {
+                unshift @to_join, pop @header;
+            }
+            push @header, join(' || ', @to_join);
+        }
+    }
+
+    return(\@header);
 }
 
 ########################################
