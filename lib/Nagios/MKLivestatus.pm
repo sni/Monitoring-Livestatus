@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.20';
+our $VERSION = '0.24';
 
 
 =head1 NAME
@@ -494,7 +494,6 @@ sub _send {
             if($self->{'keepalive'}) {
                 $header .= "KeepAlive: on\n";
             }
-            #$header .= "ColumnHeaders: on\n";
         }
         my $send = "$statement\n$header";
         print "> ".Dumper($send) if $self->{'verbose'};
