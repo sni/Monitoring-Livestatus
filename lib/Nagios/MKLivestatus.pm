@@ -209,10 +209,13 @@ sub selectall_hashref {
     my $self      = shift;
     my $statement = shift;
     my $key_field = shift;
+    my $opt       = shift;
+
+    $opt->{'Slice'} = {} unless defined $opt->{'Slice'};
 
     croak("key is required for selectall_hashref") if !defined $key_field;
 
-    my $result = $self->selectall_arrayref($statement, { Slice => {} });
+    my $result = $self->selectall_arrayref($statement, $opt);
 
     my %indexed;
     for my $row (@{$result}) {
@@ -350,8 +353,11 @@ sub selectrow_arrayref {
 sub selectrow_hashref {
     my $self      = shift;
     my $statement = shift;
+    my $opt       = shift;
 
-    my $result = $self->selectall_arrayref($statement, { Slice => {} }, 1);
+    $opt->{'Slice'} = {} unless defined $opt->{'Slice'};
+
+    my $result = $self->selectall_arrayref($statement, $opt, 1);
     return if !defined $result;
     return $result->[0] if scalar @{$result} > 0;
     return;
