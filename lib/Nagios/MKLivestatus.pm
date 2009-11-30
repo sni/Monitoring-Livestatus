@@ -448,7 +448,7 @@ sub _send {
     chomp($statement);
 
     # remove empty lines from statement
-    $statement =~ s/\n\n/\n/gmx;
+    $statement =~ s/\n+/\n/gmx;
 
     my($status,$msg,$body);
     if($statement =~ m/^Separators:/mx) {
