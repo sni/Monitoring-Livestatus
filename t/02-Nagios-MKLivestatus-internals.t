@@ -3,7 +3,7 @@
 #########################
 
 use strict;
-use Test::More tests => 6;
+use Test::More tests => 7;
 use File::Temp;
 use Data::Dumper;
 use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
@@ -107,6 +107,21 @@ my @expected_keys2 = (
 my @got_keys2 = @{$nl->_extract_keys_from_stats_statement($stats_query2)};
 is_deeply(\@got_keys2, \@expected_keys2, 'stats query keys2')
     or ( diag('got keys: '.Dumper(\@got_keys2)) );
+
+
+#########################
+my $normal_query1 = "GET services
+Columns: host_name as host is_flapping description as name state
+";
+my @expected_keys3 = (
+            'host',
+            'is_flapping',
+            'name',
+            'state',
+        );
+my @got_keys3 = @{$nl->_extract_keys_from_columns_header($normal_query1)};
+is_deeply(\@got_keys3, \@expected_keys3, 'normal query keys')
+    or ( diag('got keys: '.Dumper(\@got_keys3)) );
 
 #########################
 unlink($socket_path);
