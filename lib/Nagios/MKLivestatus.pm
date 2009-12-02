@@ -668,7 +668,7 @@ sub _parse_header {
     my $status         = substr($header,0,3);
     my $content_length = substr($header,5);
     if($content_length !~ m/^\s*(\d+)$/mx) {
-        return(499, $self->_get_error(499), undef);
+        return(499, $self->_get_error(499)."\ngot: ".$header, undef);
     } else {
         $content_length = $1;
     }
