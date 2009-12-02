@@ -619,7 +619,7 @@ sub _send_socket {
 
     $sock->read($header, 16) or return($self->_socket_error($statement, $sock, 'reading header from socket failed'));
     print "header: $header" if $self->{'verbose'};
-    my($status, $msg, $content_length) = $self->_parse_header($header);
+    my($status, $msg, $content_length) = $self->_parse_header($header, $sock);
     return($status, $msg, undef) if !defined $content_length;
     if($content_length > 0) {
         $sock->read($recv, $content_length) or return($self->_socket_error($statement, $sock, 'reading body from socket failed'));
@@ -654,6 +654,7 @@ sub _socket_error {
 sub _parse_header {
     my $self   = shift;
     my $header = shift;
+    my $sock   = shift;
 
     if(!defined $header) {
         return(497, $self->_get_error(497), undef);
@@ -668,7 +669,7 @@ sub _parse_header {
     my $status         = substr($header,0,3);
     my $content_length = substr($header,5);
     if($content_length !~ m/^\s*(\d+)$/mx) {
-        return(499, $self->_get_error(499)."\ngot: ".$header, undef);
+        return(499, $self->_get_error(499)."\ngot: ".$header.<$sock>, undef);
     } else {
         $content_length = $1;
     }
@@ -819,7 +820,7 @@ sub _get_error {
         '496' => 'Keepalive not allowed in statement. Please use the keepalive option in new()',
         '497' => 'got no header',
         '498' => 'header is not exactly 16byte long',
-        '499' => 'failed to get content-length from header',
+        '499' => 'not a valid header (no content-length)',
         '500' => 'socket error',
     };
 
