@@ -100,20 +100,20 @@ sub new {
     my(%options) = @_;
 
     my $self = {
-                    "verbose"                   => 0,       # enable verbose output
-                    "socket"                    => undef,   # use unix sockets
-                    "server"                    => undef,   # use tcp connections
-                    "peer"                      => undef,   # use for socket / server connections
-                    "name"                      => undef,   # human readable name
-                    "line_seperator"            => 10,      # defaults to newline
-                    "column_seperator"          => 0,       # defaults to null byte
-                    "list_seperator"            => 44,      # defaults to comma
-                    "host_service_seperator"    => 124,     # defaults to pipe
-                    "keepalive"                 => 0,       # enable keepalive?
-                    "errors_are_fatal"          => 1,       # die on errors
-                    "backend"                   => undef,   # should be keept undef, used internally
-                    "timeout"                   => 10,
-               };
+      "verbose"                   => 0,       # enable verbose output
+      "socket"                    => undef,   # use unix sockets
+      "server"                    => undef,   # use tcp connections
+      "peer"                      => undef,   # use for socket / server connections
+      "name"                      => undef,   # human readable name
+      "line_seperator"            => 10,      # defaults to newline
+      "column_seperator"          => 0,       # defaults to null byte
+      "list_seperator"            => 44,      # defaults to comma
+      "host_service_seperator"    => 124,     # defaults to pipe
+      "keepalive"                 => 0,       # enable keepalive?
+      "errors_are_fatal"          => 1,       # die on errors
+      "backend"                   => undef,   # should be keept undef, used internally
+      "timeout"                   => 10,
+    };
     bless $self, $class;
 
     for my $opt_key (keys %options) {
