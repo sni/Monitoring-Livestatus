@@ -3,7 +3,7 @@
 #########################
 
 use strict;
-use Test::More tests => 3;
+use Test::More tests => 11;
 use File::Temp;
 use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
 BEGIN { use_ok('Nagios::MKLivestatus') };
@@ -22,6 +22,7 @@ my $listener = IO::Socket::UNIX->new(
 # create object with single arg
 my $nl = Nagios::MKLivestatus->new( $socket_path );
 isa_ok($nl, 'Nagios::MKLivestatus', 'single args');
+is($nl->peer_name(), $socket_path, 'get peer_name()');
 
 #########################
 # create object with hash args
@@ -34,4 +35,27 @@ $nl = Nagios::MKLivestatus->new(
                                     column_seperator    => $column_seperator,
                                 );
 isa_ok($nl, 'Nagios::MKLivestatus', 'new hash args');
+is($nl->peer_name(), $socket_path, 'get peer_name()');
+
+#########################
+# create object with peer arg
+$nl = Nagios::MKLivestatus->new(
+                                    peer              => $socket_path,
+                               );
+isa_ok($nl, 'Nagios::MKLivestatus', 'peer hash arg socket');
+is($nl->peer_name(), $socket_path, 'get peer_name()');
+isa_ok($nl->{'CONNECTOR'}, 'Nagios::MKLivestatus::UNIX', 'peer backend UNIX');
+
+#########################
+# create object with peer arg
+my $server = 'localhost:12345';
+$nl = Nagios::MKLivestatus->new(
+                                    peer              => $server,
+                               );
+isa_ok($nl, 'Nagios::MKLivestatus', 'peer hash arg server');
+is($nl->peer_name(), $server, 'get peer_name()');
+isa_ok($nl->{'CONNECTOR'}, 'Nagios::MKLivestatus::INET', 'peer backend INET');
+
+#########################
+# cleanup
 unlink($socket_path);

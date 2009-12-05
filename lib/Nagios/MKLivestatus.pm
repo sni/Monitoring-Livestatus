@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.24';
+our $VERSION = '0.26';
 
 
 =head1 NAME
@@ -32,31 +32,74 @@ to install and activate the livestatus addon in your nagios installation.
 Creates an C<Nagios::MKLivestatus> object. C<new> takes at least the socketpath.
 Arguments are in key-value pairs.
 
-    socket                    path to the UNIX socket of check_mk livestatus
-    server                    use this server for a TCP connection
-    verbose                   verbose mode
-    line_seperator            ascii code of the line seperator, defaults to 10, (newline)
-    column_seperator          ascii code of the column seperator, defaults to 0 (null byte)
-    list_seperator            ascii code of the list seperator, defaults to 44 (comma)
-    host_service_seperator    ascii code of the host/service seperator, defaults to 124 (pipe)
-    keepalive                 enable keepalive. Default is off
-    errors_are_fatal          errors will die with an error message. Default: on
-    timeout                   set a general timeout. Used for connect and querys, Default 10sec
+=over 4
+
+=item socket
+
+path to the UNIX socket of check_mk livestatus
+
+=item server
+
+use this server for a TCP connection
+
+=item peer
+
+alternative way to set socket or server, if value contains ':' server is used, else socket
+
+=item name
+
+human readable name for this connection, defaults to the the socket/server address
+
+=item verbose
+
+verbose mode
+
+=item line_seperator
+
+ascii code of the line seperator, defaults to 10, (newline)
+
+=item column_seperator
+
+ascii code of the column seperator, defaults to 0 (null byte)
+
+=item list_seperator
+
+ascii code of the list seperator, defaults to 44 (comma)
+
+=item host_service_seperator
+
+ascii code of the host/service seperator, defaults to 124 (pipe)
+
+=item keepalive
+
+enable keepalive. Default is off
+
+=item errors_are_fatal
+
+errors will die with an error message. Default: on
+
+=item timeout
+
+set a general timeout. Used for connect and querys, Default 10sec
+
+=back
 
 If the constructor is only passed a single argument, it is assumed to
-be a the C<socket> specification. Use either socker OR server.
+be a the C<peer> specification. Use either socker OR server.
 
 =cut
 
 sub new {
     my $class = shift;
-    unshift(@_, "socket") if scalar @_ == 1;
+    unshift(@_, "peer") if scalar @_ == 1;
     my(%options) = @_;
 
     my $self = {
                     "verbose"                   => 0,       # enable verbose output
                     "socket"                    => undef,   # use unix sockets
                     "server"                    => undef,   # use tcp connections
+                    "peer"                      => undef,   # use for socket / server connections
+                    "name"                      => undef,   # human readable name
                     "line_seperator"            => 10,      # defaults to newline
                     "column_seperator"          => 0,       # defaults to null byte
                     "list_seperator"            => 44,      # defaults to comma
@@ -77,10 +120,20 @@ sub new {
         }
     }
 
+    # check if the supplied peer is a socket or a server address
+    if(defined $self->{'peer'}) {
+        if(index($self->{'peer'}, ':') > 0) {
+            $self->{'server'} = $self->{'peer'};
+        } else {
+            $self->{'socket'} = $self->{'peer'};
+        }
+    }
+
     if(defined $self->{'socket'} and defined $self->{'server'}) {
         croak('dont use socket and server at once');
     }
 
+    # check if we got a peer
     if(!defined $self->{'socket'} and !defined $self->{'server'}) {
         croak('please specify either socket or a server');
     }
@@ -95,6 +148,11 @@ sub new {
             use Nagios::MKLivestatus::INET;
             $self->{'CONNECTOR'} = new Nagios::MKLivestatus::INET(%options);
         }
+    }
+
+    if(!defined $self->{'name'}) {
+        $self->{'name'} = $self->{'server'} if defined $self->{'server'};
+        $self->{'name'} = $self->{'socket'} if defined $self->{'socket'};
     }
 
     return $self;
@@ -437,6 +495,30 @@ sub verbose {
     $self->{'CONNECTOR'}->{'verbose'} = $value;
 
     return 1;
+}
+
+
+########################################
+
+=head2 peer_name
+
+ $nl->peer_name()
+ $nl->peer_name($string)
+
+ if new value is set, name is set to this value
+
+ always returns the current peer name
+
+=cut
+sub peer_name {
+    my $self  = shift;
+    my $value = shift;
+
+    if(defined $value and $value ne '') {
+        $self->{'name'} = $value;
+    }
+
+    return $self->{'name'};
 }
 
 
