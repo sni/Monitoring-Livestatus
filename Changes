@@ -1,5 +1,9 @@
 Revision history for Perl extension Nagios::MKLivestatus.
 
+0.26  Fri Dec  4 08:25:07 CET 2009
+	- added peer name
+	- added peer arg (can be socket or server)
+
 0.24  Wed Dec  2 23:41:34 CET 2009
 	- added support for StatsAnd: and StatsOr: queries
 	- table alias support for selectall_hashref and selectrow_hashref
