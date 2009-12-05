@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use Carp;
 
-our $VERSION = '0.26';
+our $VERSION = '0.28';
 
 
 =head1 NAME
@@ -893,7 +893,7 @@ sub _extract_keys_from_columns_header {
                     push @header, $column;
                 }
             }
-            $line = 'Columns: '.join(' ', @header);
+            $line =~ s/\s+as\s+([^\s]+)/\ /gmx;
         }
         $new_statement .= $line."\n";
     }
