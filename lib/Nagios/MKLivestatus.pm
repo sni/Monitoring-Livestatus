@@ -11,26 +11,29 @@ our $VERSION = '0.26';
 
 =head1 NAME
 
-Nagios::MKLivestatus - access nagios runtime data from check_mk livestatus Nagios addon
+Nagios::MKLivestatus - access nagios runtime data from check_mk livestatus
+Nagios addon
 
 =head1 SYNOPSIS
 
     use Nagios::MKLivestatus;
-    my $nl = Nagios::MKLivestatus->new( socket => '/var/lib/nagios3/rw/livestatus.sock' );
+    my $nl = Nagios::MKLivestatus->new(
+      socket => '/var/lib/nagios3/rw/livestatus.sock'
+    );
     my $hosts = $nl->selectall_arrayref("GET hosts");
 
 =head1 DESCRIPTION
 
-This module connects via socket to the check_mk livestatus nagios addon. You first have
-to install and activate the livestatus addon in your nagios installation.
-
+This module connects via socket to the check_mk livestatus nagios addon. You
+first have to install and activate the livestatus addon in your nagios
+installation.
 
 =head1 CONSTRUCTOR
 
 =head2 new ( [ARGS] )
 
-Creates an C<Nagios::MKLivestatus> object. C<new> takes at least the socketpath.
-Arguments are in key-value pairs.
+Creates an C<Nagios::MKLivestatus> object. C<new> takes at least the
+socketpath.  Arguments are in key-value pairs.
 
 =over 4
 
@@ -44,11 +47,13 @@ use this server for a TCP connection
 
 =item peer
 
-alternative way to set socket or server, if value contains ':' server is used, else socket
+alternative way to set socket or server, if value contains ':' server is used,
+else socket
 
 =item name
 
-human readable name for this connection, defaults to the the socket/server address
+human readable name for this connection, defaults to the the socket/server
+address
 
 =item verbose
 
@@ -167,8 +172,8 @@ sub new {
 
  do($statement)
 
- Send a single statement without fetching the result.
- Always returns true.
+Send a single statement without fetching the result.
+Always returns true.
 
 =cut
 
@@ -188,23 +193,34 @@ sub do {
  selectall_arrayref($statement, %opts)
  selectall_arrayref($statement, %opts, $limit )
 
- Sends a query and returns an array reference of arrays
+Sends a query and returns an array reference of arrays
 
     my $arr_refs = $nl->selectall_arrayref("GET hosts");
 
- to get an array of hash references do something like
+to get an array of hash references do something like
 
-    my $hash_refs = $nl->selectall_arrayref("GET hosts", { Slice => {} });
+    my $hash_refs = $nl->selectall_arrayref(
+      "GET hosts", { Slice => {} }
+    );
 
- to get an array of hash references from the first 2 returned rows only
+to get an array of hash references from the first 2 returned rows only
 
-    my $hash_refs = $nl->selectall_arrayref("GET hosts", { Slice => {} }, 2);
+    my $hash_refs = $nl->selectall_arrayref(
+      "GET hosts", { Slice => {} }, 2
+    );
 
- use limit to limit the result to this number of rows
+use limit to limit the result to this number of rows
 
- column aliases can be defined with a rename hash
+column aliases can be defined with a rename hash
 
-    my $hash_refs = $nl->selectall_arrayref("GET hosts", { Slice => {}, rename => { 'name' => 'host_name' } });
+    my $hash_refs = $nl->selectall_arrayref(
+      "GET hosts", {
+        Slice => {},
+        rename => {
+          'name' => 'host_name'
+        }
+      }
+    );
 
 =cut
 
@@ -258,7 +274,7 @@ sub selectall_arrayref {
  selectall_hashref($statement, $key_field)
  selectall_hashref($statement, $key_field, %opts)
 
- Sends a query and returns a hashref with the given key
+Sends a query and returns a hashref with the given key
 
     my $hashrefs = $nl->selectall_hashref("GET hosts", "name");
 
@@ -295,7 +311,7 @@ sub selectall_hashref {
  selectcol_arrayref($statement)
  selectcol_arrayref($statement, %opt )
 
- Sends a query an returns an arrayref for the first columns
+Sends a query an returns an arrayref for the first columns
 
     my $array_ref = $nl->selectcol_arrayref("GET hosts\nColumns: name");
 
@@ -304,18 +320,25 @@ sub selectall_hashref {
               'gateway',
             ];
 
- returns an empty array if nothing was found
+returns an empty array if nothing was found
 
+to get a different column use this
 
- to get a different column use this
-
-    my $array_ref = $nl->selectcol_arrayref("GET hosts\nColumns: name contacts", { Columns => [2] } );
+    my $array_ref = $nl->selectcol_arrayref(
+       "GET hosts\nColumns: name contacts",
+       { Columns => [2] }
+    );
 
  you can link 2 columns in a hash result set
 
-    my %hash = @{$nl->selectcol_arrayref("GET hosts\nColumns: name contacts", { Columns => [1,2] } )};
+    my %hash = @{
+      $nl->selectcol_arrayref(
+        "GET hosts\nColumns: name contacts",
+        { Columns => [1,2] }
+      )
+    };
 
-    produces a hash with host the contact assosiation
+produces a hash with host the contact assosiation
 
     $VAR1 = {
               'localhost' => 'user1',
@@ -356,11 +379,11 @@ sub selectcol_arrayref {
  selectrow_array($statement)
  selectrow_array($statement, %opts)
 
- Sends a query and returns an array for the first row
+Sends a query and returns an array for the first row
 
     my @array = $nl->selectrow_array("GET hosts");
 
- returns undef if nothing was found
+returns undef if nothing was found
 
 =cut
 sub selectrow_array {
@@ -382,11 +405,11 @@ sub selectrow_array {
  selectrow_arrayref($statement)
  selectrow_arrayref($statement, %opts)
 
- Sends a query and returns an array reference for the first row
+Sends a query and returns an array reference for the first row
 
     my $arrayref = $nl->selectrow_arrayref("GET hosts");
 
- returns undef if nothing was found
+returns undef if nothing was found
 
 =cut
 sub selectrow_arrayref {
@@ -409,11 +432,11 @@ sub selectrow_arrayref {
  selectrow_hashref($statement)
  selectrow_hashref($statement, %opt)
 
- Sends a query and returns a hash reference for the first row
+Sends a query and returns a hash reference for the first row
 
     my $hashref = $nl->selectrow_hashref("GET hosts");
 
- returns undef if nothing was found
+returns undef if nothing was found
 
 =cut
 sub selectrow_hashref {
@@ -436,11 +459,11 @@ sub selectrow_hashref {
 
  select_scalar_value($statement)
 
- Sends a query and returns a single scalar
+Sends a query and returns a single scalar
 
     my $count = $nl->select_scalar_value("GET hosts\nStats: state = 0");
 
- returns undef if nothing was found
+returns undef if nothing was found
 
 =cut
 sub select_scalar_value {
@@ -460,9 +483,8 @@ sub select_scalar_value {
 
  errors_are_fatal($values)
 
- Enable or disable fatal errors. When enabled the module will croak on any error.
-
- returns always undef
+Enable or disable fatal errors. When enabled the module will croak on any error.
+returns always true.
 
 =cut
 sub errors_are_fatal {
@@ -482,9 +504,9 @@ sub errors_are_fatal {
 
  verbose($values)
 
- Enable or disable verbose output. When enabled the module will dump out debug output
+Enable or disable verbose output. When enabled the module will dump out debug output
 
- returns always true
+returns always true.
 
 =cut
 sub verbose {
@@ -505,9 +527,9 @@ sub verbose {
  $nl->peer_name()
  $nl->peer_name($string)
 
- if new value is set, name is set to this value
+if new value is set, name is set to this value
 
- always returns the current peer name
+always returns the current peer name
 
 =cut
 sub peer_name {
@@ -768,18 +790,27 @@ possible to set column aliases in various ways.
 
 A valid Columns: Header could look like this:
 
-    my $hosts = $nl->selectall_arrayref("GET hosts\nColumns: state as status");
+ my $hosts = $nl->selectall_arrayref(
+   "GET hosts\nColumns: state as status"
+ );
 
 Stats queries could be aliased too:
 
-    my $stats = $nl->selectall_arrayref("GET hosts\nStats: state = 0 as up");
+ my $stats = $nl->selectall_arrayref(
+   "GET hosts\nStats: state = 0 as up"
+ );
 
 This syntax is available for: Stats, StatsAnd, StatsOr and StatsGroupBy
 
 
-An alternative way to set column aliases is to define rename option key/value pairs:
+An alternative way to set column aliases is to define rename option key/value
+pairs:
 
-    my $hosts = $nl->selectall_arrayref("GET hosts\nColumns: name", { rename => { 'name' => 'hostname' } });
+ my $hosts = $nl->selectall_arrayref(
+   "GET hosts\nColumns: name", {
+     rename => { 'name' => 'hostname' }
+   }
+ );
 
 =cut
 
@@ -873,7 +904,9 @@ sub _extract_keys_from_columns_header {
 Errorhandling can be done like this:
 
     use Nagios::MKLivestatus;
-    my $nl = Nagios::MKLivestatus->new( socket => '/var/lib/nagios3/rw/livestatus.sock' );
+    my $nl = Nagios::MKLivestatus->new(
+      socket => '/var/lib/nagios3/rw/livestatus.sock'
+    );
     $nl->errors_are_fatal(0);
     my $hosts = $nl->selectall_arrayref("GET hosts");
     if($Nagios::MKLivestatus::ErrorCode) {
