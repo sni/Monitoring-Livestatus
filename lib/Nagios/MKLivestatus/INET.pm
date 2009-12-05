@@ -36,6 +36,7 @@ sub new {
     $options{'backend'} = $class;
     my $self = Nagios::MKLivestatus->new(%options);
     bless $self, $class;
+
     return $self;
 }
 
@@ -50,7 +51,6 @@ sub _open {
     my $self = shift;
     my $sock = IO::Socket::INET->new(
                                      PeerAddr => $self->{'server'},
-                                     timeout  => $self->{'timeout'},
                                      );
     if(!defined $sock or !$sock->connected()) {
         my $msg = "failed to connect to $self->{'server'} :$!";
@@ -61,6 +61,12 @@ sub _open {
         $Nagios::MKLivestatus::ErrorMessage = $msg;
         return;
     }
+
+    if(defined $self->{'timeout'}) {
+        # set timeout
+        $sock->timeout($self->{'timeout'});
+    }
+
     return($sock);
 }
 

@@ -630,6 +630,9 @@ sub _open {
         $self->{'sock'} = $sock;
     }
 
+    # set timeout
+    $sock->timeout($self->{'timeout'});
+
     return($sock);
 }
 
@@ -647,7 +650,7 @@ sub _send_socket {
     my($recv,$header);
 
     my $sock = $self->_open() or return(491, $self->_get_error(491), $!);
-    print $sock $statement;
+    print $sock $statement or return($self->_socket_error($statement, $sock, 'connection failed: '.$!));;
     if($self->{'keepalive'}) {
         print $sock "\n";
     }else {
@@ -660,7 +663,7 @@ sub _send_socket {
         return('201', $self->_get_error(201), undef);
     }
 
-    $sock->read($header, 16) or return($self->_socket_error($statement, $sock, 'reading header from socket failed'));
+    $sock->read($header, 16) or return($self->_socket_error($statement, $sock, 'reading header failed: '.$!));
     print "header: $header" if $self->{'verbose'};
     my($status, $msg, $content_length) = $self->_parse_header($header, $sock);
     return($status, $msg, undef) if !defined $content_length;
@@ -684,9 +687,10 @@ sub _socket_error {
     $message   .= "socket->sockname()  ".Dumper($sock->sockname());
     $message   .= "socket->connected() ".Dumper($sock->connected());
     $message   .= "socket->error()     ".Dumper($sock->error());
+    $message   .= "socket->timeout()   ".Dumper($sock->timeout());
     $message   .= "message             ".Dumper($body);
     if($self->{'errors_are_fatal'}) {
-        confess($message);
+        croak($message);
     } else {
         carp($message);
     }

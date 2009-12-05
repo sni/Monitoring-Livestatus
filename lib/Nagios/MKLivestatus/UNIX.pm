@@ -55,7 +55,6 @@ sub _open {
     }
     my $sock = IO::Socket::UNIX->new(
                                         Peer     => $self->{'socket'},
-                                        timeout  => $self->{'timeout'},
                                      );
     if(!defined $sock or !$sock->connected()) {
         my $msg = "failed to connect to $self->{'socket'} :$!";
@@ -66,6 +65,7 @@ sub _open {
         $Nagios::MKLivestatus::ErrorMessage = $msg;
         return;
     }
+
     return($sock);
 }
 
