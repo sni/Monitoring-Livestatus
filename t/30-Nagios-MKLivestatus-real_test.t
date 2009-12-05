@@ -9,8 +9,6 @@ use Data::Dumper;
 if ( ! defined $ENV{TEST_SOCKET} and !defined $ENV{TEST_SERVER} ) {
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} to run';
     plan( skip_all => $msg );
-} else {
-    plan(tests => 229);
 }
 
 use_ok('Nagios::MKLivestatus');
@@ -99,6 +97,11 @@ for my $key (keys %{$objects_to_test}) {
         is_deeply(\@keys, $expected_keys, $key.' '.$type.'keys');# or ( diag(Dumper(\@keys)) or die("***************\n".$type."\n***************\n") );
     }
 
+    my $statement = "GET hosts\nColumns: name as hostname state\nLimit: 1";
+    my $hash_ref  = $nl->selectrow_hashref($statement );
+    isnt($hash_ref, undef, $key.' test column alias');
+    is($Nagios::MKLivestatus::ErrorCode, 0, $key.' test column alias') or
+        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
 
     #########################
     # send a test command
@@ -109,8 +112,8 @@ for my $key (keys %{$objects_to_test}) {
     #########################
     # check for errors
     #$nl->{'verbose'} = 1;
-    my $statement = "GET hosts\nLimit: 1";
-    my $hash_ref  = $nl->selectrow_hashref($statement );
+    $statement = "GET hosts\nLimit: 1";
+    $hash_ref  = $nl->selectrow_hashref($statement );
     isnt($hash_ref, undef, $key.' test error 200 body');
     is($Nagios::MKLivestatus::ErrorCode, 0, $key.' test error 200 status') or
         diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
@@ -224,3 +227,5 @@ StatsOr: 2 as all_active_or_unknown";
         diag('got error: '.Dumper($hash_ref));
 
 }
+
+done_testing();
