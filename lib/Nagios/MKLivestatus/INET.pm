@@ -33,6 +33,8 @@ sub new {
     unshift(@_, "server") if scalar @_ == 1;
     my(%options) = @_;
 
+    $options{'name'} = $options{'server'} unless defined $options{'name'};
+
     $options{'backend'} = $class;
     my $self = Nagios::MKLivestatus->new(%options);
     bless $self, $class;

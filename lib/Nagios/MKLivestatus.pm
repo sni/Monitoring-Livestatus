@@ -87,6 +87,11 @@ errors will die with an error message. Default: on
 
 set a general timeout. Used for connect and querys, Default 10sec
 
+=item use_threads
+
+only used with multiple backend connections.
+Default is to use threads where available.
+
 =back
 
 If the constructor is only passed a single argument, it is assumed to
@@ -112,52 +117,79 @@ sub new {
       "keepalive"                 => 0,       # enable keepalive?
       "errors_are_fatal"          => 1,       # die on errors
       "backend"                   => undef,   # should be keept undef, used internally
-      "timeout"                   => 10,
+      "timeout"                   => 10,      # timeout for tcp connections
+      "use_threads"               => undef,   # use threads, default is to use threads where available
     };
-    bless $self, $class;
 
     for my $opt_key (keys %options) {
         if(exists $self->{$opt_key}) {
             $self->{$opt_key} = $options{$opt_key};
         }
         else {
+            use Data::Dumper;
+            my @caller = caller;
+            print Dumper \%options;
+            print Dumper \@caller;
             croak("unknown option: $opt_key");
         }
     }
-
-    # check if the supplied peer is a socket or a server address
-    if(defined $self->{'peer'}) {
-        if(index($self->{'peer'}, ':') > 0) {
-            $self->{'server'} = $self->{'peer'};
-        } else {
-            $self->{'socket'} = $self->{'peer'};
-        }
+    for my $opt_key (keys %{$self}) {
+        $options{$opt_key} = $self->{$opt_key};
     }
 
-    if(defined $self->{'socket'} and defined $self->{'server'}) {
-        croak('dont use socket and server at once');
+    bless $self, $class;
+    my $peers = [];
+
+    # check if the supplied peer is a socket or a server address
+    if(defined $self->{'peer'} and ref $self->{'peer'} eq '') {
+        if(index($self->{'peer'}, ':') > 0) {
+            push @{$peers}, { 'peer' => $self->{'peer'}, type => 'INET' };
+        } else {
+            push @{$peers}, { 'peer' => $self->{'peer'}, type => 'UNIX' };
+        }
+    }
+    if(defined $self->{'socket'}) {
+        push @{$peers}, { 'peer' => $self->{'socket'}, type => 'UNIX' };
+    }
+    if(defined $self->{'server'}) {
+        push @{$peers}, { 'peer' => $self->{'server'}, type => 'INET' };
+    }
+    if(defined $self->{'peer'} and ref $self->{'peer'} eq 'ARRAY') {
+        for my $peer (@{$self->{'peer'}}) {
+            my $type = 'UNIX';
+            if(index($peer, ':') >= 0) {
+                $type = 'INET';
+            }
+            push @{$peers}, { 'peer' => $peer, type => $type };
+        }
     }
 
     # check if we got a peer
-    if(!defined $self->{'socket'} and !defined $self->{'server'}) {
-        croak('please specify either socket or a server');
+    if(scalar @{$peers} == 0) {
+        croak('please specify at least one peer, socket or server');
     }
 
     if(!defined $self->{'backend'}) {
-
-        if(defined $self->{'socket'}) {
-            use Nagios::MKLivestatus::UNIX;
-            $self->{'CONNECTOR'} = new Nagios::MKLivestatus::UNIX(%options);
+        if(scalar @{$peers} == 1) {
+            $self->{'name'} = $self->{'peer'} unless defined $self->{'name'};
+            if($peers->[0]->{'type'} eq 'UNIX') {
+                $self->{'name'}  = $self->{'socket'} unless defined $self->{'name'};
+                use Nagios::MKLivestatus::UNIX;
+                $options{'socket'} = $peers->[0]->{'peer'};
+                $self->{'CONNECTOR'} = new Nagios::MKLivestatus::UNIX(%options);
+            }
+            elsif($peers->[0]->{'type'} eq 'INET') {
+                $self->{'name'}  = $self->{'server'} unless defined $self->{'name'};
+                use Nagios::MKLivestatus::INET;
+                $options{'server'} = $peers->[0]->{'peer'};
+                $self->{'CONNECTOR'} = new Nagios::MKLivestatus::INET(%options);
+            }
         }
-        elsif(defined $self->{'server'}) {
-            use Nagios::MKLivestatus::INET;
-            $self->{'CONNECTOR'} = new Nagios::MKLivestatus::INET(%options);
+        else {
+            $options{'peer'} = $peers;
+            use Nagios::MKLivestatus::MULTI;
+            return new Nagios::MKLivestatus::MULTI(%options);
         }
-    }
-
-    if(!defined $self->{'name'}) {
-        $self->{'name'} = $self->{'server'} if defined $self->{'server'};
-        $self->{'name'} = $self->{'socket'} if defined $self->{'socket'};
     }
 
     return $self;
@@ -543,6 +575,21 @@ sub peer_name {
     return $self->{'name'};
 }
 
+
+########################################
+
+=head2 marked_bad
+
+ $nl->marked_bad()
+
+returns true if the current connection is marked down
+
+=cut
+sub marked_bad {
+    my $self  = shift;
+
+    return 0;
+}
 
 
 ########################################

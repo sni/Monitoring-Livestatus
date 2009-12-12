@@ -3,8 +3,9 @@
 #########################
 
 use strict;
-use Test::More tests => 11;
+use Test::More tests => 14;
 use File::Temp;
+use Data::Dumper;
 use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
 BEGIN { use_ok('Nagios::MKLivestatus') };
 
@@ -55,6 +56,18 @@ $nl = Nagios::MKLivestatus->new(
 isa_ok($nl, 'Nagios::MKLivestatus', 'peer hash arg server');
 is($nl->peer_name(), $server, 'get peer_name()');
 isa_ok($nl->{'CONNECTOR'}, 'Nagios::MKLivestatus::INET', 'peer backend INET');
+
+#########################
+# create multi object with peers
+$nl = Nagios::MKLivestatus->new(
+                                    peer              => [ $server, $socket_path ],
+                               );
+isa_ok($nl, 'Nagios::MKLivestatus', 'peer hash arg multi');
+my @names  = $nl->peer_name();
+my $name   = $nl->peer_name();
+my $expect = [$server, $socket_path];
+is_deeply(\@names, $expect, 'list context get peer_name()') or diag("got peer names: ".Dumper(\@names)."but expected:  ".Dumper($expect));
+is($name, 'multiple connector', 'scalar context get peer_name()') or diag("got peer name: ".Dumper($name)."but expected:  ".Dumper('multiple connector'));
 
 #########################
 # cleanup

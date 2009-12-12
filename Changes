@@ -2,6 +2,7 @@ Revision history for Perl extension Nagios::MKLivestatus.
 
 0.28  Sat Dec  5 23:54:54 CET 2009
 	- fixed bug in column alias
+	- added support for multiple peers
 
 0.26  Fri Dec  4 08:25:07 CET 2009
 	- added peer name

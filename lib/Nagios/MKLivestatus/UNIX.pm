@@ -35,6 +35,8 @@ sub new {
     unshift(@_, "socket") if scalar @_ == 1;
     my(%options) = @_;
 
+    $options{'name'} = $options{'socket'} unless defined $options{'name'};
+
     $options{'backend'} = $class;
     my $self = Nagios::MKLivestatus->new(%options);
     bless $self, $class;
