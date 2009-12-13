@@ -2,12 +2,14 @@ Changes
 examples/dump.pl
 lib/Nagios/MKLivestatus.pm
 lib/Nagios/MKLivestatus/INET.pm
+lib/Nagios/MKLivestatus/MULTI.pm
 lib/Nagios/MKLivestatus/UNIX.pm
 Makefile.PL
 MANIFEST
 README
 t/01-Nagios-MKLivestatus-basic_tests.t
 t/02-Nagios-MKLivestatus-internals.t
+t/03-Nagios-MKLivestatus-MULTI-internals.t
 t/20-Nagios-MKLivestatus-test_socket.t
 t/21-Nagios-MKLivestatus-INET.t
 t/22-Nagios-MKLivestatus-UNIX.t

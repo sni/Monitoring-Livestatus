@@ -126,6 +126,9 @@ for my $key (keys %{$objects_to_test}) {
     my $nl = $objects_to_test->{$key};
     isa_ok($nl, 'Nagios::MKLivestatus');
 
+    # we dont need warnings for testing
+    $nl->warnings(0);
+
     ##################################################
     # test settings
     my $rt = $nl->verbose(1);

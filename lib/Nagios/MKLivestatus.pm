@@ -132,10 +132,6 @@ sub new {
             $self->{$opt_key} = $options{$opt_key};
         }
         else {
-            use Data::Dumper;
-            my @caller = caller;
-            print Dumper \%options;
-            print Dumper \@caller;
             croak("unknown option: $opt_key");
         }
     }
@@ -519,7 +515,7 @@ sub select_scalar_value {
 
 =head2 errors_are_fatal
 
- errors_are_fatal($values)
+ errors_are_fatal($value)
 
 Enable or disable fatal errors. When enabled the module will croak on any error.
 returns always true.
@@ -530,10 +526,30 @@ sub errors_are_fatal {
     my $value = shift;
 
     $self->{'errors_are_fatal'}                = $value;
-    $self->{'CONNECTOR'}->{'errors_are_fatal'} = $value;
+    $self->{'CONNECTOR'}->{'errors_are_fatal'} = $value if defined $self->{'CONNECTOR'};
 
     return 1;
 }
+
+########################################
+
+=head2 warnings
+
+ warnings($value)
+
+Enable or disable warnings. When enabled the module will carp on warnings.
+returns always true.
+
+=cut
+sub warnings {
+    my $self  = shift;
+    my $value = shift;
+
+    $self->{'warnings'}                = $value;
+    $self->{'CONNECTOR'}->{'warnings'} = $value if defined $self->{'CONNECTOR'};
+    return 1;
+}
+
 
 
 ########################################
@@ -699,9 +715,7 @@ sub _send {
             $Nagios::MKLivestatus::ErrorMessage = $msg;
         }
         if($self->{'errors_are_fatal'}) {
-            my $nicestatement = $statement;
-            $nicestatement    =~ s/\n/\\n/gmx;
-            croak("ERROR ".$status." - ".$Nagios::MKLivestatus::ErrorMessage." in query:\n'".$nicestatement."'\n");
+            croak("ERROR ".$status." - ".$Nagios::MKLivestatus::ErrorMessage." in query:\n'".$statement."'\n");
         }
         return;
     }
@@ -736,7 +750,7 @@ sub _open {
     my $statement = shift;
 
     # return the current socket in keep alive mode
-    if($self->{'keepalive'} and defined $self->{'sock'} and $self->{'sock'}->connected()) {
+    if($self->{'keepalive'} and defined $self->{'sock'} and $self->{'sock'}->atmark()) {
         return($self->{'sock'});
     }
 
@@ -802,7 +816,7 @@ sub _socket_error {
     my $message = "\n";
     $message   .= "statement           ".Dumper($statement);
     $message   .= "socket->sockname()  ".Dumper($sock->sockname());
-    $message   .= "socket->connected() ".Dumper($sock->connected());
+    $message   .= "socket->atmark()    ".Dumper($sock->atmark());
     $message   .= "socket->error()     ".Dumper($sock->error());
     $message   .= "socket->timeout()   ".Dumper($sock->timeout());
     $message   .= "message             ".Dumper($body);

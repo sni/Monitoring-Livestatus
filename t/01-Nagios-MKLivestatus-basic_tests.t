@@ -65,7 +65,7 @@ $nl = Nagios::MKLivestatus->new(
 isa_ok($nl, 'Nagios::MKLivestatus', 'peer hash arg multi');
 my @names  = $nl->peer_name();
 my $name   = $nl->peer_name();
-my $expect = [$server, $socket_path];
+my $expect = [ $socket_path, $server ];
 is_deeply(\@names, $expect, 'list context get peer_name()') or diag("got peer names: ".Dumper(\@names)."but expected:  ".Dumper($expect));
 is($name, 'multiple connector', 'scalar context get peer_name()') or diag("got peer name: ".Dumper($name)."but expected:  ".Dumper('multiple connector'));
 
