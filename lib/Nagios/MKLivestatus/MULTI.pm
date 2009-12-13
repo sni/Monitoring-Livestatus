@@ -143,7 +143,12 @@ See C<Nagios::MKLivestatus> for more information.
 sub selectrow_array {
     my $self  = shift;
     my $statement = $_[0];
-    if($statement =~ m/^Stats:/mx) {
+    my $opts      = $_[1];
+
+    # make opt hash keys lowercase
+    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
+
+    if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
         return @{$self->_sum_answer($self->_do_on_peers("selectrow_arrayref", @_))};
     } else {
         if($self->{'warnings'}) {
@@ -166,7 +171,12 @@ See C<Nagios::MKLivestatus> for more information.
 sub selectrow_arrayref {
     my $self  = shift;
     my $statement = $_[0];
-    if($statement =~ m/^Stats:/mx) {
+    my $opts      = $_[1];
+
+    # make opt hash keys lowercase
+    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
+
+    if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
         return $self->_sum_answer($self->_do_on_peers("selectrow_arrayref", @_));
     } else {
         if($self->{'warnings'}) {
@@ -189,7 +199,12 @@ See C<Nagios::MKLivestatus> for more information.
 sub selectrow_hashref {
     my $self  = shift;
     my $statement = $_[0];
-    if($statement =~ m/^Stats:/mx) {
+    my $opts      = $_[1];
+
+    # make opt hash keys lowercase
+    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
+
+    if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
         return $self->_sum_answer($self->_do_on_peers("selectrow_hashref", @_));
     } else {
         if($self->{'warnings'}) {
