@@ -90,11 +90,11 @@ if(!defined $opt_f) {
 my $nl = Nagios::MKLivestatus->new( peer => $opt_f, verbose => $opt_v );
 
 #########################################################################
-my $hosts = $nl->selectall_hashref('GET hosts', 'name');
-print Dumper($hosts);
+#my $hosts = $nl->selectall_hashref('GET hosts', 'name');
+#print Dumper($hosts);
 
 #########################################################################
-my $services = $nl->selectall_arrayref('GET services', { Slice => {}});
+my $services = $nl->selectall_arrayref("GET services\nColumns: description host_name state\nLimit: 2", { Slice => {}});
 print Dumper($services);
 
 #########################################################################

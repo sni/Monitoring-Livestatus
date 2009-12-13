@@ -83,6 +83,11 @@ enable keepalive. Default is off
 
 errors will die with an error message. Default: on
 
+=item warnings
+
+show warnings
+currently only querys without Columns: Header will result in a warning
+
 =item timeout
 
 set a general timeout. Used for connect and querys, Default 10sec
@@ -119,6 +124,7 @@ sub new {
       "backend"                   => undef,   # should be keept undef, used internally
       "timeout"                   => 10,      # timeout for tcp connections
       "use_threads"               => undef,   # use threads, default is to use threads where available
+      "warnings"                  => 1,       # show warnings, for example on querys without Column: Header
     };
 
     for my $opt_key (keys %options) {
@@ -715,6 +721,9 @@ sub _send {
 
     # for querys with column header, no seperate columns will be returned
     if(!defined $keys) {
+        if($self->{'warnings'}) {
+            carp("got statement without Columns: header!");
+        }
         $keys = shift @result;
     }
 
@@ -817,7 +826,7 @@ sub _parse_header {
 
     my $headerlength = length($header);
     if($headerlength != 16) {
-        return(498, $self->_get_error(498), undef);
+        return(498, $self->_get_error(498)."\ngot: ".$header.<$sock>, undef);
     }
     chomp($header);
 

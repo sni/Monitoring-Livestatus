@@ -55,7 +55,13 @@ my $objects_to_test = {
                                       server              => $ENV{TEST_SERVER},
                                       keepalive           => 1,
                                     ),
-};
+
+  # create multi object with keepalive
+  'multi_keepalive' => Nagios::MKLivestatus->new(
+                                      verbose             => 0,
+                                      peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
+                                      keepalive           => 1,
+                                    ),};
 
 my $excpected_keys = {
           'hosts'         => ['accept_passive_checks','acknowledged','acknowledgement_type','action_url','active_checks_enabled','address','alias','check_command','check_freshness','check_interval','check_options','check_period','check_type','checks_enabled','childs','contacts','current_attempt','current_notification_number','custom_variable_names','custom_variable_values','display_name','downtimes','event_handler_enabled','execution_time','first_notification_delay','flap_detection_enabled','groups','hard_state','has_been_checked','high_flap_threshold','icon_image','icon_image_alt','in_check_period','in_notification_period','initial_state','is_executing','is_flapping','last_check','last_hard_state','last_hard_state_change','last_notification','last_state','last_state_change','latency','long_plugin_output','low_flap_threshold','max_check_attempts','name','next_check','next_notification','notes','notes_url','notification_interval','notification_period','notifications_enabled','num_services','num_services_crit','num_services_hard_crit','num_services_hard_ok','num_services_hard_unknown','num_services_hard_warn','num_services_ok','num_services_unknown','num_services_warn','obsess_over_host','parents','pending_flex_downtime','percent_state_change','perf_data','plugin_output','process_performance_data','retry_interval','scheduled_downtime_depth','state','state_type','statusmap_image','total_services','worst_service_hard_state','worst_service_state','x_3d','y_3d','z_3d'],

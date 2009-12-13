@@ -106,17 +106,17 @@ sub _do_on_peers {
     if($self->{'use_threads'}) {
         # create threads for all active backends
         print("using threads\n") if $self->{'verbose'};
-        my @threads;
+        my %threads;
         for my $peer (@{$self->{'peers'}}) {
             if($peer->marked_bad) {
                 warn($peer->peer_name.' is marked bad') if $self->{'verbose'};
             } else {
-                push @threads, threads->new(\&_do_wrapper, $peer, $sub, @opts);
+                $threads{$peer->peer_name} = threads->new(\&_do_wrapper, $peer, $sub, @opts);
             }
         }
 
-        for my $peer (@threads) {
-            push @{$return}, $peer->join();
+        for my $peer_name (keys %threads) {
+            $return->{$peer_name} = $threads{$peer_name}->join();
         }
     } else {
         print("not using threads\n") if $self->{'verbose'};
@@ -124,7 +124,7 @@ sub _do_on_peers {
             if($peer->marked_bad) {
                 warn($peer->peer_name.' is marked bad') if $self->{'verbose'};
             } else {
-                push @{$return}, $peer->$sub(@opts);
+                $return->{$peer->peer_name} = $peer->$sub(@opts);
             }
         }
     }
@@ -152,19 +152,19 @@ sub selectcol_arrayref {
 ########################################
 sub selectrow_array {
     my $self  = shift;
-    return $self->_do_on_peers("selectrow_array", @_);
+    return @{$self->_sum_answer($self->_do_on_peers("selectrow_arrayref", @_))};
 }
 
 ########################################
 sub selectrow_arrayref {
     my $self  = shift;
-    return $self->_do_on_peers("selectrow_arrayref", @_);
+    return $self->_sum_answer($self->_do_on_peers("selectrow_arrayref", @_));
 }
 
 ########################################
 sub selectrow_hashref {
     my $self  = shift;
-    return $self->_do_on_peers("selectrow_hashref", @_);
+    return $self->_sum_answer($self->_do_on_peers("selectrow_hashref", @_));
 }
 
 ########################################
@@ -196,11 +196,49 @@ sub peer_name {
 sub _merge_answer {
     my $self   = shift;
     my $data   = shift;
+#    print Dumper($data);
     my $return = [];
-    for my $dat (@{$data}) {
-        $return = [ @{$return}, @{$dat} ];
+    for my $key (keys %{$data}) {
+        $return = [ @{$return}, @{$data->{$key}} ];
     }
+#    print Dumper($return);
     return($return);
+}
+
+########################################
+sub _sum_answer {
+    my $self   = shift;
+    my $data   = shift;
+    print "#############################################################\n";
+    print Dumper($data);
+    my $return;
+    for my $peername (keys %{$data}) {
+        if(ref $data->{$peername} eq 'HASH') {
+            for my $key (keys %{$data->{$peername}}) {
+                if(!defined $return->{$key}) {
+                    $return->{$key} = $data->{$peername}->{$key};
+                } else {
+                    $return->{$key} += $data->{$peername}->{$key};
+                }
+            }
+        }
+        elsif(ref $data->{$peername} eq 'ARRAY') {
+            my $x = 0;
+            for my $val (@{$data->{$peername}}) {
+                if(!defined $return->[$x]) {
+                    $return->[$x] = $data->{$peername}->[$x];
+                } else {
+                    $return->[$x] += $data->{$peername}->[$x];
+                }
+                $x++;
+            }
+        }
+    }
+    print Dumper($return);
+    print "#############################################################\n";
+    #return($return);
+
+    return $return;
 }
 
 1;
