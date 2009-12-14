@@ -35,8 +35,15 @@ sub new {
 
     $options{'backend'} = $class;
     $options{'name'}    = 'multiple connector' unless defined $options{'name'};
-    my $self = \%options;
+    my $self = Nagios::MKLivestatus->new(%options);
     bless $self, $class;
+
+    # check if we got an array of peers
+    if(ref $self->{'peer'} ne 'ARRAY') {
+        my $peer = $self->{'peer'};
+        delete $self->{'peer'};
+        @{$self->{'peer'}} = $peer;
+    }
 
     my $peers;
     my %peer_options;
@@ -45,8 +52,17 @@ sub new {
     }
     $peer_options{'errors_are_fatal'} = 0;
     for my $peer (@{$self->{'peer'}}) {
-        my $remote = $peer->{'peer'};
-        my $type   = $peer->{'type'};
+        my($remote,$type);
+        if(ref $peer eq 'HASH') {
+            $remote = $peer->{'peer'};
+            $type   = $peer->{'type'};
+        } else {
+            $remote = $peer;
+            $type = 'UNIX';
+            if(index($peer, ':') >= 0) {
+                $type = 'INET';
+            }
+        }
         $peer_options{'name'}   = $remote;
         $peer_options{'socket'} = $remote if $type eq 'UNIX';
         $peer_options{'server'} = $remote if $type eq 'INET';
@@ -60,6 +76,9 @@ sub new {
     }
 
     $self->{'peers'} = $peers;
+
+    # dont use threads with onyl one peer
+    if(scalar @{$peers} == 1) { $self->{'use_threads'} = 0; }
 
     # check for threads support
     if(!defined $self->{'use_threads'}) {
@@ -227,7 +246,12 @@ See C<Nagios::MKLivestatus> for more information.
 sub select_scalar_value {
     my $self  = shift;
     my $statement = $_[0];
-    if($statement =~ m/^Stats:/mx) {
+    my $opts      = $_[1];
+
+    # make opt hash keys lowercase
+    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
+
+    if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
         return $self->_sum_answer($self->_do_on_peers("select_scalar_value", @_));
     } else {
         if($self->{'warnings'}) {
@@ -393,11 +417,15 @@ sub _do_on_peers {
 sub _merge_answer {
     my $self   = shift;
     my $data   = shift;
-    my $return = [];
+    my $return;
     for my $key (keys %{$data}) {
         $data->{$key} = [] unless defined $data->{$key};
         if(ref $data->{$key} eq 'ARRAY') {
+            $return = [] unless defined $return;
             $return = [ @{$return}, @{$data->{$key}} ];
+        } elsif(ref $data->{$key} eq 'HASH') {
+            $return = {} unless defined $return;
+            $return = { %{$return}, %{$data->{$key}} };
         } else {
             push @{$return}, $data->{$key};
         }

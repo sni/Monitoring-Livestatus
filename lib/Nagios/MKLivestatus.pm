@@ -263,11 +263,17 @@ sub selectall_arrayref {
     my $statement = shift;
     my $opt       = shift;
     my $limit     = shift;
+    my $result;
 
     # make opt hash keys lowercase
     %{$opt} = map { lc $_ => $opt->{$_} } keys %{$opt};
 
-    my $result = $self->_send($statement);
+    if(defined $opt->{'addpeer'} and $opt->{'addpeer'}) {
+        $result = $self->_send($statement, 1);
+    } else {
+        $result = $self->_send($statement);
+    }
+
     if(!defined $result) {
         return unless $self->{'errors_are_fatal'};
         croak("got undef result for: $statement");
@@ -280,7 +286,7 @@ sub selectall_arrayref {
         }
     }
 
-    if(defined $opt and ref $opt eq 'HASH' and exists $opt->{'slice'}) {
+    if($opt->{'slice'}) {
         # make an array of hashes
         my @hash_refs;
         for my $res (@{$result->{'result'}}) {
@@ -328,11 +334,15 @@ sub selectall_hashref {
 
     my %indexed;
     for my $row (@{$result}) {
-        if(!defined $row->{$key_field}) {
+        if($key_field eq '$peername') {
+            $indexed{$self->peer_name} = $row;
+        }
+        elsif(!defined $row->{$key_field}) {
             my %possible_keys = keys %{$row};
             croak("key $key_field not found in result set, possible keys are: ".join(', ', sort keys %possible_keys));
+        } else {
+            $indexed{$row->{$key_field}} = $row;
         }
-        $indexed{$row->{$key_field}} = $row;
     }
     return(\%indexed);
 }
@@ -618,10 +628,13 @@ sub marked_bad {
 # INTERNAL SUBS
 ########################################
 sub _send {
-    my $self      = shift;
-    my $statement = shift;
-    my $header    = "";
+    my $self       = shift;
+    my $statement  = shift;
+    my $with_peers = shift;
+    my $header     = "";
     my $keys;
+
+    my $peer_name = $self->peer_name;
 
     $Nagios::MKLivestatus::ErrorCode = 0;
     undef $Nagios::MKLivestatus::ErrorMessage;
@@ -729,7 +742,11 @@ sub _send {
     my @result;
     ## no critic
     for my $line (split/$line_seperator/m, $body) {
-        push @result, [ split/$col_seperator/m, $line ];
+        my $row = [ split/$col_seperator/m, $line ];
+        if(defined $with_peers and $with_peers == 1) {
+            unshift @{$row}, $peer_name;
+        }
+        push @result, $row;
     }
     ## use critic
 
@@ -739,6 +756,10 @@ sub _send {
             carp("got statement without Columns: header!");
         }
         $keys = shift @result;
+    }
+
+    if(defined $with_peers and $with_peers == 1) {
+        unshift @{$keys}, 'peer_name';
     }
 
     return({ keys => $keys, result => \@result});

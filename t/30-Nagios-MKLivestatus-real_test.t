@@ -79,6 +79,16 @@ my $objects_to_test = {
                                       peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
                                       use_threads         => 0,
                                     ),
+
+  # create multi object with only one peer
+  'multi_one_peer' => Nagios::MKLivestatus::MULTI->new(
+                                      peer                => $ENV{TEST_SERVER},
+                                    ),
+
+  # create multi object without threads
+  'multi_two_peers' => Nagios::MKLivestatus::MULTI->new(
+                                      peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
+                                    ),
 };
 
 my $excpected_keys = {
