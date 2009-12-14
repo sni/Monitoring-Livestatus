@@ -10,7 +10,7 @@ if ( ! defined $ENV{TEST_SOCKET} and !defined $ENV{TEST_SERVER} ) {
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} to run';
     plan( skip_all => $msg );
 } else {
-    plan( tests => 411 );
+    plan( tests => 493 );
 }
 
 use_ok('Nagios::MKLivestatus');

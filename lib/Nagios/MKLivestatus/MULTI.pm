@@ -230,7 +230,7 @@ sub selectrow_hashref {
             carp("selectrow_hashref without Stats: will not work as expected!");
         }
         my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_hashref", @_));
-        return $rows->[0] if defined $rows->[0];
+        return $rows;
     }
     return;
 }
