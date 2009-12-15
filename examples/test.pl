@@ -1,0 +1,113 @@
+#!/usr/bin/env perl
+
+=head1 NAME
+
+test.pl - print some information from a socket
+
+=head1 SYNOPSIS
+
+./test.pl [ -h ] [ -v ] <socket|server>
+
+=head1 DESCRIPTION
+
+this script print some information from a given livestatus socket or server
+
+=head1 ARGUMENTS
+
+script has the following arguments
+
+=over 4
+
+=item help
+
+    -h
+
+print help and exit
+
+=item verbose
+
+    -v
+
+verbose output
+
+=item socket/server
+
+    server    local socket file or
+
+    server    remote address of livestatus
+
+=back
+
+=head1 EXAMPLE
+
+./test.pl /tmp/live.sock
+
+=head1 AUTHOR
+
+2009, Sven Nierlein, <nierlein@cpan.org>
+
+=cut
+
+use warnings;
+use strict;
+use Data::Dumper;
+use Getopt::Long;
+use Pod::Usage;
+use Time::HiRes qw( gettimeofday tv_interval );
+use Log::Log4perl qw(:easy);
+use lib 'lib';
+use lib '../lib';
+use Nagios::MKLivestatus;
+
+$Data::Dumper::Sortkeys = 1;
+
+#########################################################################
+# parse and check cmd line arguments
+my ($opt_h, $opt_v, @opt_f);
+Getopt::Long::Configure('no_ignore_case');
+if(!GetOptions (
+   "h"              => \$opt_h,
+   "v"              => \$opt_v,
+   "<>"             => \&add_file,
+)) {
+    pod2usage( { -verbose => 1, -message => 'error in options' } );
+    exit 3;
+}
+
+if(defined $opt_h) {
+    pod2usage( { -verbose => 1 } );
+    exit 3;
+}
+my $verbose = 0;
+if(defined $opt_v) {
+    $verbose = 1;
+}
+
+if(scalar @opt_f == 0) {
+    pod2usage( { -verbose => 1, -message => 'socket/server is a required option' } );
+    exit 3;
+}
+
+#########################################################################
+Log::Log4perl->easy_init($DEBUG);
+my $nl = Nagios::MKLivestatus->new( 
+                                     peer        => \@opt_f,
+                                     verbose     => $opt_v,
+                                     keepalive   => 1,
+                                     logger      => get_logger(),
+                                   );
+my $log = get_logger();
+
+#########################################################################
+my $t0 = [gettimeofday];
+my $stats = $nl->selectrow_arrayref("GET status\nColumns: connections connections_rate host_checks host_checks_rate requests requests_rate service_checks service_checks_rate neb_callbacks neb_callbacks_rate", { Slice => 1, Sum => 1 });
+my $elapsed = tv_interval ( $t0 );
+print Dumper($stats);
+print "Query took ".($elapsed)." seconds\n";
+
+
+#########################################################################
+sub add_file {
+    my $file = shift;
+    push @opt_f, $file;
+}
