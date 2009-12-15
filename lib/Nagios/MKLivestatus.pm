@@ -128,6 +128,7 @@ sub new {
       "timeout"                   => 10,      # timeout for tcp connections
       "use_threads"               => undef,   # use threads, default is to use threads where available
       "warnings"                  => 1,       # show warnings, for example on querys without Column: Header
+      "logger"                    => undef,   # logger object used for statistical informations and errors / warnings
     };
 
     for my $opt_key (keys %options) {
@@ -193,6 +194,8 @@ sub new {
             return new Nagios::MKLivestatus::MULTI(%options);
         }
     }
+
+    $self->{'logger'}->debug('initialized Nagios::MKLivestatus ('.$self->peer_name.')') if defined $self->{'logger'};
 
     return $self;
 }
@@ -262,11 +265,22 @@ sub selectall_arrayref {
     my $self      = shift;
     my $statement = shift;
     my $opt       = shift;
-    my $limit     = shift;
+    my $limit     = shift || 0;
     my $result;
 
     # make opt hash keys lowercase
     %{$opt} = map { lc $_ => $opt->{$_} } keys %{$opt};
+
+    if(defined $self->{'logger'}) {
+        my $d = Data::Dumper->new([$opt]);
+        $d->Indent(0);
+        my $optstring = $d->Dump;
+        $optstring =~ s/^\$VAR1\s+=\s+//mx;
+        $optstring =~ s/;$//mx;
+        my $cleanstatement = $statement;
+        $cleanstatement =~ s/\n/\\n/mx;
+        $self->{'logger'}->debug('selectall_arrayref("'.$cleanstatement.'", '.$optstring.', '.$limit.')')
+    }
 
     if(defined $opt->{'addpeer'} and $opt->{'addpeer'}) {
         $result = $self->_send($statement, 1);
@@ -727,6 +741,7 @@ sub _send {
         } else {
             $Nagios::MKLivestatus::ErrorMessage = $msg;
         }
+        $self->{'logger'}->error($status." - ".$Nagios::MKLivestatus::ErrorMessage." in query:\n'".$statement) if defined $self->{'logger'};
         if($self->{'errors_are_fatal'}) {
             croak("ERROR ".$status." - ".$Nagios::MKLivestatus::ErrorMessage." in query:\n'".$statement."'\n");
         }
@@ -752,6 +767,7 @@ sub _send {
 
     # for querys with column header, no seperate columns will be returned
     if(!defined $keys) {
+        $self->{'logger'}->warn("got statement without Columns: header!") if defined $self->{'logger'};
         if($self->{'warnings'}) {
             carp("got statement without Columns: header!");
         }
@@ -841,6 +857,9 @@ sub _socket_error {
     $message   .= "socket->error()     ".Dumper($sock->error());
     $message   .= "socket->timeout()   ".Dumper($sock->timeout());
     $message   .= "message             ".Dumper($body);
+
+    $self->{'logger'}->error($message) if defined $self->{'logger'};
+
     if($self->{'errors_are_fatal'}) {
         croak($message);
     } else {

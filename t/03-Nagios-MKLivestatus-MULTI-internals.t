@@ -25,9 +25,11 @@ my $mergetests = [
     },
 ];
 
+my $nl = Nagios::MKLivestatus::MULTI->new('peer' => 'localhost:12345');
+
 my $x = 0;
 for my $test (@{$mergetests}) {
-    my $got = Nagios::MKLivestatus::MULTI->_merge_answer($test->{'in'});
+    my $got = $nl->_merge_answer($test->{'in'});
     is_deeply($got, $test->{'exp'}, '_merge_answer test '.$x)
         or diag("got: ".Dumper($got)."\nbut expected ".Dumper($test->{'exp'}));
     $x++;
@@ -54,7 +56,7 @@ my $sumtests = [
 
 $x = 0;
 for my $test (@{$sumtests}) {
-    my $got = Nagios::MKLivestatus::MULTI->_sum_answer($test->{'in'});
+    my $got = $nl->_sum_answer($test->{'in'});
     is_deeply($got, $test->{'exp'}, '_sum_answer test '.$x)
         or diag("got: ".Dumper($got)."\nbut expected ".Dumper($test->{'exp'}));
     $x++;

@@ -6,6 +6,7 @@ use warnings;
 use Carp;
 use Data::Dumper;
 use Config;
+use Time::HiRes qw( gettimeofday tv_interval );
 use Nagios::MKLivestatus;
 use base "Nagios::MKLivestatus";
 
@@ -66,6 +67,7 @@ sub new {
         $peer_options{'name'}   = $remote;
         $peer_options{'socket'} = $remote if $type eq 'UNIX';
         $peer_options{'server'} = $remote if $type eq 'INET';
+        delete $peer_options{'peer'};
 
         if($type eq 'UNIX') {
             push @{$peers}, new Nagios::MKLivestatus::UNIX(%peer_options);
@@ -93,6 +95,8 @@ sub new {
         };
     }
 
+    $self->{'logger'}->debug('initialized Nagios::MKLivestatus::MULTI '.($self->{'use_threads'} ? 'with' : 'without' ).' threads') if defined $self->{'logger'};
+
     return $self;
 }
 
@@ -109,7 +113,11 @@ See C<Nagios::MKLivestatus> for more information.
 
 sub do {
     my $self  = shift;
+    my $t0    = [gettimeofday];
+
     $self->_do_on_peers("do", @_);
+    my $elapsed = tv_interval ( $t0 );
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for do('.$_[0].') in total') if defined $self->{'logger'};
     return 1;
 }
 ########################################
@@ -122,7 +130,13 @@ See C<Nagios::MKLivestatus> for more information.
 
 sub selectall_arrayref {
     my $self  = shift;
-    return $self->_merge_answer($self->_do_on_peers("selectall_arrayref", @_));
+    my $t0    = [gettimeofday];
+
+    my $return  = $self->_merge_answer($self->_do_on_peers("selectall_arrayref", @_));
+    my $elapsed = tv_interval ( $t0 );
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectall_arrayref() in total') if defined $self->{'logger'};
+
+    return $return;
 }
 
 ########################################
@@ -135,7 +149,13 @@ See C<Nagios::MKLivestatus> for more information.
 
 sub selectall_hashref {
     my $self  = shift;
-    return $self->_merge_answer($self->_do_on_peers("selectall_hashref", @_));
+    my $t0    = [gettimeofday];
+
+    my $return  = $self->_merge_answer($self->_do_on_peers("selectall_hashref", @_));
+    my $elapsed = tv_interval ( $t0 );
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectall_hashref() in total') if defined $self->{'logger'};
+
+    return $return;
 }
 
 ########################################
@@ -148,7 +168,13 @@ See C<Nagios::MKLivestatus> for more information.
 
 sub selectcol_arrayref {
     my $self  = shift;
-    return $self->_merge_answer($self->_do_on_peers("selectcol_arrayref", @_));
+    my $t0    = [gettimeofday];
+
+    my $return  = $self->_merge_answer($self->_do_on_peers("selectcol_arrayref", @_));
+    my $elapsed = tv_interval ( $t0 );
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectcol_arrayref() in total') if defined $self->{'logger'};
+
+    return $return;
 }
 
 ########################################
@@ -160,23 +186,29 @@ See C<Nagios::MKLivestatus> for more information.
 =cut
 
 sub selectrow_array {
-    my $self  = shift;
+    my $self      = shift;
     my $statement = $_[0];
     my $opts      = $_[1];
+    my $t0        = [gettimeofday];
+    my @return;
 
     # make opt hash keys lowercase
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
-        return @{$self->_sum_answer($self->_do_on_peers("selectrow_arrayref", @_))};
+        @return = @{$self->_sum_answer($self->_do_on_peers("selectrow_arrayref", @_))};
     } else {
         if($self->{'warnings'}) {
             carp("selectrow_arrayref without Stats: will not work as expected!");
         }
         my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_arrayref", @_));
-        return @{$rows->[0]} if defined $rows->[0];
+        @return = @{$rows->[0]} if defined $rows->[0];
     }
-    return;
+
+    my $elapsed = tv_interval ( $t0 );
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectrow_array() in total') if defined $self->{'logger'};
+
+    return @return;
 }
 
 ########################################
@@ -188,23 +220,29 @@ See C<Nagios::MKLivestatus> for more information.
 =cut
 
 sub selectrow_arrayref {
-    my $self  = shift;
+    my $self      = shift;
     my $statement = $_[0];
     my $opts      = $_[1];
+    my $t0        = [gettimeofday];
+    my $return;
 
     # make opt hash keys lowercase
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
-        return $self->_sum_answer($self->_do_on_peers("selectrow_arrayref", @_));
+        $return = $self->_sum_answer($self->_do_on_peers("selectrow_arrayref", @_));
     } else {
         if($self->{'warnings'}) {
             carp("selectrow_arrayref without Stats: will not work as expected!");
         }
         my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_arrayref", @_));
-        return $rows->[0] if defined $rows->[0];
+        $return = $rows->[0] if defined $rows->[0];
     }
-    return;
+
+    my $elapsed = tv_interval ( $t0 );
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectrow_arrayref() in total') if defined $self->{'logger'};
+
+    return $return;
 }
 
 ########################################
@@ -220,19 +258,26 @@ sub selectrow_hashref {
     my $statement = $_[0];
     my $opts      = $_[1];
 
+    my $t0 = [gettimeofday];
+
+    my $return;
+
     # make opt hash keys lowercase
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
-        return $self->_sum_answer($self->_do_on_peers("selectrow_hashref", @_));
+        $return = $self->_sum_answer($self->_do_on_peers("selectrow_hashref", @_));
     } else {
         if($self->{'warnings'}) {
             carp("selectrow_hashref without Stats: will not work as expected!");
         }
-        my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_hashref", @_));
-        return $rows;
+        $return = $self->_merge_answer($self->_do_on_peers("selectrow_hashref", @_));
     }
-    return;
+
+    my $elapsed = tv_interval ( $t0 );
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectrow_hashref() in total') if defined $self->{'logger'};
+
+    return $return;
 }
 
 ########################################
@@ -248,8 +293,12 @@ sub select_scalar_value {
     my $statement = $_[0];
     my $opts      = $_[1];
 
+    my $t0 = [gettimeofday];
+
     # make opt hash keys lowercase
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
+
+    my $return;
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
         return $self->_sum_answer($self->_do_on_peers("select_scalar_value", @_));
@@ -258,9 +307,14 @@ sub select_scalar_value {
             carp("select_scalar_value without Stats: will not work as expected!");
         }
         my $rows = $self->_merge_answer($self->_do_on_peers("select_scalar_value", @_));
-        return $rows->[0] if defined $rows->[0];
+
+        $return = $rows->[0] if defined $rows->[0];
     }
-    return;
+
+    my $elapsed = tv_interval ( $t0 );
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for select_scalar_value() in total') if defined $self->{'logger'};
+
+    return $return;
 }
 
 ########################################
@@ -329,14 +383,17 @@ sub peer_name {
 # INTERNAL SUBS
 ########################################
 sub _do_wrapper {
-    my $peer = shift;
-    my $sub  = shift;
-    my @opts = @_;
+    my $peer   = shift;
+    my $sub    = shift;
+    my $logger = shift;
+    my @opts   = @_;
+
+    my $t0 = [gettimeofday];
+
     my $data = $peer->$sub(@opts);
 
-    #if($Nagios::MKLivestatus::ErrorCode) {
-    #    croak($Nagios::MKLivestatus::ErrorMessage);
-    #}
+    my $elapsed = tv_interval ( $t0 );
+    $logger->debug(sprintf('%.4f', $elapsed).' sec for fetching data on '.$peer->peer_name) if defined $logger;
 
     $Nagios::MKLivestatus::ErrorCode    = 0 unless defined $Nagios::MKLivestatus::ErrorCode;
     $Nagios::MKLivestatus::ErrorMessage = '' unless defined $Nagios::MKLivestatus::ErrorMessage;
@@ -355,6 +412,8 @@ sub _do_on_peers {
     my @opts  = @_;
     my $statement = $opts[0];
 
+    my $t0 = [gettimeofday];
+
     my $return;
     my %codes;
     my %messages;
@@ -366,7 +425,7 @@ sub _do_on_peers {
             if($peer->marked_bad) {
                 warn($peer->peer_name.' is marked bad') if $self->{'verbose'};
             } else {
-                $threads{$peer->peer_name} = threads->new(\&_do_wrapper, $peer, $sub, @opts);
+                $threads{$peer->peer_name} = threads->new(\&_do_wrapper, $peer, $sub, $self->{'logger'}, @opts);
             }
         }
         for my $peer_name (keys %threads) {
@@ -380,7 +439,7 @@ sub _do_on_peers {
             if($peer->marked_bad) {
                 warn($peer->peer_name.' is marked bad') if $self->{'verbose'};
             } else {
-                my $erg = _do_wrapper($peer, $sub, @opts);
+                my $erg = _do_wrapper($peer, $sub, $self->{'logger'}, @opts);
                 $return->{$peer->peer_name} = $erg->{'data'};
                 push @{$codes{$erg->{'code'}}}, { 'peer' => $peer, 'msg' => $erg->{'msg'} };
             }
@@ -410,6 +469,9 @@ sub _do_on_peers {
         }
     }
 
+    my $elapsed = tv_interval ( $t0 );
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for fetching all data') if defined $self->{'logger'};
+
     return($return);
 }
 
@@ -418,6 +480,9 @@ sub _merge_answer {
     my $self   = shift;
     my $data   = shift;
     my $return;
+
+    my $t0 = [gettimeofday];
+
     for my $key (keys %{$data}) {
         $data->{$key} = [] unless defined $data->{$key};
         if(ref $data->{$key} eq 'ARRAY') {
@@ -430,6 +495,10 @@ sub _merge_answer {
             push @{$return}, $data->{$key};
         }
     }
+
+    my $elapsed = tv_interval ( $t0 );
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for merging data') if defined $self->{'logger'};
+
     return($return);
 }
 
@@ -438,6 +507,7 @@ sub _sum_answer {
     my $self   = shift;
     my $data   = shift;
     my $return;
+    my $t0 = [gettimeofday];
     for my $peername (keys %{$data}) {
         if(ref $data->{$peername} eq 'HASH') {
             for my $key (keys %{$data->{$peername}}) {
@@ -460,6 +530,9 @@ sub _sum_answer {
             }
         }
     }
+
+    my $elapsed = tv_interval ( $t0 );
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for summarizing data') if defined $self->{'logger'};
 
     return $return;
 }
