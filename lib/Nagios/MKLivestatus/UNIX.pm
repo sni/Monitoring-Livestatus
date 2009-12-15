@@ -53,7 +53,13 @@ sub new {
 sub _open {
     my $self      = shift;
     if(!-S $self->{'socket'}) {
-        croak("failed to open socket $self->{'socket'}: $!");
+        my $msg = "failed to open socket $self->{'socket'}: $!";
+        if($self->{'errors_are_fatal'}) {
+            croak($msg);
+        }
+        $Nagios::MKLivestatus::ErrorCode    = 500;
+        $Nagios::MKLivestatus::ErrorMessage = $msg;
+        return;
     }
     my $sock = IO::Socket::UNIX->new(
                                         Peer     => $self->{'socket'},
