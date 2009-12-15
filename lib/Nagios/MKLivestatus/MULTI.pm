@@ -77,7 +77,7 @@ sub new {
 
     $self->{'peers'} = $peers;
 
-    # dont use threads with onyl one peer
+    # dont use threads with only one peer
     if(scalar @{$peers} == 1) { $self->{'use_threads'} = 0; }
 
     # check for threads support

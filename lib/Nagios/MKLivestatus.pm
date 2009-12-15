@@ -5,6 +5,9 @@ use strict;
 use warnings;
 use Data::Dumper;
 use Carp;
+use Nagios::MKLivestatus::INET;
+use Nagios::MKLivestatus::UNIX;
+use Nagios::MKLivestatus::MULTI;
 
 our $VERSION = '0.28';
 
@@ -176,20 +179,17 @@ sub new {
             $self->{'name'} = $self->{'peer'} unless defined $self->{'name'};
             if($peers->[0]->{'type'} eq 'UNIX') {
                 $self->{'name'}  = $self->{'socket'} unless defined $self->{'name'};
-                use Nagios::MKLivestatus::UNIX;
                 $options{'socket'} = $peers->[0]->{'peer'};
                 $self->{'CONNECTOR'} = new Nagios::MKLivestatus::UNIX(%options);
             }
             elsif($peers->[0]->{'type'} eq 'INET') {
                 $self->{'name'}  = $self->{'server'} unless defined $self->{'name'};
-                use Nagios::MKLivestatus::INET;
                 $options{'server'} = $peers->[0]->{'peer'};
                 $self->{'CONNECTOR'} = new Nagios::MKLivestatus::INET(%options);
             }
         }
         else {
             $options{'peer'} = $peers;
-            use Nagios::MKLivestatus::MULTI;
             return new Nagios::MKLivestatus::MULTI(%options);
         }
     }
