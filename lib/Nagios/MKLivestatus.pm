@@ -861,6 +861,7 @@ sub _socket_error {
     my $body      = shift;
 
     my $message = "\n";
+    $message   .= "peer                ".Dumper($self->peer_name);
     $message   .= "statement           ".Dumper($statement);
     $message   .= "socket->sockname()  ".Dumper($sock->sockname());
     $message   .= "socket->atmark()    ".Dumper($sock->atmark());

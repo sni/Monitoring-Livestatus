@@ -181,8 +181,12 @@ for my $key (keys %{$objects_to_test}) {
     isnt($firstservice, undef, 'get test servicename') or BAIL_OUT('got not test servicename');
     $nl->do('COMMAND ['.time().'] SCHEDULE_SERVICE_DOWNTIME;'.$firsthost.';'.$firstservice.';'.time().';'.(time()+60).';1;0;60;nagiosadmin;test');
     # sometimes it takes while till the downtime is accepted
+    my $waited = 0;
     while(scalar @{$nl->selectall_arrayref("GET downtimes\nColumns: id")} == 0) {
+      print "waiting for the downtime...\n";
       sleep(1);
+      $waited++;
+      BAIL_OUT('waited 30 seconds for the downtime...') if $waited > 30;
     }
     #########################
 

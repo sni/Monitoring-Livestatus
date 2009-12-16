@@ -9,10 +9,9 @@ license      'perl';
 
 requires 'IO::Socket::UNIX';
 requires 'IO::Socket::INET';
-
-recommends 'threads'           => 1.07;
-recommends 'Thread::Queue'     => 2.11;
-
+requires 'threads'           => '1.07';
+requires 'Thread::Queue'     => '2.11';
+test_requires 'File::Copy::Recursive';
 
 auto_install;
 WriteAll;

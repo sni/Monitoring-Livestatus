@@ -409,12 +409,20 @@ sub _start_worker {
     $self->{'WorkQueue'}   = Thread::Queue->new;
     $self->{'WorkResults'} = Thread::Queue->new;
 
+    # set signal handler before thread is started
+    # otherwise they would be killed when started
+    # and stopped immediately after start
+    $SIG{'USR1'} = sub { threads->exit(); };
+
     # start worker threads
     our %threads;
     my $threadcount = scalar @{$self->{'peers'}};
     for(my $x = 0; $x < $threadcount; $x++) {
         $self->{'threads'}->[$x] = threads->new(\&_worker_thread, $self->{'peers'}, $self->{'WorkQueue'}, $self->{'WorkResults'});
     }
+
+    # restore sig handler as it was only for the threads
+    $SIG{'USR1'} = 'DEFAULT';
     return;
 }
 
@@ -431,7 +439,6 @@ sub _stop_worker {
 
 ########################################
 sub _worker_thread {
-    $SIG{'USR1'} = sub { threads->exit(); };
 
     my $peers       = shift;
     my $workQueue   = shift;
