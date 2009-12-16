@@ -436,11 +436,15 @@ sub _worker_thread {
     my $peers       = shift;
     my $workQueue   = shift;
     my $workResults = shift;
-    my $self = threads->self();
-
 
     while (my $job = $workQueue->dequeue) {
-        my $erg = _do_wrapper($peers->[$job->{'peer'}], $job->{'sub'}, $job->{'logger'}, @{$job->{'opts'}});
+        my $erg;
+        eval {
+            $erg = _do_wrapper($peers->[$job->{'peer'}], $job->{'sub'}, $job->{'logger'}, @{$job->{'opts'}});
+        };
+        if($@) {
+            $job->{'logger'}->error("Error in Thread ".$job->{'peer'}." :".$@) if defined $job->{'logger'};
+        };
         $workResults->enqueue({ peer => $job->{'peer'}, result => $erg });
     }
     return;
