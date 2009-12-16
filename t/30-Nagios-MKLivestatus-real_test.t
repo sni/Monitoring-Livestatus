@@ -171,25 +171,26 @@ for my $key (keys %{$objects_to_test}) {
     # dont die on errors
     $nl->errors_are_fatal(0);
     $nl->warnings(0);
-#print Dumper($nl);
 
     #########################
     # set downtime for a host and service
-    #$nl->verbose(1);
     my $firsthost = $nl->select_scalar_value("GET hosts\nColumns: name\nLimit: 1");
     isnt($firsthost, undef, 'get test hostname') or BAIL_OUT('got not test hostname');
     $nl->do('COMMAND ['.time().'] SCHEDULE_HOST_DOWNTIME;'.$firsthost.';'.time().';'.(time()+60).';1;0;60;nagiosadmin;test');
     my $firstservice = $nl->select_scalar_value("GET services\nColumns: description\nFilter: host_name = $firsthost\nLimit: 1");
     isnt($firstservice, undef, 'get test servicename') or BAIL_OUT('got not test servicename');
     $nl->do('COMMAND ['.time().'] SCHEDULE_SERVICE_DOWNTIME;'.$firsthost.';'.$firstservice.';'.time().';'.(time()+60).';1;0;60;nagiosadmin;test');
-    #$nl->verbose(0);
+    # sometimes it takes while till the downtime is accepted
+    while(scalar @{$nl->selectall_arrayref("GET downtimes\nColumns: id")} == 0) {
+      sleep(1);
+    }
+    #########################
 
     #########################
     # check keys
     for my $type (keys %{$excpected_keys}) {
         my $expected_keys = $excpected_keys->{$type};
         my $statement = "GET $type\nLimit: 1";
-#print Dumper($nl);
         my $hash_ref  = $nl->selectrow_hashref($statement );
         is(ref $hash_ref, 'HASH', 'keys are a hash') or BAIL_OUT('keys are not in hash format, got '.Dumper($hash_ref));
         my @keys      = sort keys %{$hash_ref};
