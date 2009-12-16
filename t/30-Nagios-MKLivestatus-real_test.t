@@ -10,7 +10,7 @@ if ( ! defined $ENV{TEST_SOCKET} and !defined $ENV{TEST_SERVER} ) {
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} to run';
     plan( skip_all => $msg );
 } else {
-    plan( tests => 493 );
+    plan( tests => 589 );
 }
 
 use_ok('Nagios::MKLivestatus');
@@ -171,6 +171,7 @@ for my $key (keys %{$objects_to_test}) {
     # dont die on errors
     $nl->errors_are_fatal(0);
     $nl->warnings(0);
+#print Dumper($nl);
 
     #########################
     # set downtime for a host and service
@@ -188,7 +189,9 @@ for my $key (keys %{$objects_to_test}) {
     for my $type (keys %{$excpected_keys}) {
         my $expected_keys = $excpected_keys->{$type};
         my $statement = "GET $type\nLimit: 1";
+#print Dumper($nl);
         my $hash_ref  = $nl->selectrow_hashref($statement );
+        is(ref $hash_ref, 'HASH', 'keys are a hash') or BAIL_OUT('keys are not in hash format, got '.Dumper($hash_ref));
         my @keys      = sort keys %{$hash_ref};
         #$Data::Dumper::Indent = 0;
         is_deeply(\@keys, $expected_keys, $key.' '.$type.'keys');# or ( diag(Dumper(\@keys)) or die("***************\n".$type."\n***************\n") );

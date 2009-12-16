@@ -90,9 +90,10 @@ sub new {
         };
     }
     if($self->{'use_threads'}) {
-        eval {
-            require threads;
-        };
+        require threads;
+        require Thread::Queue;
+
+        $self->_start_worker;
     }
 
     $self->{'logger'}->debug('initialized Nagios::MKLivestatus::MULTI '.($self->{'use_threads'} ? 'with' : 'without' ).' threads') if defined $self->{'logger'};
@@ -327,11 +328,8 @@ See C<Nagios::MKLivestatus> for more information.
 
 sub errors_are_fatal {
     my $self  = shift;
-    $self->{'errors_are_fatal'} = $_[0] if defined $_[0];
-    for my $peer (@{$self->{'peers'}}) {
-        $peer->{'errors_are_fatal'} = $_[0];
-    }
-    return 1;
+    my $value = shift;
+    return $self->_change_setting('errors_are_fatal', $value);
 }
 
 ########################################
@@ -344,11 +342,8 @@ See C<Nagios::MKLivestatus> for more information.
 
 sub warnings {
     my $self  = shift;
-    $self->{'warnings'} = $_[0] if defined $_[0];
-    for my $peer (@{$self->{'peers'}}) {
-        $peer->{'warnings'} = $_[0];
-    }
-    return 1;
+    my $value = shift;
+    return $self->_change_setting('warnings', $value);
 }
 
 ########################################
@@ -361,8 +356,8 @@ See C<Nagios::MKLivestatus> for more information.
 
 sub verbose {
     my $self  = shift;
-    $self->{'verbose'} = $_[0] if defined $_[0];
-    return $self->_do_on_peers("verbose", @_);
+    my $value = shift;
+    return $self->_change_setting('verbose', $value);
 }
 
 ########################################
@@ -381,6 +376,76 @@ sub peer_name {
 
 ########################################
 # INTERNAL SUBS
+########################################
+
+sub _change_setting {
+    my $self  = shift;
+    my $key   = shift;
+    my $value = shift;
+    my $old   = $self->{$key};
+
+    # set new value
+    if(defined $value) {
+        $self->{$key} = $value;
+        for my $peer (@{$self->{'peers'}}) {
+            $peer->{$key} = $value;
+        }
+
+        # restart workers
+        if($self->{'use_threads'}) {
+            _stop_worker();
+            $self->_start_worker();
+        }
+    }
+
+    return $old;
+}
+
+########################################
+sub _start_worker {
+    my $self = shift;
+
+    # create job transports
+    $self->{'WorkQueue'}   = Thread::Queue->new;
+    $self->{'WorkResults'} = Thread::Queue->new;
+
+    # start worker threads
+    our %threads;
+    my $threadcount = scalar @{$self->{'peers'}};
+    for(my $x = 0; $x < $threadcount; $x++) {
+        $self->{'threads'}->[$x] = threads->new(\&_worker_thread, $self->{'peers'}, $self->{'WorkQueue'}, $self->{'WorkResults'});
+    }
+    return;
+}
+
+########################################
+sub _stop_worker {
+    # try to kill our threads safely
+    eval {
+        for my $thr (threads->list()) {
+            $thr->kill('USR1')->detach();
+        }
+    };
+    return;
+}
+
+########################################
+sub _worker_thread {
+    $SIG{'USR1'} = sub { threads->exit(); };
+
+    my $peers       = shift;
+    my $workQueue   = shift;
+    my $workResults = shift;
+    my $self = threads->self();
+
+
+    while (my $job = $workQueue->dequeue) {
+        my $erg = _do_wrapper($peers->[$job->{'peer'}], $job->{'sub'}, $job->{'logger'}, @{$job->{'opts'}});
+        $workResults->enqueue({ peer => $job->{'peer'}, result => $erg });
+    }
+    return;
+}
+
 ########################################
 sub _do_wrapper {
     my $peer   = shift;
@@ -420,18 +485,24 @@ sub _do_on_peers {
     if($self->{'use_threads'}) {
         # create threads for all active backends
         print("using threads\n") if $self->{'verbose'};
-        my %threads;
+
+        my $x = 0;
         for my $peer (@{$self->{'peers'}}) {
-            if($peer->marked_bad) {
-                warn($peer->peer_name.' is marked bad') if $self->{'verbose'};
-            } else {
-                $threads{$peer->peer_name} = threads->new(\&_do_wrapper, $peer, $sub, $self->{'logger'}, @opts);
-            }
+            my $job = {
+                    peer   => $x,
+                    sub    => $sub,
+                    logger => $self->{'logger'},
+                    opts   => \@opts,
+            };
+            $self->{'WorkQueue'}->enqueue($job);
+            $x++;
         }
-        for my $peer_name (keys %threads) {
-            my $erg = $threads{$peer_name}->join();
-            $return->{$peer_name} = $erg->{'data'};
-            push @{$codes{$erg->{'code'}}}, { 'peer' => $peer_name, 'msg' => $erg->{'msg'} };
+
+        for(my $x = 0; $x < scalar @{$self->{'peers'}}; $x++) {
+            my $result = $self->{'WorkResults'}->dequeue;
+            my $peer = $self->{'peers'}->[$result->{'peer'}];
+            push @{$codes{$result->{'result'}->{'code'}}}, { 'peer' => $peer->peer_name, 'msg' => $result->{'result'}->{'msg'} };
+            $return->{$peer->peer_name} = $result->{'result'}->{'data'};
         }
     } else {
         print("not using threads\n") if $self->{'verbose'};
@@ -482,7 +553,6 @@ sub _merge_answer {
     my $return;
 
     my $t0 = [gettimeofday];
-
     for my $key (keys %{$data}) {
         $data->{$key} = [] unless defined $data->{$key};
         if(ref $data->{$key} eq 'ARRAY') {
@@ -535,6 +605,13 @@ sub _sum_answer {
     $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for summarizing data') if defined $self->{'logger'};
 
     return $return;
+}
+
+########################################
+
+END {
+    # try to kill our threads safely
+    _stop_worker();
 }
 
 ########################################

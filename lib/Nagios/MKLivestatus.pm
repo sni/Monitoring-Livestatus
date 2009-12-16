@@ -1,6 +1,6 @@
 package Nagios::MKLivestatus;
 
-use 5.000000;
+use 5.006;
 use strict;
 use warnings;
 use Data::Dumper;
@@ -539,39 +539,46 @@ sub select_scalar_value {
 
 =head2 errors_are_fatal
 
+ errors_are_fatal()
  errors_are_fatal($value)
 
 Enable or disable fatal errors. When enabled the module will croak on any error.
-returns always true.
+
+returns the current setting if called without new value
 
 =cut
 sub errors_are_fatal {
     my $self  = shift;
     my $value = shift;
+    my $old   = $self->{'errors_are_fatal'};
 
     $self->{'errors_are_fatal'}                = $value;
     $self->{'CONNECTOR'}->{'errors_are_fatal'} = $value if defined $self->{'CONNECTOR'};
 
-    return 1;
+    return $old;
 }
 
 ########################################
 
 =head2 warnings
 
+ warnings()
  warnings($value)
 
 Enable or disable warnings. When enabled the module will carp on warnings.
-returns always true.
+
+returns the current setting if called without new value
 
 =cut
 sub warnings {
     my $self  = shift;
     my $value = shift;
+    my $old   = $self->{'warnings'};
 
     $self->{'warnings'}                = $value;
     $self->{'CONNECTOR'}->{'warnings'} = $value if defined $self->{'CONNECTOR'};
-    return 1;
+
+    return $old;
 }
 
 
@@ -580,21 +587,23 @@ sub warnings {
 
 =head2 verbose
 
+ verbose()
  verbose($values)
 
 Enable or disable verbose output. When enabled the module will dump out debug output
 
-returns always true.
+returns the current setting if called without new value
 
 =cut
 sub verbose {
     my $self  = shift;
     my $value = shift;
+    my $old   = $self->{'verbose'};
 
     $self->{'verbose'}                = $value;
-    $self->{'CONNECTOR'}->{'verbose'} = $value;
+    $self->{'CONNECTOR'}->{'verbose'} = $value if defined $self->{'CONNECTOR'};
 
-    return 1;
+    return $old;
 }
 
 
@@ -769,6 +778,7 @@ sub _send {
     if(!defined $keys) {
         $self->{'logger'}->warn("got statement without Columns: header!") if defined $self->{'logger'};
         if($self->{'warnings'}) {
+
             carp("got statement without Columns: header!");
         }
         $keys = shift @result;
@@ -799,7 +809,7 @@ sub _open {
     }
 
     # set timeout
-    $sock->timeout($self->{'timeout'});
+    $sock->timeout($self->{'timeout'}) if defined $sock;
 
     return($sock);
 }

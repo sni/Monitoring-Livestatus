@@ -1,17 +1,18 @@
-use 5.000000;
-use ExtUtils::MakeMaker;
-# See lib/ExtUtils/MakeMaker.pm for details of how to influence
-# the contents of the Makefile that is written.
-WriteMakefile(
-    NAME           => 'Nagios::MKLivestatus',
-    VERSION_FROM   => 'lib/Nagios/MKLivestatus.pm',
-    PREREQ_PM      => {
-                          'threads'          => 1.07,
-                          'IO::Socket::UNIX' => 0,
-                          'IO::Socket::INET' => 0,
-                      },
-    ABSTRACT_FROM  => 'lib/Nagios/MKLivestatus.pm',
-    AUTHOR         => 'Sven Nierlein <nierlein@cpan.org>',
-    $ExtUtils::MakeMaker::VERSION >= 6.31
-    ? ( 'LICENSE' => 'perl' ) : (),
-);
+# IMPORTANT: if you delete this file your app will not work as
+# expected.  you have been warned
+use inc::Module::Install;
+
+name         'Nagios-MKLivestatus';
+all_from     'lib/Nagios/MKLivestatus.pm';
+perl_version '5.006';
+license      'perl';
+
+requires 'IO::Socket::UNIX';
+requires 'IO::Socket::INET';
+
+recommends 'threads'           => 1.07;
+recommends 'Thread::Queue'     => 2.11;
+
+
+auto_install;
+WriteAll;
