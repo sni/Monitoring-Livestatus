@@ -11,7 +11,14 @@ requires 'IO::Socket::UNIX';
 requires 'IO::Socket::INET';
 requires 'threads'           => '1.07';
 requires 'Thread::Queue'     => '2.11';
+
 test_requires 'File::Copy::Recursive';
+test_requires 'Test::Pod' => 1.14;
+test_requires 'Test::Perl::Critic';
+test_requires 'Test::Pod::Coverage';
+test_requires 'Perl::Critic::Policy::Dynamic::NoIndirect';
+test_requires 'Perl::Critic::Policy::NamingConventions::ProhibitMixedCaseSubs';
+test_requires 'Perl::Critic::Policy::ValuesAndExpressions::ProhibitAccessOfPrivateData';
 
 auto_install;
 WriteAll;

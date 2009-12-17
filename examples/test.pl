@@ -108,6 +108,10 @@ my $querys = [
       'sub'   => "selectrow_arrayref",
       'opt'   => {Slice => 1, Sum => 1}
     },
+    { 'query' => "GET hosts\nColumns: name alias icon_image latency\nLimit: 1",
+      'sub'   => "selectall_arrayref",
+      'opt'   => {Slice => 1, AddPeer => 1}
+    },
 ];
 for my $query (@{$querys}) {
     my $sub     = $query->{'sub'};

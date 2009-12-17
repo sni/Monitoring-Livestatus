@@ -149,16 +149,16 @@ sub new {
     # check if the supplied peer is a socket or a server address
     if(defined $self->{'peer'} and ref $self->{'peer'} eq '') {
         if(index($self->{'peer'}, ':') > 0) {
-            push @{$peers}, { 'peer' => $self->{'peer'}, type => 'INET' };
+            push @{$peers}, { 'peer' => "".$self->{'peer'}, type => 'INET' };
         } else {
-            push @{$peers}, { 'peer' => $self->{'peer'}, type => 'UNIX' };
+            push @{$peers}, { 'peer' => "".$self->{'peer'}, type => 'UNIX' };
         }
     }
     if(defined $self->{'socket'}) {
-        push @{$peers}, { 'peer' => $self->{'socket'}, type => 'UNIX' };
+        push @{$peers}, { 'peer' => "".$self->{'socket'}, type => 'UNIX' };
     }
     if(defined $self->{'server'}) {
-        push @{$peers}, { 'peer' => $self->{'server'}, type => 'INET' };
+        push @{$peers}, { 'peer' => "".$self->{'server'}, type => 'INET' };
     }
     if(defined $self->{'peer'} and ref $self->{'peer'} eq 'ARRAY') {
         for my $peer (@{$self->{'peer'}}) {
@@ -166,7 +166,7 @@ sub new {
             if(index($peer, ':') >= 0) {
                 $type = 'INET';
             }
-            push @{$peers}, { 'peer' => $peer, type => $type };
+            push @{$peers}, { 'peer' => "".$peer, type => $type };
         }
     }
 
@@ -778,10 +778,14 @@ sub _send {
     if(!defined $keys) {
         $self->{'logger'}->warn("got statement without Columns: header!") if defined $self->{'logger'};
         if($self->{'warnings'}) {
-
             warn("got statement without Columns: header! -> ".$statement);
         }
         $keys = shift @result;
+
+        # remove first element of keys, because its the peer_name
+        if(defined $with_peers and $with_peers == 1) {
+            shift @{$keys};
+        }
     }
 
     if(defined $with_peers and $with_peers == 1) {
