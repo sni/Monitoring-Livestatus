@@ -439,6 +439,7 @@ sub _stop_worker {
 
 ########################################
 sub _worker_thread {
+    local $SIG{'USR1'} = sub { threads->exit(); };
 
     my $peers       = shift;
     my $workQueue   = shift;
