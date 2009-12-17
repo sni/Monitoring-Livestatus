@@ -7,7 +7,6 @@ use Carp;
 use Data::Dumper;
 use Config;
 use Time::HiRes qw( gettimeofday tv_interval );
-use Clone qw(clone);
 use Nagios::MKLivestatus;
 use base "Nagios::MKLivestatus";
 
@@ -514,10 +513,8 @@ sub _do_on_peers {
 
         for(my $x = 0; $x < scalar @{$self->{'peers'}}; $x++) {
             # result has to be cloned to avoid "Invalid value for shared scalar" error
-            my $VAR1;
-            eval(Dumper($self->{'WorkResults'}->dequeue));
-            my $result = $VAR1;
-            my $peer = $self->{'peers'}->[$result->{'peer'}];
+            my $result = $self->_clone($self->{'WorkResults'}->dequeue, $self->{'logger'});
+            my $peer   = $self->{'peers'}->[$result->{'peer'}];
             if(defined $result->{'result'}) {
                 push @{$codes{$result->{'result'}->{'code'}}}, { 'peer' => $peer->peer_name, 'msg' => $result->{'result'}->{'msg'} };
                 $return->{$peer->peer_name} = $result->{'result'}->{'data'};
@@ -625,6 +622,39 @@ sub _sum_answer {
 
     my $elapsed = tv_interval ( $t0 );
     $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for summarizing data') if defined $self->{'logger'};
+
+    return $return;
+}
+
+########################################
+sub _clone {
+    my $self   = shift;
+    my $data   = shift;
+    my $logger = shift;
+    my $t0     = [gettimeofday];
+
+    my $return;
+    if(ref $data eq '') {
+        $return = $data;
+    }
+    elsif(ref $data eq 'ARRAY') {
+        $return = [];
+        for my $dat (@{$data}) {
+            push @{$return}, $self->_clone($dat);
+        }
+    }
+    elsif(ref $data eq 'HASH') {
+        $return = {};
+        for my $key (keys %{$data}) {
+            $return->{$key} = $self->_clone($data->{$key});
+        }
+    }
+    else {
+        croak("cant clone: ".(ref $data));
+    }
+
+    my $elapsed = tv_interval ( $t0 );
+    $logger->debug(sprintf('%.4f', $elapsed).' sec for cloning data') if defined $logger;
 
     return $return;
 }

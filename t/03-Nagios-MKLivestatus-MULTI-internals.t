@@ -3,7 +3,7 @@
 #########################
 
 use strict;
-use Test::More tests => 4;
+use Test::More tests => 6;
 use Data::Dumper;
 use_ok('Nagios::MKLivestatus::MULTI');
 
@@ -61,3 +61,11 @@ for my $test (@{$sumtests}) {
         or diag("got: ".Dumper($got)."\nbut expected ".Dumper($test->{'exp'}));
     $x++;
 }
+
+#########################
+# clone test
+my $clone = $nl->_clone($mergetests);
+is_deeply($clone, $mergetests, 'merge test clone');
+
+$clone = $nl->_clone($sumtests);
+is_deeply($clone, $sumtests, 'sum test clone');
