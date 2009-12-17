@@ -146,6 +146,11 @@ sub new {
     bless $self, $class;
     my $peers = [];
 
+    # if we get an array with only one element, convert it to scalar
+    if(defined $self->{'peer'} and ref $self->{'peer'} eq 'ARRAY' and scalar @{$self->{'peer'}} == 1) {
+        $self->{'peer'} = $self->{'peer'}->[0];
+    }
+
     # check if the supplied peer is a socket or a server address
     if(defined $self->{'peer'} and ref $self->{'peer'} eq '') {
         if(index($self->{'peer'}, ':') > 0) {

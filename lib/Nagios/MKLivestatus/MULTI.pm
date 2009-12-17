@@ -570,7 +570,8 @@ sub _merge_answer {
 
     my $t0 = [gettimeofday];
     for my $key (keys %{$data}) {
-        $data->{$key} = [] unless defined $data->{$key};
+        next if !defined $data->{$key};
+
         if(ref $data->{$key} eq 'ARRAY') {
             $return = [] unless defined $return;
             $return = [ @{$return}, @{$data->{$key}} ];
