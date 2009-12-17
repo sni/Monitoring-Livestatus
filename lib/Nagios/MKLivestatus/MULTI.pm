@@ -7,6 +7,7 @@ use Carp;
 use Data::Dumper;
 use Config;
 use Time::HiRes qw( gettimeofday tv_interval );
+use Clone qw(clone);
 use Nagios::MKLivestatus;
 use base "Nagios::MKLivestatus";
 
@@ -512,7 +513,10 @@ sub _do_on_peers {
         }
 
         for(my $x = 0; $x < scalar @{$self->{'peers'}}; $x++) {
-            my $result = $self->{'WorkResults'}->dequeue;
+            # result has to be cloned to avoid "Invalid value for shared scalar" error
+            my $VAR1;
+            eval(Dumper($self->{'WorkResults'}->dequeue));
+            my $result = $VAR1;
             my $peer = $self->{'peers'}->[$result->{'peer'}];
             if(defined $result->{'result'}) {
                 push @{$codes{$result->{'result'}->{'code'}}}, { 'peer' => $peer->peer_name, 'msg' => $result->{'result'}->{'msg'} };
