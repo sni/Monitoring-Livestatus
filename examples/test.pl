@@ -99,11 +99,24 @@ my $nl = Nagios::MKLivestatus->new(
 my $log = get_logger();
 
 #########################################################################
-my $t0 = [gettimeofday];
-my $stats = $nl->selectrow_arrayref("GET status\nColumns: connections connections_rate host_checks host_checks_rate requests requests_rate service_checks service_checks_rate neb_callbacks neb_callbacks_rate", { Slice => 1, Sum => 1 });
-my $elapsed = tv_interval ( $t0 );
-print Dumper($stats);
-print "Query took ".($elapsed)." seconds\n";
+my $querys = [
+    { 'query' => "GET status\nColumns: connections connections_rate host_checks host_checks_rate requests requests_rate service_checks service_checks_rate neb_callbacks neb_callbacks_rate",
+      'sub'   => "selectrow_arrayref",
+      'opt'   => {Slice => 1, Sum => 1}
+    },
+    { 'query' => "GET downtimes\nColumns: id\nLimit: 1",
+      'sub'   => "selectrow_arrayref",
+      'opt'   => {Slice => 1, Sum => 1}
+    },
+];
+for my $query (@{$querys}) {
+    my $sub     = $query->{'sub'};
+    my $t0      = [gettimeofday];
+    my $stats   = $nl->$sub($query->{'query'}, $query->{'opt'});
+    my $elapsed = tv_interval($t0);
+    print Dumper($stats);
+    print "Query took ".($elapsed)." seconds\n";
+}
 
 
 #########################################################################

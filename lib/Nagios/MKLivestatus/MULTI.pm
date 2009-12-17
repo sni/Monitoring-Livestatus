@@ -418,7 +418,7 @@ sub _start_worker {
     our %threads;
     my $threadcount = scalar @{$self->{'peers'}};
     for(my $x = 0; $x < $threadcount; $x++) {
-        $self->{'threads'}->[$x] = threads->new(\&_worker_thread, $self->{'peers'}, $self->{'WorkQueue'}, $self->{'WorkResults'});
+        $self->{'threads'}->[$x] = threads->new(\&_worker_thread, $self->{'peers'}, $self->{'WorkQueue'}, $self->{'WorkResults'}, $self->{'logger'});
     }
 
     # restore sig handler as it was only for the threads
@@ -443,13 +443,15 @@ sub _worker_thread {
     my $peers       = shift;
     my $workQueue   = shift;
     my $workResults = shift;
+    my $logger      = shift;
 
     while (my $job = $workQueue->dequeue) {
         my $erg;
         eval {
-            $erg = _do_wrapper($peers->[$job->{'peer'}], $job->{'sub'}, $job->{'logger'}, @{$job->{'opts'}});
+            $erg = _do_wrapper($peers->[$job->{'peer'}], $job->{'sub'}, $logger, @{$job->{'opts'}});
         };
         if($@) {
+            warn("Error in Thread ".$job->{'peer'}." :".$@);
             $job->{'logger'}->error("Error in Thread ".$job->{'peer'}." :".$@) if defined $job->{'logger'};
         };
         $workResults->enqueue({ peer => $job->{'peer'}, result => $erg });
@@ -500,10 +502,9 @@ sub _do_on_peers {
         my $x = 0;
         for my $peer (@{$self->{'peers'}}) {
             my $job = {
-                    peer   => $x,
-                    sub    => $sub,
-                    logger => $self->{'logger'},
-                    opts   => \@opts,
+                    'peer'   => $x,
+                    'sub'    => $sub,
+                    'opts'   => \@opts,
             };
             $self->{'WorkQueue'}->enqueue($job);
             $x++;
@@ -512,8 +513,12 @@ sub _do_on_peers {
         for(my $x = 0; $x < scalar @{$self->{'peers'}}; $x++) {
             my $result = $self->{'WorkResults'}->dequeue;
             my $peer = $self->{'peers'}->[$result->{'peer'}];
-            push @{$codes{$result->{'result'}->{'code'}}}, { 'peer' => $peer->peer_name, 'msg' => $result->{'result'}->{'msg'} };
-            $return->{$peer->peer_name} = $result->{'result'}->{'data'};
+            if(defined $result->{'result'}) {
+                push @{$codes{$result->{'result'}->{'code'}}}, { 'peer' => $peer->peer_name, 'msg' => $result->{'result'}->{'msg'} };
+                $return->{$peer->peer_name} = $result->{'result'}->{'data'};
+            } else {
+                warn("undefined result for: $statement");
+            }
         }
     } else {
         print("not using threads\n") if $self->{'verbose'};

@@ -340,7 +340,7 @@ sub selectall_hashref {
     my $key_field = shift;
     my $opt       = shift;
 
-    $opt->{'Slice'} = {} unless defined $opt->{'Slice'};
+    $opt->{'Slice'} = 1 unless defined $opt->{'Slice'};
 
     croak("key is required for selectall_hashref") if !defined $key_field;
 
@@ -779,7 +779,7 @@ sub _send {
         $self->{'logger'}->warn("got statement without Columns: header!") if defined $self->{'logger'};
         if($self->{'warnings'}) {
 
-            carp("got statement without Columns: header!");
+            warn("got statement without Columns: header! -> ".$statement);
         }
         $keys = shift @result;
     }
