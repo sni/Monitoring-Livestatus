@@ -512,8 +512,7 @@ sub _do_on_peers {
         }
 
         for(my $x = 0; $x < scalar @{$self->{'peers'}}; $x++) {
-            # result has to be cloned to avoid "Invalid value for shared scalar" error
-            my $result = $self->_clone($self->{'WorkResults'}->dequeue, $self->{'logger'});
+            my $result = $self->{'WorkResults'}->dequeue, $self->{'logger'};
             my $peer   = $self->{'peers'}->[$result->{'peer'}];
             if(defined $result->{'result'}) {
                 push @{$codes{$result->{'result'}->{'code'}}}, { 'peer' => $peer->peer_name, 'msg' => $result->{'result'}->{'msg'} };
@@ -560,6 +559,11 @@ sub _do_on_peers {
 
     my $elapsed = tv_interval ( $t0 );
     $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for fetching all data') if defined $self->{'logger'};
+
+    if($self->{'use_threads'}) {
+        # result has to be cloned to avoid "Invalid value for shared scalar" error
+        $return = $self->_clone($return, $self->{'logger'});
+    }
 
     return($return);
 }
