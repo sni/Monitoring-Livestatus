@@ -512,7 +512,7 @@ sub _do_on_peers {
         }
 
         for(my $x = 0; $x < scalar @{$self->{'peers'}}; $x++) {
-            my $result = $self->{'WorkResults'}->dequeue, $self->{'logger'};
+            my $result = $self->{'WorkResults'}->dequeue;
             my $peer   = $self->{'peers'}->[$result->{'peer'}];
             if(defined $result->{'result'}) {
                 push @{$codes{$result->{'result'}->{'code'}}}, { 'peer' => $peer->peer_name, 'msg' => $result->{'result'}->{'msg'} };
