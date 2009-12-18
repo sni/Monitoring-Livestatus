@@ -283,7 +283,7 @@ sub selectall_arrayref {
         $optstring =~ s/^\$VAR1\s+=\s+//mx;
         $optstring =~ s/;$//mx;
         my $cleanstatement = $statement;
-        $cleanstatement =~ s/\n/\\n/mx;
+        $cleanstatement =~ s/\n/\\n/gmx;
         $self->{'logger'}->debug('selectall_arrayref("'.$cleanstatement.'", '.$optstring.', '.$limit.')')
     }
 
@@ -507,7 +507,7 @@ sub selectrow_hashref {
     my $statement = shift;
     my $opt       = shift;
 
-    $opt->{'Slice'} = {} unless defined $opt->{'Slice'};
+    $opt->{'Slice'} = 1 unless defined $opt->{'Slice'};
 
     my $result = $self->selectall_arrayref($statement, $opt, 1);
     return if !defined $result;

@@ -51,4 +51,9 @@ for my $key (keys %{$objects_to_test}) {
     for my $data (@{$data1}) { $data->{'peer_name'} = {}; }
     for my $data (@{$data2}) { $data->{'peer_name'} = {}; }
     is_deeply($data1, $data2, "data integrity with changed result set");
+
+    # Bug: Can't use string ("flap") as an ARRAY ref while "strict refs" in use at Nagios/MKLivestatus/MULTI.pm line 206.
+    $statement = "GET servicegroups\nColumns: name alias\nFilter: name = flap\nLimit: 1";
+    $data1 = $nl->selectrow_array($statement);
+    isnt($data1, undef, "bug check: \"Can't use string (\"flap\") as an ARRAY ref while \"strict refs\" in use at Nagios/MKLivestatus/MULTI.pm line 206.");
 }
