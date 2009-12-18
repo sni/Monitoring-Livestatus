@@ -787,7 +787,7 @@ sub _send {
     if(!defined $keys) {
         $self->{'logger'}->warn("got statement without Columns: header!") if defined $self->{'logger'};
         if($self->{'warnings'}) {
-            warn("got statement without Columns: header! -> ".$statement);
+            carp("got statement without Columns: header! -> ".$statement);
         }
         $keys = shift @result;
 

@@ -200,7 +200,7 @@ sub selectrow_array {
         @return = @{$self->_sum_answer($self->_do_on_peers("selectrow_arrayref", @_))};
     } else {
         if($self->{'warnings'}) {
-            carp("selectrow_arrayref without Stats: will not work as expected!");
+            carp("selectrow_arrayref without Stats on multi backend will not work as expected!");
         }
         my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_arrayref", @_));
         @return = @{$rows} if defined $rows;
@@ -234,7 +234,7 @@ sub selectrow_arrayref {
         $return = $self->_sum_answer($self->_do_on_peers("selectrow_arrayref", @_));
     } else {
         if($self->{'warnings'}) {
-            carp("selectrow_arrayref without Stats: will not work as expected!");
+            carp("selectrow_arrayref without Stats on multi backend will not work as expected!");
         }
         my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_arrayref", @_));
         $return = $rows->[0] if defined $rows->[0];
@@ -270,7 +270,7 @@ sub selectrow_hashref {
         $return = $self->_sum_answer($self->_do_on_peers("selectrow_hashref", @_));
     } else {
         if($self->{'warnings'}) {
-            carp("selectrow_hashref without Stats: will not work as expected!");
+            carp("selectrow_hashref without Stats on multi backend will not work as expected!");
         }
         $return = $self->_merge_answer($self->_do_on_peers("selectrow_hashref", @_));
     }
@@ -305,7 +305,7 @@ sub select_scalar_value {
         return $self->_sum_answer($self->_do_on_peers("select_scalar_value", @_));
     } else {
         if($self->{'warnings'}) {
-            carp("select_scalar_value without Stats: will not work as expected!");
+            carp("select_scalar_value without Stats on multi backend will not work as expected!");
         }
         my $rows = $self->_merge_answer($self->_do_on_peers("select_scalar_value", @_));
 
