@@ -203,7 +203,7 @@ sub selectrow_array {
             carp("selectrow_arrayref without Stats: will not work as expected!");
         }
         my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_arrayref", @_));
-        @return = @{$rows->[0]} if defined $rows->[0];
+        @return = @{$rows} if defined $rows;
     }
 
     my $elapsed = tv_interval ( $t0 );

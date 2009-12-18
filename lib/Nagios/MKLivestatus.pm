@@ -148,15 +148,28 @@ sub new {
 
     # if we get an array with only one element, convert it to scalar
     if(defined $self->{'peer'} and ref $self->{'peer'} eq 'ARRAY' and scalar @{$self->{'peer'}} == 1) {
-        $self->{'peer'} = $self->{'peer'}->[0];
+        $self->{'peer'} = "".$self->{'peer'}->[0];
     }
 
     # check if the supplied peer is a socket or a server address
-    if(defined $self->{'peer'} and ref $self->{'peer'} eq '') {
-        if(index($self->{'peer'}, ':') > 0) {
-            push @{$peers}, { 'peer' => "".$self->{'peer'}, type => 'INET' };
+    if(defined $self->{'peer'}) {
+        if(ref $self->{'peer'} eq '') {
+            if(index($self->{'peer'}, ':') > 0) {
+                push @{$peers}, { 'peer' => "".$self->{'peer'}, type => 'INET' };
+            } else {
+                push @{$peers}, { 'peer' => "".$self->{'peer'}, type => 'UNIX' };
+            }
+        }
+        elsif(ref $self->{'peer'} eq 'ARRAY') {
+            for my $peer (@{$self->{'peer'}}) {
+                my $type = 'UNIX';
+                if(index($peer, ':') >= 0) {
+                    $type = 'INET';
+                }
+                push @{$peers}, { 'peer' => "".$peer, type => $type };
+            }
         } else {
-            push @{$peers}, { 'peer' => "".$self->{'peer'}, type => 'UNIX' };
+            confess("type ".(ref $self->{'peer'})." is not supported for peer option");
         }
     }
     if(defined $self->{'socket'}) {
@@ -164,15 +177,6 @@ sub new {
     }
     if(defined $self->{'server'}) {
         push @{$peers}, { 'peer' => "".$self->{'server'}, type => 'INET' };
-    }
-    if(defined $self->{'peer'} and ref $self->{'peer'} eq 'ARRAY') {
-        for my $peer (@{$self->{'peer'}}) {
-            my $type = 'UNIX';
-            if(index($peer, ':') >= 0) {
-                $type = 'INET';
-            }
-            push @{$peers}, { 'peer' => "".$peer, type => $type };
-        }
     }
 
     # check if we got a peer
