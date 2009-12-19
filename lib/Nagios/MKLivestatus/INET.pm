@@ -30,14 +30,14 @@ be a the C<server> specification. Use either socker OR server.
 
 sub new {
     my $class = shift;
-    unshift(@_, "server") if scalar @_ == 1;
+    unshift(@_, "peer") if scalar @_ == 1;
     my(%options) = @_;
-
-    $options{'name'} = $options{'server'} unless defined $options{'name'};
+    $options{'name'} = $options{'peer'} unless defined $options{'name'};
 
     $options{'backend'} = $class;
     my $self = Nagios::MKLivestatus->new(%options);
     bless $self, $class;
+    confess('not a scalar') if ref $self->{'peer'} ne '';
 
     return $self;
 }
@@ -52,10 +52,10 @@ sub new {
 sub _open {
     my $self = shift;
     my $sock = IO::Socket::INET->new(
-                                     PeerAddr => $self->{'server'},
+                                     PeerAddr => $self->{'peer'},
                                      );
     if(!defined $sock or !$sock->connected()) {
-        my $msg = "failed to connect to $self->{'server'} :$!";
+        my $msg = "failed to connect to $self->{'peer'} :$!";
         if($self->{'errors_are_fatal'}) {
             croak($msg);
         }

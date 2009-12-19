@@ -139,62 +139,21 @@ sub new {
             croak("unknown option: $opt_key");
         }
     }
-    for my $opt_key (keys %{$self}) {
-        $options{$opt_key} = $self->{$opt_key};
-    }
 
     bless $self, $class;
-    my $peers = [];
 
-    # if we get an array with only one element, convert it to scalar
-    if(defined $self->{'peer'} and ref $self->{'peer'} eq 'ARRAY' and scalar @{$self->{'peer'}} == 1) {
-        $self->{'peer'} = "".$self->{'peer'}->[0];
-    }
-
-    # check if the supplied peer is a socket or a server address
-    if(defined $self->{'peer'}) {
-        if(ref $self->{'peer'} eq '') {
-            if(index($self->{'peer'}, ':') > 0) {
-                push @{$peers}, { 'peer' => "".$self->{'peer'}, type => 'INET' };
-            } else {
-                push @{$peers}, { 'peer' => "".$self->{'peer'}, type => 'UNIX' };
-            }
-        }
-        elsif(ref $self->{'peer'} eq 'ARRAY') {
-            for my $peer (@{$self->{'peer'}}) {
-                my $type = 'UNIX';
-                if(index($peer, ':') >= 0) {
-                    $type = 'INET';
-                }
-                push @{$peers}, { 'peer' => "".$peer, type => $type };
-            }
-        } else {
-            confess("type ".(ref $self->{'peer'})." is not supported for peer option");
-        }
-    }
-    if(defined $self->{'socket'}) {
-        push @{$peers}, { 'peer' => "".$self->{'socket'}, type => 'UNIX' };
-    }
-    if(defined $self->{'server'}) {
-        push @{$peers}, { 'peer' => "".$self->{'server'}, type => 'INET' };
-    }
-
-    # check if we got a peer
-    if(scalar @{$peers} == 0) {
-        croak('please specify at least one peer, socket or server');
-    }
+    # set our peer(s) from the options
+    my $peers = $self->_get_peers();
 
     if(!defined $self->{'backend'}) {
         if(scalar @{$peers} == 1) {
-            $self->{'name'} = $self->{'peer'} unless defined $self->{'name'};
-            if($peers->[0]->{'type'} eq 'UNIX') {
-                $self->{'name'}  = $self->{'socket'} unless defined $self->{'name'};
-                $options{'socket'} = $peers->[0]->{'peer'};
+            my $peer = $peers->[0];
+            $options{'name'} = $peer->{'name'};
+            $options{'peer'} = $peer->{'peer'};
+            if($peer->{'type'} eq 'UNIX') {
                 $self->{'CONNECTOR'} = new Nagios::MKLivestatus::UNIX(%options);
             }
-            elsif($peers->[0]->{'type'} eq 'INET') {
-                $self->{'name'}  = $self->{'server'} unless defined $self->{'name'};
-                $options{'server'} = $peers->[0]->{'peer'};
+            elsif($peer->{'type'} eq 'INET') {
                 $self->{'CONNECTOR'} = new Nagios::MKLivestatus::INET(%options);
             }
         }
@@ -202,6 +161,14 @@ sub new {
             $options{'peer'} = $peers;
             return new Nagios::MKLivestatus::MULTI(%options);
         }
+    }
+
+    # set names and peer for non multi backends
+    if(defined $self->{'CONNECTOR'}->{'name'} and !defined $self->{'name'}) {
+        $self->{'name'} = $self->{'CONNECTOR'}->{'name'};
+    }
+    if(defined $self->{'CONNECTOR'}->{'peer'} and !defined $self->{'peer'}) {
+        $self->{'peer'} = $self->{'CONNECTOR'}->{'peer'};
     }
 
     $self->{'logger'}->debug('initialized Nagios::MKLivestatus ('.$self->peer_name.')') if defined $self->{'logger'};
@@ -618,6 +585,24 @@ sub verbose {
 
 ########################################
 
+=head2 peer_addr
+
+ $nl->peer_addr()
+
+returns the current peer address
+
+when using multiple backends, a list of all addresses is returned in list context
+
+=cut
+sub peer_addr {
+    my $self  = shift;
+
+    return $self->{'peer'};
+}
+
+
+########################################
+
 =head2 peer_name
 
  $nl->peer_name()
@@ -626,6 +611,8 @@ sub verbose {
 if new value is set, name is set to this value
 
 always returns the current peer name
+
+when using multiple backends, a list of all names is returned in list context
 
 =cut
 sub peer_name {
@@ -1080,6 +1067,76 @@ sub _get_error {
     confess('non existant error code: '.$code) if !defined $codes->{$code};
 
     return($codes->{$code});
+}
+
+########################################
+sub _get_peers {
+    my $self   = shift;
+
+    # set options for our peer(s)
+    my %options;
+    for my $opt_key (keys %{$self}) {
+        $options{$opt_key} = $self->{$opt_key};
+    }
+
+    my $peers = [];
+
+    # check if the supplied peer is a socket or a server address
+    if(defined $self->{'peer'}) {
+        if(ref $self->{'peer'} eq '') {
+            my $name = $self->{'name'} || "".$self->{'peer'};
+            if(index($self->{'peer'}, ':') > 0) {
+                push @{$peers}, { 'peer' => "".$self->{'peer'}, type => 'INET', name => $name };
+            } else {
+                push @{$peers}, { 'peer' => "".$self->{'peer'}, type => 'UNIX', name => $name };
+            }
+        }
+        elsif(ref $self->{'peer'} eq 'ARRAY') {
+            for my $peer (@{$self->{'peer'}}) {
+                if(ref $peer eq 'HASH') {
+                    push @{$peers}, $peer;
+                } else {
+                    my $type = 'UNIX';
+                    if(index($peer, ':') >= 0) {
+                        $type = 'INET';
+                    }
+                    push @{$peers}, { 'peer' => "".$peer, type => $type, name => "".$peer };
+                }
+            }
+        }
+        elsif(ref $self->{'peer'} eq 'HASH') {
+            for my $peer (keys %{$self->{'peer'}}) {
+                my $name = $self->{'peer'}->{$peer};
+                my $type = 'UNIX';
+                if(index($peer, ':') >= 0) {
+                    $type = 'INET';
+                }
+                push @{$peers}, { 'peer' => "".$peer, type => $type, name => "".$name };
+            }
+        } else {
+            confess("type ".(ref $self->{'peer'})." is not supported for peer option");
+        }
+    }
+    if(defined $self->{'socket'}) {
+        my $name = $self->{'name'} || "".$self->{'socket'};
+        push @{$peers}, { 'peer' => "".$self->{'socket'}, type => 'UNIX', name => $name };
+    }
+    if(defined $self->{'server'}) {
+        my $name = $self->{'name'} || "".$self->{'server'};
+        push @{$peers}, { 'peer' => "".$self->{'server'}, type => 'INET', name => $name };
+    }
+
+    # check if we got a peer
+    if(scalar @{$peers} == 0) {
+        croak('please specify at least one peer, socket or server');
+    }
+
+    # clean up
+    delete $options{'peer'};
+    delete $options{'socket'};
+    delete $options{'server'};
+
+    return $peers;
 }
 
 1;

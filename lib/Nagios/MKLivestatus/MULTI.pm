@@ -35,52 +35,39 @@ sub new {
     my(%options) = @_;
 
     $options{'backend'} = $class;
-    $options{'name'}    = 'multiple connector' unless defined $options{'name'};
     my $self = Nagios::MKLivestatus->new(%options);
     bless $self, $class;
 
-    # check if we got an array of peers
-    if(ref $self->{'peer'} ne 'ARRAY') {
-        my $peer = $self->{'peer'};
-        delete $self->{'peer'};
-        @{$self->{'peer'}} = $peer;
-    }
+    if(!defined $self->{'peers'}) {
+        $self->{'peer'} = $self->_get_peers();
 
-    my $peers;
-    my %peer_options;
-    for my $opt_key (keys %options) {
-        $peer_options{$opt_key} = $options{$opt_key};
-    }
-    $peer_options{'errors_are_fatal'} = 0;
-    for my $peer (@{$self->{'peer'}}) {
-        my($remote,$type);
-        if(ref $peer eq 'HASH') {
-            $remote = $peer->{'peer'};
-            $type   = $peer->{'type'};
-        } else {
-            $remote = $peer;
-            $type = 'UNIX';
-            if(index($peer, ':') >= 0) {
-                $type = 'INET';
+        # set our peer(s) from the options
+        my %peer_options;
+        my $peers;
+        for my $opt_key (keys %options) {
+            $peer_options{$opt_key} = $options{$opt_key};
+        }
+        $peer_options{'errors_are_fatal'} = 0;
+        for my $peer (@{$self->{'peer'}}) {
+            $peer_options{'name'} = $peer->{'name'};
+            $peer_options{'peer'} = $peer->{'peer'};
+            delete $peer_options{'socket'};
+            delete $peer_options{'server'};
+
+            if($peer->{'type'} eq 'UNIX') {
+                push @{$peers}, new Nagios::MKLivestatus::UNIX(%peer_options);
+            }
+            elsif($peer->{'type'} eq 'INET') {
+                push @{$peers}, new Nagios::MKLivestatus::INET(%peer_options);
             }
         }
-        $peer_options{'name'}   = $remote;
-        $peer_options{'socket'} = $remote if $type eq 'UNIX';
-        $peer_options{'server'} = $remote if $type eq 'INET';
-        delete $peer_options{'peer'};
-
-        if($type eq 'UNIX') {
-            push @{$peers}, new Nagios::MKLivestatus::UNIX(%peer_options);
-        }
-        if($type eq 'INET') {
-            push @{$peers}, new Nagios::MKLivestatus::INET(%peer_options);
-        }
+        $self->{'peers'} = $peers;
+        delete $self->{'socket'};
+        delete $self->{'server'};
     }
 
-    $self->{'peers'} = $peers;
-
     # dont use threads with only one peer
-    if(scalar @{$peers} == 1) { $self->{'use_threads'} = 0; }
+    if(scalar @{$self->{'peers'}} == 1) { $self->{'use_threads'} = 0; }
 
     # check for threads support
     if(!defined $self->{'use_threads'}) {
@@ -96,6 +83,7 @@ sub new {
         $self->_start_worker;
     }
 
+    $self->{'name'} = 'multiple connector' unless defined $self->{'name'};
     $self->{'logger'}->debug('initialized Nagios::MKLivestatus::MULTI '.($self->{'use_threads'} ? 'with' : 'without' ).' threads') if defined $self->{'logger'};
 
     return $self;
@@ -359,6 +347,22 @@ sub verbose {
     my $value = shift;
     return $self->_change_setting('verbose', $value);
 }
+
+
+########################################
+
+=head2 peer_addr
+
+See C<Nagios::MKLivestatus> for more information.
+
+=cut
+
+sub peer_addr {
+    my $self  = shift;
+
+    return wantarray ? sort keys %{$self->_do_on_peers("peer_addr", @_)} : undef;
+}
+
 
 ########################################
 

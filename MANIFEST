@@ -1,6 +1,4 @@
 Changes
-examples/dump.pl
-examples/test.pl
 inc/Module/AutoInstall.pm
 inc/Module/Install.pm
 inc/Module/Install/AutoInstall.pm
@@ -19,7 +17,7 @@ lib/Nagios/MKLivestatus/INET.pm
 lib/Nagios/MKLivestatus/MULTI.pm
 lib/Nagios/MKLivestatus/UNIX.pm
 Makefile.PL
-MANIFEST
+MANIFEST			This list of files
 README
 t/01-Nagios-MKLivestatus-basic_tests.t
 t/02-Nagios-MKLivestatus-internals.t
@@ -28,7 +26,6 @@ t/20-Nagios-MKLivestatus-test_socket.t
 t/21-Nagios-MKLivestatus-INET.t
 t/22-Nagios-MKLivestatus-UNIX.t
 t/30-Nagios-MKLivestatus-live-test.t
-t/30-Nagios-MKLivestatus-real_test.t
 t/31-Nagios-MKLivestatus-MULTI-live-test.t
 t/97-Pod.t
 t/98-Pod-Coverage.t

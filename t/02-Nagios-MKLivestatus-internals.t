@@ -3,7 +3,7 @@
 #########################
 
 use strict;
-use Test::More tests => 7;
+use Test::More tests => 14;
 use File::Temp;
 use Data::Dumper;
 use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
@@ -19,10 +19,22 @@ my $listener = IO::Socket::UNIX->new(
                                     Listen  => SOMAXCONN,
                                     Local   => $socket_path,
                                 ) or die("failed to open $socket_path as test socket: $!");
+
 #########################
 # create object with single arg
-my $nl = Nagios::MKLivestatus->new( $socket_path );
-isa_ok($nl, 'Nagios::MKLivestatus', 'single args');
+my $nl = Nagios::MKLivestatus->new( 'localhost:12345' );
+isa_ok($nl, 'Nagios::MKLivestatus', 'single args server');
+isa_ok($nl->{'CONNECTOR'}, 'Nagios::MKLivestatus::INET', 'single args server peer');
+is($nl->{'CONNECTOR'}->peer_name, 'localhost:12345', 'single args server peer name');
+is($nl->{'CONNECTOR'}->peer_addr, 'localhost:12345', 'single args server peer addr');
+
+#########################
+# create object with single arg
+$nl = Nagios::MKLivestatus->new( $socket_path );
+isa_ok($nl, 'Nagios::MKLivestatus', 'single args socket');
+isa_ok($nl->{'CONNECTOR'}, 'Nagios::MKLivestatus::UNIX', 'single args socket peer');
+is($nl->{'CONNECTOR'}->peer_name, $socket_path, 'single args socket peer name');
+is($nl->{'CONNECTOR'}->peer_addr, $socket_path, 'single args socket peer addr');
 
 my $header = "404          43\n";
 my($error,$error_msg) = $nl->_parse_header($header);
