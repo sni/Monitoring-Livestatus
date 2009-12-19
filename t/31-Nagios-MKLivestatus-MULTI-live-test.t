@@ -33,13 +33,13 @@ for my $key (keys %{$objects_to_test}) {
     my $statement = "GET hosts\nColumns: state name alias\nLimit: 1";
     my $data1     = $nl->selectall_arrayref($statement, {Slice => 1});
     my $data2     = $nl->selectall_arrayref($statement, {Slice => 1, AddPeer => 1});
-    for my $data (@{$data2}) { delete $data->{'peer_name'}; }
+    for my $data (@{$data2}) { delete $data->{'peer_name'}; delete $data->{'peer_addr'}; }
     is_deeply($data1, $data2, "data integrity with peers added and Column");
 
     $statement = "GET hosts\nLimit: 1";
     $data1     = $nl->selectall_arrayref($statement, {Slice => 1});
     $data2     = $nl->selectall_arrayref($statement, {Slice => 1, AddPeer => 1});
-    for my $data (@{$data2}) { delete $data->{'peer_name'}; }
+    for my $data (@{$data2}) { delete $data->{'peer_name'}; delete $data->{'peer_addr'}; }
     is_deeply($data1, $data2, "data integrity with peers added without Columns");
 
     # try to change result set to scalar

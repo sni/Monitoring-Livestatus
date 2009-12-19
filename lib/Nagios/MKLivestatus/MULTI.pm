@@ -476,7 +476,7 @@ sub _do_wrapper {
     my $data = $peer->$sub(@opts);
 
     my $elapsed = tv_interval ( $t0 );
-    $logger->debug(sprintf('%.4f', $elapsed).' sec for fetching data on '.$peer->peer_name) if defined $logger;
+    $logger->debug(sprintf('%.4f', $elapsed).' sec for fetching data on '.$peer->peer_name.' ('.$peer->peer_addr.')') if defined $logger;
 
     $Nagios::MKLivestatus::ErrorCode    = 0 unless defined $Nagios::MKLivestatus::ErrorCode;
     $Nagios::MKLivestatus::ErrorMessage = '' unless defined $Nagios::MKLivestatus::ErrorMessage;
@@ -519,8 +519,8 @@ sub _do_on_peers {
             my $result = $self->{'WorkResults'}->dequeue;
             my $peer   = $self->{'peers'}->[$result->{'peer'}];
             if(defined $result->{'result'}) {
-                push @{$codes{$result->{'result'}->{'code'}}}, { 'peer' => $peer->peer_name, 'msg' => $result->{'result'}->{'msg'} };
-                $return->{$peer->peer_name} = $result->{'result'}->{'data'};
+                push @{$codes{$result->{'result'}->{'code'}}}, { 'peer' => $peer->peer_addr, 'msg' => $result->{'result'}->{'msg'} };
+                $return->{$peer->peer_addr} = $result->{'result'}->{'data'};
             } else {
                 warn("undefined result for: $statement");
             }
@@ -529,10 +529,10 @@ sub _do_on_peers {
         print("not using threads\n") if $self->{'verbose'};
         for my $peer (@{$self->{'peers'}}) {
             if($peer->marked_bad) {
-                warn($peer->peer_name.' is marked bad') if $self->{'verbose'};
+                warn($peer->peer_name.' ('.$peer->peer_addr.') is marked bad') if $self->{'verbose'};
             } else {
                 my $erg = _do_wrapper($peer, $sub, $self->{'logger'}, @opts);
-                $return->{$peer->peer_name} = $erg->{'data'};
+                $return->{$peer->peer_addr} = $erg->{'data'};
                 push @{$codes{$erg->{'code'}}}, { 'peer' => $peer, 'msg' => $erg->{'msg'} };
             }
         }
