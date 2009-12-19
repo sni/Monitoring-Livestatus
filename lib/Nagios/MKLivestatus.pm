@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use Data::Dumper;
 use Carp;
+use Digest::MD5 qw(md5_hex);
 use Nagios::MKLivestatus::INET;
 use Nagios::MKLivestatus::UNIX;
 use Nagios::MKLivestatus::MULTI;
@@ -634,6 +635,26 @@ sub peer_name {
 
 ########################################
 
+=head2 peer_key
+
+ $nl->peer_key()
+
+returns a uniq key for this peer
+
+when using multiple backends, a list of all keys is returned in list context
+
+=cut
+sub peer_key {
+    my $self  = shift;
+
+    if(!defined $self->{'key'}) { $self->{'key'} = md5_hex($self->peer_addr." ".$self->peer_name); }
+
+    return $self->{'key'};
+}
+
+
+########################################
+
 =head2 marked_bad
 
  $nl->marked_bad()
@@ -764,6 +785,7 @@ sub _send {
 
     my $peer_name = $self->peer_name;
     my $peer_addr = $self->peer_addr;
+    my $peer_key  = $self->peer_key;
 
     my @result;
     ## no critic
@@ -772,6 +794,7 @@ sub _send {
         if(defined $with_peers and $with_peers == 1) {
             unshift @{$row}, $peer_name;
             unshift @{$row}, $peer_addr;
+            unshift @{$row}, $peer_key;
         }
         push @result, $row;
     }
@@ -789,12 +812,14 @@ sub _send {
         if(defined $with_peers and $with_peers == 1) {
             shift @{$keys};
             shift @{$keys};
+            shift @{$keys};
         }
     }
 
     if(defined $with_peers and $with_peers == 1) {
         unshift @{$keys}, 'peer_name';
         unshift @{$keys}, 'peer_addr';
+        unshift @{$keys}, 'peer_key';
     }
 
     return({ keys => $keys, result => \@result});

@@ -364,7 +364,12 @@ See C<Nagios::MKLivestatus> for more information.
 sub peer_addr {
     my $self  = shift;
 
-    return wantarray ? sort keys %{$self->_do_on_peers("peer_addr", @_)} : undef;
+    my @addrs;
+    for my $peer (@{$self->{'peers'}}) {
+        push @addrs, $peer->peer_addr;
+    }
+
+    return wantarray ? @addrs : undef;
 }
 
 
@@ -379,8 +384,34 @@ See C<Nagios::MKLivestatus> for more information.
 sub peer_name {
     my $self  = shift;
 
-    return wantarray ? sort keys %{$self->_do_on_peers("peer_name", @_)} : $self->{'name'};
+    my @names;
+    for my $peer (@{$self->{'peers'}}) {
+        push @names, $peer->peer_name;
+    }
+
+    return wantarray ? @names : $self->{'name'};
 }
+
+
+########################################
+
+=head2 peer_key
+
+See C<Nagios::MKLivestatus> for more information.
+
+=cut
+
+sub peer_key {
+    my $self  = shift;
+
+    my @keys;
+    for my $peer (@{$self->{'peers'}}) {
+        push @keys, $peer->peer_key;
+    }
+
+    return wantarray ? @keys : $self->{'key'};
+}
+
 
 ########################################
 # INTERNAL SUBS
@@ -523,8 +554,8 @@ sub _do_on_peers {
             my $result = $self->{'WorkResults'}->dequeue;
             my $peer   = $self->{'peers'}->[$result->{'peer'}];
             if(defined $result->{'result'}) {
-                push @{$codes{$result->{'result'}->{'code'}}}, { 'peer' => $peer->peer_addr, 'msg' => $result->{'result'}->{'msg'} };
-                $return->{$peer->peer_addr} = $result->{'result'}->{'data'};
+                push @{$codes{$result->{'result'}->{'code'}}}, { 'peer' => $peer->peer_key, 'msg' => $result->{'result'}->{'msg'} };
+                $return->{$peer->peer_key} = $result->{'result'}->{'data'};
             } else {
                 warn("undefined result for: $statement");
             }
@@ -533,10 +564,10 @@ sub _do_on_peers {
         print("not using threads\n") if $self->{'verbose'};
         for my $peer (@{$self->{'peers'}}) {
             if($peer->marked_bad) {
-                warn($peer->peer_name.' ('.$peer->peer_addr.') is marked bad') if $self->{'verbose'};
+                warn($peer->peer_name.' ('.$peer->peer_key.') is marked bad') if $self->{'verbose'};
             } else {
                 my $erg = _do_wrapper($peer, $sub, $self->{'logger'}, @opts);
-                $return->{$peer->peer_addr} = $erg->{'data'};
+                $return->{$peer->peer_key} = $erg->{'data'};
                 push @{$codes{$erg->{'code'}}}, { 'peer' => $peer, 'msg' => $erg->{'msg'} };
             }
         }
