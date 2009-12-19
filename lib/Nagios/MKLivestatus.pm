@@ -156,6 +156,7 @@ sub new {
             elsif($peer->{'type'} eq 'INET') {
                 $self->{'CONNECTOR'} = new Nagios::MKLivestatus::INET(%options);
             }
+            $self->{'peer'} = $peer->{'peer'};
         }
         else {
             $options{'peer'} = $peers;
@@ -597,7 +598,7 @@ when using multiple backends, a list of all addresses is returned in list contex
 sub peer_addr {
     my $self  = shift;
 
-    return $self->{'peer'};
+    return "".$self->{'peer'};
 }
 
 
@@ -623,7 +624,7 @@ sub peer_name {
         $self->{'name'} = $value;
     }
 
-    return $self->{'name'};
+    return "".$self->{'name'};
 }
 
 
@@ -652,8 +653,6 @@ sub _send {
     my $with_peers = shift;
     my $header     = "";
     my $keys;
-
-    my $peer_name = $self->peer_name;
 
     $Nagios::MKLivestatus::ErrorCode = 0;
     undef $Nagios::MKLivestatus::ErrorMessage;
@@ -759,12 +758,16 @@ sub _send {
     my $line_seperator = chr($self->{'line_seperator'});
     my $col_seperator  = chr($self->{'column_seperator'});
 
+    my $peer_name = $self->peer_name;
+    my $peer_addr = $self->peer_addr;
+
     my @result;
     ## no critic
     for my $line (split/$line_seperator/m, $body) {
         my $row = [ split/$col_seperator/m, $line ];
         if(defined $with_peers and $with_peers == 1) {
             unshift @{$row}, $peer_name;
+            unshift @{$row}, $peer_addr;
         }
         push @result, $row;
     }
@@ -781,11 +784,13 @@ sub _send {
         # remove first element of keys, because its the peer_name
         if(defined $with_peers and $with_peers == 1) {
             shift @{$keys};
+            shift @{$keys};
         }
     }
 
     if(defined $with_peers and $with_peers == 1) {
         unshift @{$keys}, 'peer_name';
+        unshift @{$keys}, 'peer_addr';
     }
 
     return({ keys => $keys, result => \@result});

@@ -3,7 +3,7 @@
 #########################
 
 use strict;
-use Test::More tests => 21;
+use Test::More tests => 24;
 use File::Temp;
 use Data::Dumper;
 use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
@@ -84,6 +84,17 @@ $nl = Nagios::MKLivestatus->new(
 isa_ok($nl, 'Nagios::MKLivestatus', 'peer hash arg multi with name');
 $name = $nl->peer_name();
 is($name, 'test multi', 'peer_name()');
+
+#########################
+$nl = Nagios::MKLivestatus->new(
+                                     peer        => [ $socket_path ],
+                                     verbose     => 0,
+                                     keepalive   => 1,
+                                     logger      => undef,
+                                );
+isa_ok($nl, 'Nagios::MKLivestatus', 'peer hash arg multi with keepalive');
+is($nl->peer_name(), $socket_path, 'get peer_name()');
+is($nl->peer_addr(), $socket_path, 'get peer_addr()');
 
 #########################
 # cleanup

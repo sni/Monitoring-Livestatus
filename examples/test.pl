@@ -90,7 +90,7 @@ if(scalar @opt_f == 0) {
 
 #########################################################################
 Log::Log4perl->easy_init($DEBUG);
-my $nl = Nagios::MKLivestatus->new( 
+my $nl = Nagios::MKLivestatus->new(
                                      peer        => \@opt_f,
                                      verbose     => $opt_v,
                                      keepalive   => 1,
