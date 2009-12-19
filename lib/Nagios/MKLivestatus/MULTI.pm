@@ -66,6 +66,10 @@ sub new {
         delete $self->{'server'};
     }
 
+    if(!defined $self->{'peers'}) {
+        croak('please specify at least one peer, socket or server');
+    }
+
     # dont use threads with only one peer
     if(scalar @{$self->{'peers'}} == 1) { $self->{'use_threads'} = 0; }
 

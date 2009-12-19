@@ -145,6 +145,10 @@ sub new {
     # set our peer(s) from the options
     my $peers = $self->_get_peers();
 
+    if(!defined $peers) {
+        croak('please specify at least one peer, socket or server');
+    }
+
     if(!defined $self->{'backend'}) {
         if(scalar @{$peers} == 1) {
             my $peer = $peers->[0];
@@ -1099,6 +1103,14 @@ sub _get_peers {
         elsif(ref $self->{'peer'} eq 'ARRAY') {
             for my $peer (@{$self->{'peer'}}) {
                 if(ref $peer eq 'HASH') {
+                    next if !defined $peer->{'peer'};
+                    $peer->{'name'} = "".$peer->{'peer'} unless defined $peer->{'name'};
+                    if(!defined $peer->{'type'}) {
+                        $peer->{'type'} = 'UNIX';
+                        if(index($peer->{'peer'}, ':') >= 0) {
+                            $peer->{'type'} = 'INET';
+                        }
+                    }
                     push @{$peers}, $peer;
                 } else {
                     my $type = 'UNIX';

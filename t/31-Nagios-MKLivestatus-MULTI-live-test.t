@@ -10,7 +10,7 @@ if ( ! defined $ENV{TEST_SOCKET} and !defined $ENV{TEST_SERVER} ) {
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} to run';
     plan( skip_all => $msg );
 } else {
-    plan( tests => 13 );
+    plan( tests => 19 );
 }
 
 use_ok('Nagios::MKLivestatus::MULTI');
@@ -18,8 +18,18 @@ use_ok('Nagios::MKLivestatus::MULTI');
 #########################
 # create new test object
 my $objects_to_test = {
-    'multi_one' => Nagios::MKLivestatus::MULTI->new( peer => [ $ENV{TEST_SERVER}                    ], warnings => 0 ),
-    'multi_two' => Nagios::MKLivestatus::MULTI->new( peer => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ], warnings => 0 ),
+    'multi_one'   => Nagios::MKLivestatus::MULTI->new( peer => [ $ENV{TEST_SERVER}                    ], warnings => 0 ),
+    'multi_two'   => Nagios::MKLivestatus::MULTI->new( peer => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ], warnings => 0 ),
+    'multi_three' => Nagios::MKLivestatus::MULTI->new(
+          'verbose'  => '0',
+          'warnings' => '0',
+          'timeout'  => '10',
+          'peer' => [
+                      { 'name' => 'Nagios 1', 'peer' => $ENV{TEST_SERVER} },
+                      { 'name' => 'Nagios 2', 'peer' => $ENV{TEST_SOCKET} },
+                    ],
+          'keepalive' => '1'
+    ),
 };
 
 # dont die on errors
@@ -55,5 +65,5 @@ for my $key (keys %{$objects_to_test}) {
     # Bug: Can't use string ("flap") as an ARRAY ref while "strict refs" in use at Nagios/MKLivestatus/MULTI.pm line 206.
     $statement = "GET servicegroups\nColumns: name alias\nFilter: name = flap\nLimit: 1";
     $data1 = $nl->selectrow_array($statement);
-    isnt($data1, undef, "bug check: \"Can't use string (\"flap\") as an ARRAY ref while \"strict refs\" in use at Nagios/MKLivestatus/MULTI.pm line 206.");
+    isnt($data1, undef, "bug check: Can't use string (\"flap\") as an ARRAY ref while \"strict refs\" in use at Nagios/MKLivestatus/MULTI.pm");
 }
