@@ -157,7 +157,7 @@ See L<Nagios::MKLivestatus> for more information.
 
 sub selectall_hashref {
     my $self  = shift;
-    my $opts  = $_[1];
+    my $opts  = $_[2];
     my $t0    = [gettimeofday];
 
     # make opt hash keys lowercase
