@@ -190,6 +190,7 @@ sub new {
 =head2 do
 
  do($statement)
+ do($statement, %opts)
 
 Send a single statement without fetching the result.
 Always returns true.
@@ -498,6 +499,7 @@ sub selectrow_hashref {
 =head2 select_scalar_value
 
  select_scalar_value($statement)
+ select_scalar_value($statement, %opt)
 
 Sends a query and returns a single scalar
 
@@ -854,6 +856,66 @@ sub _close {
     my $sock  = shift;
     return($self->{'CONNECTOR'}->_close($sock));
 }
+
+
+########################################
+
+=head1 QUERY OPTIONS
+
+In addition to the normal query syntax from the livestatus addon, it is
+possible to set column aliases in various ways.
+
+=head2 AddPeer
+
+adds the peers name, addr and key to the result set:
+
+ my $hosts = $nl->selectall_hashref(
+   "GET hosts\nColumns: name alias state",
+   "name",
+   { AddPeer => 1 }
+ );
+
+=head2 Backend
+
+send the query only to some specific backends. Only
+useful when using multiple backends.
+
+ my $hosts = $nl->selectall_arrayref(
+   "GET hosts\nColumns: name alias state",
+   { Backends => [ 'key1', 'key4' ] }
+ );
+
+=head2 Columns
+
+    only return the given column indexes
+
+    my $array_ref = $nl->selectcol_arrayref(
+       "GET hosts\nColumns: name contacts",
+       { Columns => [2] }
+    );
+
+  see L<selectcol_arrayref> for more examples
+
+=head2 Rename
+
+  see L<COLUMN ALIAS> for detailed explainaton
+
+=head2 Slice
+
+  see L<selectall_arrayref> for detailed explainaton
+
+=head2 Sum
+
+The Sum option only applies when using multiple backends.
+The values from all backends with be summed up to a total.
+
+ my $stats = $nl->selectrow_hashref(
+   "GET hosts\nStats: state = 0\nStats: state = 1",
+   { Sum => 1 }
+ );
+
+=cut
+
 
 ########################################
 sub _send_socket {

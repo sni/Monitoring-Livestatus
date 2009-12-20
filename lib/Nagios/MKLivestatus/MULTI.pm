@@ -25,7 +25,7 @@ Nagios::MKLivestatus::MULTI - connector with multiple peers
 =head2 new ( [ARGS] )
 
 Creates an C<Nagios::MKLivestatus::MULTI> object. C<new> takes at least the server.
-Arguments are the same as in C<Nagios::MKLivestatus>.
+Arguments are the same as in L<Nagios::MKLivestatus>.
 
 =cut
 
@@ -87,6 +87,12 @@ sub new {
         $self->_start_worker;
     }
 
+    # initialize peer keys
+    $self->{'peer_by_key'} = {};
+    for my $peer (@{$self->{'peers'}}) {
+        $self->{'peer_by_key'}->{$peer->peer_key} = $peer;
+    }
+
     $self->{'name'} = 'multiple connector' unless defined $self->{'name'};
     $self->{'logger'}->debug('initialized Nagios::MKLivestatus::MULTI '.($self->{'use_threads'} ? 'with' : 'without' ).' threads') if defined $self->{'logger'};
 
@@ -100,32 +106,41 @@ sub new {
 
 =head2 do
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
 sub do {
     my $self  = shift;
+    my $opts  = $_[1];
     my $t0    = [gettimeofday];
 
-    $self->_do_on_peers("do", @_);
+    # make opt hash keys lowercase
+    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
+
+    $self->_do_on_peers("do", $opts->{'backend'}, @_);
     my $elapsed = tv_interval ( $t0 );
     $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for do('.$_[0].') in total') if defined $self->{'logger'};
     return 1;
 }
+
 ########################################
 
 =head2 selectall_arrayref
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
 sub selectall_arrayref {
     my $self  = shift;
+    my $opts  = $_[1];
     my $t0    = [gettimeofday];
 
-    my $return  = $self->_merge_answer($self->_do_on_peers("selectall_arrayref", @_));
+    # make opt hash keys lowercase
+    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
+
+    my $return  = $self->_merge_answer($self->_do_on_peers("selectall_arrayref", $opts->{'backend'}, @_));
     my $elapsed = tv_interval ( $t0 );
     $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectall_arrayref() in total') if defined $self->{'logger'};
 
@@ -136,15 +151,19 @@ sub selectall_arrayref {
 
 =head2 selectall_hashref
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
 sub selectall_hashref {
     my $self  = shift;
+    my $opts  = $_[1];
     my $t0    = [gettimeofday];
 
-    my $return  = $self->_merge_answer($self->_do_on_peers("selectall_hashref", @_));
+    # make opt hash keys lowercase
+    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
+
+    my $return  = $self->_merge_answer($self->_do_on_peers("selectall_hashref", $opts->{'backend'}, @_));
     my $elapsed = tv_interval ( $t0 );
     $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectall_hashref() in total') if defined $self->{'logger'};
 
@@ -155,15 +174,19 @@ sub selectall_hashref {
 
 =head2 selectcol_arrayref
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
 sub selectcol_arrayref {
     my $self  = shift;
+    my $opts  = $_[1];
     my $t0    = [gettimeofday];
 
-    my $return  = $self->_merge_answer($self->_do_on_peers("selectcol_arrayref", @_));
+    # make opt hash keys lowercase
+    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
+
+    my $return  = $self->_merge_answer($self->_do_on_peers("selectcol_arrayref", $opts->{'backend'}, @_));
     my $elapsed = tv_interval ( $t0 );
     $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectcol_arrayref() in total') if defined $self->{'logger'};
 
@@ -174,7 +197,7 @@ sub selectcol_arrayref {
 
 =head2 selectrow_array
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
@@ -189,12 +212,12 @@ sub selectrow_array {
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
-        @return = @{$self->_sum_answer($self->_do_on_peers("selectrow_arrayref", @_))};
+        @return = @{$self->_sum_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backend'}, @_))};
     } else {
         if($self->{'warnings'}) {
             carp("selectrow_arrayref without Stats on multi backend will not work as expected!");
         }
-        my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_arrayref", @_));
+        my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backend'}, @_));
         @return = @{$rows} if defined $rows;
     }
 
@@ -208,7 +231,7 @@ sub selectrow_array {
 
 =head2 selectrow_arrayref
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
@@ -223,12 +246,12 @@ sub selectrow_arrayref {
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
-        $return = $self->_sum_answer($self->_do_on_peers("selectrow_arrayref", @_));
+        $return = $self->_sum_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backend'}, @_));
     } else {
         if($self->{'warnings'}) {
             carp("selectrow_arrayref without Stats on multi backend will not work as expected!");
         }
-        my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_arrayref", @_));
+        my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backend'}, @_));
         $return = $rows->[0] if defined $rows->[0];
     }
 
@@ -242,12 +265,12 @@ sub selectrow_arrayref {
 
 =head2 selectrow_hashref
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
 sub selectrow_hashref {
-    my $self  = shift;
+    my $self      = shift;
     my $statement = $_[0];
     my $opts      = $_[1];
 
@@ -259,12 +282,12 @@ sub selectrow_hashref {
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
-        $return = $self->_sum_answer($self->_do_on_peers("selectrow_hashref", @_));
+        $return = $self->_sum_answer($self->_do_on_peers("selectrow_hashref", $opts->{'backend'}, @_));
     } else {
         if($self->{'warnings'}) {
             carp("selectrow_hashref without Stats on multi backend will not work as expected!");
         }
-        $return = $self->_merge_answer($self->_do_on_peers("selectrow_hashref", @_));
+        $return = $self->_merge_answer($self->_do_on_peers("selectrow_hashref", $opts->{'backend'}, @_));
     }
 
     my $elapsed = tv_interval ( $t0 );
@@ -277,7 +300,7 @@ sub selectrow_hashref {
 
 =head2 select_scalar_value
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
@@ -294,12 +317,12 @@ sub select_scalar_value {
     my $return;
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
-        return $self->_sum_answer($self->_do_on_peers("select_scalar_value", @_));
+        return $self->_sum_answer($self->_do_on_peers("select_scalar_value", $opts->{'backend'}, @_));
     } else {
         if($self->{'warnings'}) {
             carp("select_scalar_value without Stats on multi backend will not work as expected!");
         }
-        my $rows = $self->_merge_answer($self->_do_on_peers("select_scalar_value", @_));
+        my $rows = $self->_merge_answer($self->_do_on_peers("select_scalar_value", $opts->{'backend'}, @_));
 
         $return = $rows->[0] if defined $rows->[0];
     }
@@ -314,7 +337,7 @@ sub select_scalar_value {
 
 =head2 errors_are_fatal
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
@@ -328,7 +351,7 @@ sub errors_are_fatal {
 
 =head2 warnings
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
@@ -342,7 +365,7 @@ sub warnings {
 
 =head2 verbose
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
@@ -357,7 +380,7 @@ sub verbose {
 
 =head2 peer_addr
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
@@ -377,7 +400,7 @@ sub peer_addr {
 
 =head2 peer_name
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
@@ -397,7 +420,7 @@ sub peer_name {
 
 =head2 peer_key
 
-See C<Nagios::MKLivestatus> for more information.
+See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
@@ -525,9 +548,10 @@ sub _do_wrapper {
 
 ########################################
 sub _do_on_peers {
-    my $self  = shift;
-    my $sub   = shift;
-    my @opts  = @_;
+    my $self      = shift;
+    my $sub       = shift;
+    my $backends  = shift;
+    my @opts      = @_;
     my $statement = $opts[0];
 
     my $t0 = [gettimeofday];
@@ -535,12 +559,38 @@ sub _do_on_peers {
     my $return;
     my %codes;
     my %messages;
-    if($self->{'use_threads'}) {
-        # create threads for all active backends
+    my $use_threads = $self->{'use_threads'};
+
+    # which peers affected?
+    my @peers;
+    if(defined $backends) {
+        my @backends;
+        if(ref $backends eq '') {
+            push @backends, $backends;
+        }
+        elsif(ref $backends eq 'ARRAY') {
+            @backends = @{$backends};
+        } else {
+            croak("unsupported type for backend: ".ref($backends));
+        }
+
+        for my $back (@backends) {
+            push @peers, $self->_get_peer_by_key($back);
+        }
+    } else {
+        # use all backends
+        @peers = @{$self->{'peers'}};
+    }
+
+    # its faster without threads for only one peer
+    if(scalar @peers <= 1) { $use_threads = 0; }
+
+    if($use_threads) {
+        # use the threaded variant
         print("using threads\n") if $self->{'verbose'};
 
         my $x = 0;
-        for my $peer (@{$self->{'peers'}}) {
+        for my $peer (@peers) {
             my $job = {
                     'peer'   => $x,
                     'sub'    => $sub,
@@ -550,7 +600,7 @@ sub _do_on_peers {
             $x++;
         }
 
-        for(my $x = 0; $x < scalar @{$self->{'peers'}}; $x++) {
+        for(my $x = 0; $x < scalar @peers; $x++) {
             my $result = $self->{'WorkResults'}->dequeue;
             my $peer   = $self->{'peers'}->[$result->{'peer'}];
             if(defined $result->{'result'}) {
@@ -562,7 +612,7 @@ sub _do_on_peers {
         }
     } else {
         print("not using threads\n") if $self->{'verbose'};
-        for my $peer (@{$self->{'peers'}}) {
+        for my $peer (@peers) {
             if($peer->marked_bad) {
                 warn($peer->peer_name.' ('.$peer->peer_key.') is marked bad') if $self->{'verbose'};
             } else {
@@ -599,7 +649,7 @@ sub _do_on_peers {
     my $elapsed = tv_interval ( $t0 );
     $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for fetching all data') if defined $self->{'logger'};
 
-    if($self->{'use_threads'}) {
+    if($use_threads) {
         # result has to be cloned to avoid "Invalid value for shared scalar" error
         $return = $self->_clone($return, $self->{'logger'});
     }
@@ -700,6 +750,17 @@ sub _clone {
     $logger->debug(sprintf('%.4f', $elapsed).' sec for cloning data') if defined $logger;
 
     return $return;
+}
+
+########################################
+sub _get_peer_by_key {
+    my $self = shift;
+    my $key  = shift;
+
+    return unless defined $key;
+    return unless defined $self->{'peer_by_key'}->{$key};
+
+    return $self->{'peer_by_key'}->{$key};
 }
 
 ########################################

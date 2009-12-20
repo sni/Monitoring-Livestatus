@@ -70,7 +70,7 @@ isa_ok($nl, 'Nagios::MKLivestatus', 'peer hash arg multi');
 my @names  = $nl->peer_name();
 my @addrs  = $nl->peer_addr();
 my $name   = $nl->peer_name();
-my $expect = [ $socket_path, $server ];
+my $expect = [ $server, $socket_path ];
 is_deeply(\@names, $expect, 'list context get peer_name()') or diag("got peer names: ".Dumper(\@names)."but expected:  ".Dumper($expect));
 is($name, 'multiple connector', 'scalar context get peer_name()') or diag("got peer name: ".Dumper($name)."but expected:  ".Dumper('multiple connector'));
 is_deeply(\@addrs, $expect, 'list context get peer_addr()') or diag("got peer addrs: ".Dumper(\@addrs)."but expected:  ".Dumper($expect));
