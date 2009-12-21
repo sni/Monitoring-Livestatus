@@ -144,10 +144,8 @@ my $expected_keys = {
                        ],
     'log'           => [
                          '__all_from_hosts__','__all_from_services__','__all_from_contacts__','__all_from_commands__',
-                         'attempt','can_submit_commands','class','command_name','comment','contact_name',
-                         'host_name','host_notifications_enabled','in_host_notification_period',
-                         'in_service_notification_period','message','plugin_output','service_description',
-                         'service_notifications_enabled','state','state_type','time'
+                         'attempt','class','command_name','comment','contact_name','host_name','message','plugin_output',
+                         'service_description','state','state_type','time'
                        ],
     'servicegroups' => [
                          'action_url','alias','members','name','notes','notes_url','num_services','num_services_crit',
@@ -177,9 +175,9 @@ my $expected_keys = {
                          'check_external_commands','check_host_freshness','check_service_freshness','connections',
                          'connections_rate','enable_event_handlers','enable_flap_detection','enable_notifications',
                          'execute_host_checks','execute_service_checks','host_checks','host_checks_rate',
-                         'last_command_check','last_log_rotation','nagios_pid','neb_callbacks','neb_callbacks_rate',
-                         'obsess_over_hosts','obsess_over_services','process_performance_data','program_start',
-                         'program_version','requests','requests_rate','service_checks','service_checks_rate'
+                         'last_command_check','last_log_rotation','livestatus_version','nagios_pid','neb_callbacks',
+                         'neb_callbacks_rate','obsess_over_hosts','obsess_over_services','process_performance_data',
+                         'program_start','program_version','requests','requests_rate','service_checks','service_checks_rate'
                        ],
 };
 
@@ -392,15 +390,16 @@ sub get_expected_keys {
         }
     }
 
-    if($type eq 'log') {
-      my %keys = map { $_ => 1 } @new_keys;
-      delete $keys{'current_contact_can_submit_commands'};
-      delete $keys{'current_contact_host_notifications_enabled'};
-      delete $keys{'current_contact_in_host_notification_period'};
-      delete $keys{'current_contact_in_service_notification_period'};
-      delete $keys{'current_contact_service_notifications_enabled'};
-      @new_keys = keys %keys;
-    }
+    # has been fixed in 1.1.1rc
+    #if($type eq 'log') {
+    #  my %keys = map { $_ => 1 } @new_keys;
+    #  delete $keys{'current_contact_can_submit_commands'};
+    #  delete $keys{'current_contact_host_notifications_enabled'};
+    #  delete $keys{'current_contact_in_host_notification_period'};
+    #  delete $keys{'current_contact_in_service_notification_period'};
+    #  delete $keys{'current_contact_service_notifications_enabled'};
+    #  @new_keys = keys %keys;
+    #}
 
     my @return = sort @new_keys;
     return(\@return);
