@@ -21,10 +21,10 @@ my $column_seperator    = 0;
 my $objects_to_test = {
   # UNIX
   # create unix object with a single arg
-  'unix_single_arg' => Nagios::MKLivestatus::UNIX->new( $ENV{TEST_SOCKET} ),
+  '01 unix_single_arg' => Nagios::MKLivestatus::UNIX->new( $ENV{TEST_SOCKET} ),
 
   # create unix object with hash args
-  'unix_few_args' => Nagios::MKLivestatus->new(
+  '02 unix_few_args' => Nagios::MKLivestatus->new(
                                       verbose             => 0,
                                       socket              => $ENV{TEST_SOCKET},
                                       line_seperator      => $line_seperator,
@@ -32,7 +32,7 @@ my $objects_to_test = {
                                     ),
 
   # create unix object with hash args
-  'unix_keepalive' => Nagios::MKLivestatus->new(
+  '03 unix_keepalive' => Nagios::MKLivestatus->new(
                                       verbose             => 0,
                                       socket              => $ENV{TEST_SOCKET},
                                       keepalive           => 1,
@@ -40,10 +40,10 @@ my $objects_to_test = {
 
   # TCP
   # create inet object with a single arg
-  'inet_single_arg' => Nagios::MKLivestatus::INET->new( $ENV{TEST_SERVER} ),
+  '04 inet_single_arg' => Nagios::MKLivestatus::INET->new( $ENV{TEST_SERVER} ),
 
   # create inet object with hash args
-  'inet_few_args' => Nagios::MKLivestatus->new(
+  '05 inet_few_args' => Nagios::MKLivestatus->new(
                                       verbose             => 0,
                                       server              => $ENV{TEST_SERVER},
                                       line_seperator      => $line_seperator,
@@ -52,41 +52,41 @@ my $objects_to_test = {
 
 
   # create inet object with keepalive
-  'inet_keepalive' => Nagios::MKLivestatus->new(
+  '06 inet_keepalive' => Nagios::MKLivestatus->new(
                                       verbose             => 0,
                                       server              => $ENV{TEST_SERVER},
                                       keepalive           => 1,
                                     ),
 
   # create multi single args
-  'multi_keepalive' => Nagios::MKLivestatus->new( [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ] ),
+  '07 multi_keepalive' => Nagios::MKLivestatus->new( [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ] ),
 
   # create multi object with keepalive
-  'multi_keepalive_hash_args' => Nagios::MKLivestatus->new(
+  '08 multi_keepalive_hash_args' => Nagios::MKLivestatus->new(
                                       verbose             => 0,
                                       peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
                                       keepalive           => 1,
                                     ),
 
   # create multi object without keepalive
-  'multi_no_keepalive' => Nagios::MKLivestatus->new(
+  '09 multi_no_keepalive' => Nagios::MKLivestatus->new(
                                       peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
                                       keepalive           => 0,
                                     ),
 
   # create multi object without threads
-  'multi_no_threads' => Nagios::MKLivestatus->new(
+  '10 multi_no_threads' => Nagios::MKLivestatus->new(
                                       peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
                                       use_threads         => 0,
                                     ),
 
   # create multi object with only one peer
-  'multi_one_peer' => Nagios::MKLivestatus::MULTI->new(
+  '11 multi_one_peer' => Nagios::MKLivestatus::MULTI->new(
                                       peer                => $ENV{TEST_SERVER},
                                     ),
 
   # create multi object without threads
-  'multi_two_peers' => Nagios::MKLivestatus::MULTI->new(
+  '12 multi_two_peers' => Nagios::MKLivestatus::MULTI->new(
                                       peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
                                     ),
 };
@@ -181,7 +181,7 @@ my $expected_keys = {
                        ],
 };
 
-for my $key (keys %{$objects_to_test}) {
+for my $key (sort keys %{$objects_to_test}) {
     my $nl = $objects_to_test->{$key};
     isa_ok($nl, 'Nagios::MKLivestatus') or BAIL_OUT("no need to continue without a proper Nagios::MKLivestatus object: ".$key);
 
@@ -192,7 +192,7 @@ for my $key (keys %{$objects_to_test}) {
     #########################
     # set downtime for a host and service
     my $firsthost = $nl->select_scalar_value("GET hosts\nColumns: name\nLimit: 1");
-    isnt($firsthost, undef, 'get test hostname') or BAIL_OUT('got not test hostname');
+    isnt($firsthost, undef, 'get test hostname') or BAIL_OUT($key.': got not test hostname');
     $nl->do('COMMAND ['.time().'] SCHEDULE_HOST_DOWNTIME;'.$firsthost.';'.time().';'.(time()+60).';1;0;60;nagiosadmin;test');
     my $firstservice = $nl->select_scalar_value("GET services\nColumns: description\nFilter: host_name = $firsthost\nLimit: 1");
     isnt($firstservice, undef, 'get test servicename') or BAIL_OUT('got not test servicename');
