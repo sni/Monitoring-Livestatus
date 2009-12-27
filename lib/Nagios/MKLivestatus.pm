@@ -38,6 +38,7 @@ installation.
 
 Creates an C<Nagios::MKLivestatus> object. C<new> takes at least the
 socketpath.  Arguments are in key-value pairs.
+See L<EXAMPLES> for more complex variants.
 
 =over 4
 
@@ -1244,6 +1245,32 @@ sub _get_peers {
 }
 
 1;
+
+=head1 EXAMPLES
+
+=head2 Multibackend Configuration
+
+    use Nagios::MKLivestatus;
+    my $nl = Nagios::MKLivestatus->new(
+      name       => 'multiple connector',
+      verbose   => 0,
+      keepalive => 1,
+      peer      => [
+            {
+                name => 'DMZ Nagios',
+                peer => '50.50.50.50:9999',
+            },
+            {
+                name => 'Local Nagios',
+                peer => '/tmp/livestatus.socket',
+            },
+            {
+                name => 'Special Nagios',
+                peer => '100.100.100.100:9999',
+            }
+      ],
+    );
+    my $hosts = $nl->selectall_arrayref("GET hosts");
 
 =head1 SEE ALSO
 
