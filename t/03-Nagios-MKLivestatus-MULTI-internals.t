@@ -34,16 +34,17 @@ my $listener2 = IO::Socket::UNIX->new(
 # test the _merge_answer
 my $mergetests = [
     {   # simple test for sliced selectall_arrayref
-        in  => { '192.168.123.2:9996' => [ { 'description' => 'test_flap_07',     'host_name' => 'test_host_000', 'state' => '0' }, { 'description' => 'test_flap_11',     'host_name' => 'test_host_000', 'state' => '0' } ],
-                 '192.168.123.2:9997' => [ { 'description' => 'test_ok_00',       'host_name' => 'test_host_000', 'state' => '0' }, { 'description' => 'test_ok_01',       'host_name' => 'test_host_000', 'state' => '0' } ],
-                 '192.168.123.2:9998' => [ { 'description' => 'test_critical_00', 'host_name' => 'test_host_000', 'state' => '2' }, { 'description' => 'test_critical_19', 'host_name' => 'test_host_000', 'state' => '2' } ]
+        in  => { '820e03551b95b42ec037c87aed9b8f4a' => [ { 'description' => 'test_flap_07',     'host_name' => 'test_host_000', 'state' => '0' }, { 'description' => 'test_flap_11',     'host_name' => 'test_host_000', 'state' => '0' } ],
+                 '35bbb11a888f66131d429efd058fb141' => [ { 'description' => 'test_ok_00',       'host_name' => 'test_host_000', 'state' => '0' }, { 'description' => 'test_ok_01',       'host_name' => 'test_host_000', 'state' => '0' } ],
+                 '70ea8fa14abb984761bdd45ef27685b0' => [ { 'description' => 'test_critical_00', 'host_name' => 'test_host_000', 'state' => '2' }, { 'description' => 'test_critical_19', 'host_name' => 'test_host_000', 'state' => '2' } ]
         },
-        exp => [ { 'description' => 'test_critical_00', 'host_name' => 'test_host_000', 'state' => '2' },
-                 { 'description' => 'test_critical_19', 'host_name' => 'test_host_000', 'state' => '2' },
+        exp => [
                  { 'description' => 'test_flap_07',     'host_name' => 'test_host_000', 'state' => '0' },
                  { 'description' => 'test_flap_11',     'host_name' => 'test_host_000', 'state' => '0' },
                  { 'description' => 'test_ok_00',       'host_name' => 'test_host_000', 'state' => '0' },
-                 { 'description' => 'test_ok_01',       'host_name' => 'test_host_000', 'state' => '0' }
+                 { 'description' => 'test_ok_01',       'host_name' => 'test_host_000', 'state' => '0' },
+                 { 'description' => 'test_critical_00', 'host_name' => 'test_host_000', 'state' => '2' },
+                 { 'description' => 'test_critical_19', 'host_name' => 'test_host_000', 'state' => '2' },
                ]
     },
 ];
@@ -125,7 +126,7 @@ for my $peer (@{$nl->{'peers'}}) {
 
 #########################
 # test internal subs
-$nl = Nagios::MKLivestatus::MULTI->new('peer' => 'localhost:12345');
+$nl = Nagios::MKLivestatus::MULTI->new('peer' => ['192.168.123.2:9996', '192.168.123.2:9997', '192.168.123.2:9998' ] );
 
 my $x = 0;
 for my $test (@{$mergetests}) {

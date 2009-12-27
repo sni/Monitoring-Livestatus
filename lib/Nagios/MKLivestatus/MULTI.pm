@@ -664,7 +664,10 @@ sub _merge_answer {
     my $return;
 
     my $t0 = [gettimeofday];
-    for my $key (keys %{$data}) {
+
+    # iterate over original peers to retain order
+    for my $peer (@{$self->{'peers'}}) {
+        my $key = $peer->peer_key;
         next if !defined $data->{$key};
 
         if(ref $data->{$key} eq 'ARRAY') {

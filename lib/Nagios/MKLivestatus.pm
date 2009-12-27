@@ -10,7 +10,7 @@ use Nagios::MKLivestatus::INET;
 use Nagios::MKLivestatus::UNIX;
 use Nagios::MKLivestatus::MULTI;
 
-our $VERSION = '0.28';
+our $VERSION = '0.29_1';
 
 
 =head1 NAME
