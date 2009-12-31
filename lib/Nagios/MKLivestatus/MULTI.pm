@@ -322,7 +322,7 @@ sub selectscalar_value {
         if($self->{'warnings'}) {
             carp("selectscalar_value without Stats on multi backend will not work as expected!");
         }
-        my $rows = $self->_merge_answer($self->_do_on_peers("select_scalar_value", $opts->{'backend'}, @_));
+        my $rows = $self->_merge_answer($self->_do_on_peers("selectscalar_value", $opts->{'backend'}, @_));
 
         $return = $rows->[0] if defined $rows->[0];
     }
