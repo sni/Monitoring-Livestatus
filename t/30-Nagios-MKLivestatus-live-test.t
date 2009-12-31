@@ -144,7 +144,7 @@ my $expected_keys = {
                        ],
     'log'           => [
                          '__all_from_hosts__','__all_from_services__','__all_from_contacts__','__all_from_commands__',
-                         'attempt','class','command_name','comment','contact_name','host_name','message','plugin_output',
+                         'attempt','class','command_name','comment','contact_name','host_name','line','message','options','plugin_output',
                          'service_description','state','state_type','time'
                        ],
     'servicegroups' => [
