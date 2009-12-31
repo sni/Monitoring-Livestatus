@@ -10,7 +10,7 @@ use Nagios::MKLivestatus::INET;
 use Nagios::MKLivestatus::UNIX;
 use Nagios::MKLivestatus::MULTI;
 
-our $VERSION = '0.29_1';
+our $VERSION = '0.29_2';
 
 
 =head1 NAME
@@ -497,19 +497,19 @@ sub selectrow_hashref {
 
 ########################################
 
-=head2 select_scalar_value
+=head2 selectscalar_value
 
- select_scalar_value($statement)
- select_scalar_value($statement, %opt)
+ selectscalar_value($statement)
+ selectscalar_value($statement, %opt)
 
 Sends a query and returns a single scalar
 
-    my $count = $nl->select_scalar_value("GET hosts\nStats: state = 0");
+    my $count = $nl->selectscalar_value("GET hosts\nStats: state = 0");
 
 returns undef if nothing was found
 
 =cut
-sub select_scalar_value {
+sub selectscalar_value {
     my $self      = shift;
     my $statement = shift;
     my $opt       = shift;

@@ -55,7 +55,7 @@ my $selectrow_hashref   = { 'contacts' => 'contact1', 'name' => 'host1', 'alias'
 # Single Querys
 #########################
 my $single_statement    = "GET hosts\nColumns: alias\nFilter: name = host1";
-my $select_scalar_value = 'alias1';
+my $selectscalar_value  = 'alias1';
 
 #########################
 # Stats Querys
@@ -216,9 +216,9 @@ for my $key (keys %{$objects_to_test}) {
     is_deeply($hash_ref, $stats_selectrow_hashref, 'selectrow_hashref($stats_statement)')
         or diag("got: ".Dumper($hash_ref)."\nbut expected ".Dumper($stats_selectrow_hashref));
 
-    my $scal = $nl->select_scalar_value($single_statement);
-    is($scal, $select_scalar_value, 'select_scalar_value($single_statement)')
-        or diag("got: ".Dumper($scal)."\nbut expected ".Dumper($select_scalar_value));
+    my $scal = $nl->selectscalar_value($single_statement);
+    is($scal, $selectscalar_value, 'selectscalar_value($single_statement)')
+        or diag("got: ".Dumper($scal)."\nbut expected ".Dumper($selectscalar_value));
 
     ##################################################
     # empty querys
