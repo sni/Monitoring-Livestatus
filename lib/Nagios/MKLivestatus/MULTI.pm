@@ -298,13 +298,13 @@ sub selectrow_hashref {
 
 ########################################
 
-=head2 select_scalar_value
+=head2 selectscalar_value
 
 See L<Nagios::MKLivestatus> for more information.
 
 =cut
 
-sub select_scalar_value {
+sub selectscalar_value {
     my $self  = shift;
     my $statement = $_[0];
     my $opts      = $_[1];
@@ -317,10 +317,10 @@ sub select_scalar_value {
     my $return;
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
-        return $self->_sum_answer($self->_do_on_peers("select_scalar_value", $opts->{'backend'}, @_));
+        return $self->_sum_answer($self->_do_on_peers("selectscalar_value", $opts->{'backend'}, @_));
     } else {
         if($self->{'warnings'}) {
-            carp("select_scalar_value without Stats on multi backend will not work as expected!");
+            carp("selectscalar_value without Stats on multi backend will not work as expected!");
         }
         my $rows = $self->_merge_answer($self->_do_on_peers("select_scalar_value", $opts->{'backend'}, @_));
 
@@ -328,7 +328,7 @@ sub select_scalar_value {
     }
 
     my $elapsed = tv_interval ( $t0 );
-    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for select_scalar_value() in total') if defined $self->{'logger'};
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectscalar_value() in total') if defined $self->{'logger'};
 
     return $return;
 }
