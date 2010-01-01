@@ -713,7 +713,7 @@ sub _sum_answer {
                 }
                 $x++;
             }
-        } else {
+        } elsif(defined $data->{$peername}) {
             $return = 0 unless defined $return;
             next unless defined $data->{$peername};
             $return += $data->{$peername};
