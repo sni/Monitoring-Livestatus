@@ -713,6 +713,10 @@ sub _sum_answer {
                 }
                 $x++;
             }
+        } else {
+            $return = 0 unless defined $return;
+            next unless defined $data->{$peername};
+            $return += $data->{$peername};
         }
     }
 

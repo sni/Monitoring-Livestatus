@@ -3,7 +3,7 @@
 #########################
 
 use strict;
-use Test::More tests => 52;
+use Test::More tests => 57;
 use Data::Dumper;
 use File::Temp;
 use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
@@ -146,6 +146,20 @@ my $sumtests = [
         },
         exp => { 'ok' => '42', 'warning' => '17' }
     },
+    { # hashes, undefs
+        in  => { '192.168.123.2:9996' => { 'ok' => '12', 'warning' => '8' },
+                 '192.168.123.2:9997' => undef,
+                 '192.168.123.2:9998' => { 'ok' => '13', 'warning' => '2' }
+        },
+        exp => { 'ok' => '25', 'warning' => '10' }
+    },
+    { # hashes, undefs
+        in  => { '192.168.123.2:9996' => { 'ok' => '12', 'warning' => '8' },
+                 '192.168.123.2:9997' => {},
+                 '192.168.123.2:9998' => { 'ok' => '13', 'warning' => '2' }
+        },
+        exp => { 'ok' => '25', 'warning' => '10' }
+    },
     { # arrays
         in  => { '192.168.123.2:9996' => [ '3302', '235' ],
                  '192.168.123.2:9997' => [ '3324', '236' ],
@@ -153,9 +167,29 @@ my $sumtests = [
         },
         exp => [ 9900, 707 ]
     },
+    { # undefs / scalars
+        in  => { 'e69322abf0352888e598da3e2514df4a' => undef,
+                 'f42530d7e8c2b52732ba427b1e5e0a8e' => '1'
+        },
+        exp => 1,
+    },
+    { # arrays, undefs
+        in  => { '192.168.123.2:9996' => [ '2', '5' ],
+                 '192.168.123.2:9997' => [ ],
+                 '192.168.123.2:9998' => [ '4', '6' ]
+        },
+        exp => [ 6, 11 ]
+    },
+    { # arrays, undefs
+        in  => { '192.168.123.2:9996' => [ '2', '5' ],
+                 '192.168.123.2:9997' => undef,
+                 '192.168.123.2:9998' => [ '4', '6' ]
+        },
+        exp => [ 6, 11 ]
+    },
 ];
 
-$x = 0;
+$x = 1;
 for my $test (@{$sumtests}) {
     my $got = $nl->_sum_answer($test->{'in'});
     is_deeply($got, $test->{'exp'}, '_sum_answer test '.$x)
