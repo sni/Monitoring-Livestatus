@@ -4,6 +4,7 @@ Revision history for Perl extension Nagios::MKLivestatus.
 	- retain order of backends when merge outut
 	- renamed select_scalar_value to selectscalar_value
 	- fixed sums for selectscalar_value
+	- fixed missing META.yml
 
 0.28  Sat Dec 19 19:19:13 CET 2009
 	- fixed bug in column alias

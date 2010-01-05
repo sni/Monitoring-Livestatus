@@ -1,5 +1,5 @@
 Changes
-examples/dump.pl
+examples/test.pl
 inc/Module/AutoInstall.pm
 inc/Module/Install.pm
 inc/Module/Install/AutoInstall.pm
@@ -19,6 +19,7 @@ lib/Nagios/MKLivestatus/MULTI.pm
 lib/Nagios/MKLivestatus/UNIX.pm
 Makefile.PL
 MANIFEST			This list of files
+META.yml
 README
 t/01-Nagios-MKLivestatus-basic_tests.t
 t/02-Nagios-MKLivestatus-internals.t
