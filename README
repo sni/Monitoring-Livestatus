@@ -1,5 +1,5 @@
-Monitoring-Livestatus version
-=============================
+Monitoring-Livestatus
+=====================
 
     Monitoring::Livestatus can be used to access the data of the check_mk
     Livestatus Addon for Nagios and Icinga.
