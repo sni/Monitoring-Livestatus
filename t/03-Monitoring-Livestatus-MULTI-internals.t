@@ -7,7 +7,7 @@ use Test::More tests => 57;
 use Data::Dumper;
 use File::Temp;
 use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
-use_ok('Nagios::MKLivestatus::MULTI');
+use_ok('Monitoring::Livestatus::MULTI');
 
 #########################
 # create 2 test sockets
@@ -51,86 +51,86 @@ my $mergetests = [
 
 #########################
 # test object creation
-my $nl = Nagios::MKLivestatus::MULTI->new( [ $socket_path1, $socket_path2 ] );
-isa_ok($nl, 'Nagios::MKLivestatus', 'single args sockets');
-for my $peer (@{$nl->{'peers'}}) {
-    isa_ok($peer, 'Nagios::MKLivestatus::UNIX', 'single args sockets peer');
+my $ml = Monitoring::Livestatus::MULTI->new( [ $socket_path1, $socket_path2 ] );
+isa_ok($ml, 'Monitoring::Livestatus', 'single args sockets');
+for my $peer (@{$ml->{'peers'}}) {
+    isa_ok($peer, 'Monitoring::Livestatus::UNIX', 'single args sockets peer');
 }
 
-$nl = Nagios::MKLivestatus::MULTI->new( [$socket_path1] );
-isa_ok($nl, 'Nagios::MKLivestatus', 'single array args socket');
-for my $peer (@{$nl->{'peers'}}) {
-    isa_ok($peer, 'Nagios::MKLivestatus::UNIX', 'single array args socket peer');
+$ml = Monitoring::Livestatus::MULTI->new( [$socket_path1] );
+isa_ok($ml, 'Monitoring::Livestatus', 'single array args socket');
+for my $peer (@{$ml->{'peers'}}) {
+    isa_ok($peer, 'Monitoring::Livestatus::UNIX', 'single array args socket peer');
     is($peer->peer_addr, $socket_path1, 'single arrays args socket peer addr');
     is($peer->peer_name, $socket_path1, 'single arrays args socket peer name');
 }
 
-$nl = Nagios::MKLivestatus::MULTI->new( 'localhost:5001' );
-isa_ok($nl, 'Nagios::MKLivestatus', 'single args server');
-for my $peer (@{$nl->{'peers'}}) {
-    isa_ok($peer, 'Nagios::MKLivestatus::INET', 'single args server peer');
+$ml = Monitoring::Livestatus::MULTI->new( 'localhost:5001' );
+isa_ok($ml, 'Monitoring::Livestatus', 'single args server');
+for my $peer (@{$ml->{'peers'}}) {
+    isa_ok($peer, 'Monitoring::Livestatus::INET', 'single args server peer');
     like($peer->peer_addr, qr/^localhost/, 'single args servers peer addr');
     like($peer->peer_name, qr/^localhost/, 'single args servers peer name');
 }
 
-$nl = Nagios::MKLivestatus::MULTI->new( ['localhost:5001'] );
-isa_ok($nl, 'Nagios::MKLivestatus', 'single array args server');
-for my $peer (@{$nl->{'peers'}}) {
-    isa_ok($peer, 'Nagios::MKLivestatus::INET', 'single arrays args server peer');
+$ml = Monitoring::Livestatus::MULTI->new( ['localhost:5001'] );
+isa_ok($ml, 'Monitoring::Livestatus', 'single array args server');
+for my $peer (@{$ml->{'peers'}}) {
+    isa_ok($peer, 'Monitoring::Livestatus::INET', 'single arrays args server peer');
     like($peer->peer_addr, qr/^localhost/, 'single arrays args servers peer addr');
     like($peer->peer_name, qr/^localhost/, 'single arrays args servers peer name');
 }
 
-$nl = Nagios::MKLivestatus::MULTI->new( [ 'localhost:5001', 'localhost:5002' ] );
-isa_ok($nl, 'Nagios::MKLivestatus', 'single args servers');
-for my $peer (@{$nl->{'peers'}}) {
-    isa_ok($peer, 'Nagios::MKLivestatus::INET', 'single args servers peer');
+$ml = Monitoring::Livestatus::MULTI->new( [ 'localhost:5001', 'localhost:5002' ] );
+isa_ok($ml, 'Monitoring::Livestatus', 'single args servers');
+for my $peer (@{$ml->{'peers'}}) {
+    isa_ok($peer, 'Monitoring::Livestatus::INET', 'single args servers peer');
     like($peer->peer_addr, qr/^localhost/, 'single args servers peer addr');
     like($peer->peer_name, qr/^localhost/, 'single args servers peer name');
 }
 
-$nl = Nagios::MKLivestatus::MULTI->new( peer => [ 'localhost:5001', 'localhost:5002' ] );
-isa_ok($nl, 'Nagios::MKLivestatus', 'hash args servers');
-for my $peer (@{$nl->{'peers'}}) {
-    isa_ok($peer, 'Nagios::MKLivestatus::INET', 'hash args servers peer');
+$ml = Monitoring::Livestatus::MULTI->new( peer => [ 'localhost:5001', 'localhost:5002' ] );
+isa_ok($ml, 'Monitoring::Livestatus', 'hash args servers');
+for my $peer (@{$ml->{'peers'}}) {
+    isa_ok($peer, 'Monitoring::Livestatus::INET', 'hash args servers peer');
     like($peer->peer_addr, qr/^localhost/, 'hash args servers peer addr');
     like($peer->peer_name, qr/^localhost/, 'hash args servers peer name');
 }
 
-$nl = Nagios::MKLivestatus::MULTI->new( peer => [ $socket_path1, $socket_path2 ] );
-isa_ok($nl, 'Nagios::MKLivestatus', 'hash args sockets');
-for my $peer (@{$nl->{'peers'}}) {
-    isa_ok($peer, 'Nagios::MKLivestatus::UNIX', 'hash args sockets peer');
+$ml = Monitoring::Livestatus::MULTI->new( peer => [ $socket_path1, $socket_path2 ] );
+isa_ok($ml, 'Monitoring::Livestatus', 'hash args sockets');
+for my $peer (@{$ml->{'peers'}}) {
+    isa_ok($peer, 'Monitoring::Livestatus::UNIX', 'hash args sockets peer');
 }
 
-$nl = Nagios::MKLivestatus::MULTI->new( peer => { $socket_path1 => 'Location 1', $socket_path2 => 'Location2' } );
-isa_ok($nl, 'Nagios::MKLivestatus', 'hash args hashed sockets');
-for my $peer (@{$nl->{'peers'}}) {
-    isa_ok($peer, 'Nagios::MKLivestatus::UNIX', 'hash args hashed sockets peer');
+$ml = Monitoring::Livestatus::MULTI->new( peer => { $socket_path1 => 'Location 1', $socket_path2 => 'Location2' } );
+isa_ok($ml, 'Monitoring::Livestatus', 'hash args hashed sockets');
+for my $peer (@{$ml->{'peers'}}) {
+    isa_ok($peer, 'Monitoring::Livestatus::UNIX', 'hash args hashed sockets peer');
     like($peer->peer_name, qr/^Location/, 'hash args hashed sockets peer name');
 }
 
-$nl = Nagios::MKLivestatus::MULTI->new( peer => { 'localhost:5001' => 'Location 1', 'localhost:5002' => 'Location2' } );
-isa_ok($nl, 'Nagios::MKLivestatus', 'hash args hashed servers');
-for my $peer (@{$nl->{'peers'}}) {
-    isa_ok($peer, 'Nagios::MKLivestatus::INET', 'hash args hashed servers peer');
+$ml = Monitoring::Livestatus::MULTI->new( peer => { 'localhost:5001' => 'Location 1', 'localhost:5002' => 'Location2' } );
+isa_ok($ml, 'Monitoring::Livestatus', 'hash args hashed servers');
+for my $peer (@{$ml->{'peers'}}) {
+    isa_ok($peer, 'Monitoring::Livestatus::INET', 'hash args hashed servers peer');
     like($peer->peer_addr, qr/^localhost/, 'hash args hashed servers peer addr');
     like($peer->peer_name, qr/^Location/, 'hash args hashed servers peer name');
 }
 
-$nl = Nagios::MKLivestatus::MULTI->new( $socket_path1 );
-isa_ok($nl, 'Nagios::MKLivestatus', 'single args socket');
-for my $peer (@{$nl->{'peers'}}) {
-    isa_ok($peer, 'Nagios::MKLivestatus::UNIX', 'single args socket peer');
+$ml = Monitoring::Livestatus::MULTI->new( $socket_path1 );
+isa_ok($ml, 'Monitoring::Livestatus', 'single args socket');
+for my $peer (@{$ml->{'peers'}}) {
+    isa_ok($peer, 'Monitoring::Livestatus::UNIX', 'single args socket peer');
 }
 
 #########################
 # test internal subs
-$nl = Nagios::MKLivestatus::MULTI->new('peer' => ['192.168.123.2:9996', '192.168.123.2:9997', '192.168.123.2:9998' ] );
+$ml = Monitoring::Livestatus::MULTI->new('peer' => ['192.168.123.2:9996', '192.168.123.2:9997', '192.168.123.2:9998' ] );
 
 my $x = 0;
 for my $test (@{$mergetests}) {
-    my $got = $nl->_merge_answer($test->{'in'});
+    my $got = $ml->_merge_answer($test->{'in'});
     is_deeply($got, $test->{'exp'}, '_merge_answer test '.$x)
         or diag("got: ".Dumper($got)."\nbut expected ".Dumper($test->{'exp'}));
     $x++;
@@ -191,7 +191,7 @@ my $sumtests = [
 
 $x = 1;
 for my $test (@{$sumtests}) {
-    my $got = $nl->_sum_answer($test->{'in'});
+    my $got = $ml->_sum_answer($test->{'in'});
     is_deeply($got, $test->{'exp'}, '_sum_answer test '.$x)
         or diag("got: ".Dumper($got)."\nbut expected ".Dumper($test->{'exp'}));
     $x++;
@@ -199,8 +199,8 @@ for my $test (@{$sumtests}) {
 
 #########################
 # clone test
-my $clone = $nl->_clone($mergetests);
+my $clone = $ml->_clone($mergetests);
 is_deeply($clone, $mergetests, 'merge test clone');
 
-$clone = $nl->_clone($sumtests);
+$clone = $ml->_clone($sumtests);
 is_deeply($clone, $sumtests, 'sum test clone');

@@ -1,28 +1,28 @@
-package Nagios::MKLivestatus::INET;
+package Monitoring::Livestatus::INET;
 
 use 5.000000;
 use strict;
 use warnings;
 use IO::Socket::INET;
 use Carp;
-use base "Nagios::MKLivestatus";
+use base "Monitoring::Livestatus";
 
 =head1 NAME
 
-Nagios::MKLivestatus::INET - connector with tcp sockets
+Monitoring::Livestatus::INET - connector with tcp sockets
 
 =head1 SYNOPSIS
 
-    use Nagios::MKLivestatus;
-    my $nl = Nagios::MKLivestatus::INET->new( 'localhost:9999' );
+    use Monitoring::Livestatus;
+    my $nl = Monitoring::Livestatus::INET->new( 'localhost:9999' );
     my $hosts = $nl->selectall_arrayref("GET hosts");
 
 =head1 CONSTRUCTOR
 
 =head2 new ( [ARGS] )
 
-Creates an C<Nagios::MKLivestatus::INET> object. C<new> takes at least the server.
-Arguments are the same as in C<Nagios::MKLivestatus>.
+Creates an C<Monitoring::Livestatus::INET> object. C<new> takes at least the server.
+Arguments are the same as in C<Monitoring::Livestatus>.
 If the constructor is only passed a single argument, it is assumed to
 be a the C<server> specification. Use either socker OR server.
 
@@ -35,7 +35,7 @@ sub new {
     $options{'name'} = $options{'peer'} unless defined $options{'name'};
 
     $options{'backend'} = $class;
-    my $self = Nagios::MKLivestatus->new(%options);
+    my $self = Monitoring::Livestatus->new(%options);
     bless $self, $class;
     confess('not a scalar') if ref $self->{'peer'} ne '';
 
@@ -59,8 +59,8 @@ sub _open {
         if($self->{'errors_are_fatal'}) {
             croak($msg);
         }
-        $Nagios::MKLivestatus::ErrorCode    = 500;
-        $Nagios::MKLivestatus::ErrorMessage = $msg;
+        $Monitoring::Livestatus::ErrorCode    = 500;
+        $Monitoring::Livestatus::ErrorMessage = $msg;
         return;
     }
 

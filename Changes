@@ -1,4 +1,7 @@
-Revision history for Perl extension Nagios::MKLivestatus.
+Revision history for Perl extension Monitoring::Livestatus.
+
+0.30  Wed Jan  6 16:05:33 CET 2010
+	- renamed project to Monitoring::Livestatus
 
 0.29  Mon Dec 28 00:11:53 CET 2009
 	- retain order of backends when merge outut

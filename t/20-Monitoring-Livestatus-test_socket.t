@@ -17,7 +17,7 @@ BEGIN {
 }
 
 use File::Temp;
-BEGIN { use_ok('Nagios::MKLivestatus') };
+BEGIN { use_ok('Monitoring::Livestatus') };
 
 #########################
 # Normal Querys
@@ -99,7 +99,7 @@ sleep(1);
 #########################
 my $objects_to_test = {
   # create unix object with hash args
-  'unix_hash_args' => Nagios::MKLivestatus->new(
+  'unix_hash_args' => Monitoring::Livestatus->new(
                                       verbose             => 0,
                                       socket              => $socket_path,
                                       line_seperator      => $line_seperator,
@@ -107,10 +107,10 @@ my $objects_to_test = {
                                     ),
 
   # create unix object with a single arg
-  'unix_single_arg' => Nagios::MKLivestatus::UNIX->new( $socket_path ),
+  'unix_single_arg' => Monitoring::Livestatus::UNIX->new( $socket_path ),
 
   # create inet object with hash args
-  'inet_hash_args' => Nagios::MKLivestatus->new(
+  'inet_hash_args' => Monitoring::Livestatus->new(
                                       verbose             => 0,
                                       server              => $server,
                                       line_seperator      => $line_seperator,
@@ -118,27 +118,27 @@ my $objects_to_test = {
                                     ),
 
   # create inet object with a single arg
-  'inet_single_arg' => Nagios::MKLivestatus::INET->new( $server ),
+  'inet_single_arg' => Monitoring::Livestatus::INET->new( $server ),
 
 };
 
 for my $key (keys %{$objects_to_test}) {
-    my $nl = $objects_to_test->{$key};
-    isa_ok($nl, 'Nagios::MKLivestatus');
+    my $ml = $objects_to_test->{$key};
+    isa_ok($ml, 'Monitoring::Livestatus');
 
     # we dont need warnings for testing
-    $nl->warnings(0);
+    $ml->warnings(0);
 
     ##################################################
     # test settings
-    my $rt = $nl->verbose(1);
+    my $rt = $ml->verbose(1);
     is($rt, '0', 'enable verbose');
-    $rt = $nl->verbose(0);
+    $rt = $ml->verbose(0);
     is($rt, '1', 'disable verbose');
 
-    $rt = $nl->errors_are_fatal(0);
+    $rt = $ml->errors_are_fatal(0);
     is($rt, '1', 'disable errors_are_fatal');
-    $rt = $nl->errors_are_fatal(1);
+    $rt = $ml->errors_are_fatal(1);
     is($rt, '0', 'enable errors_are_fatal');
 
     ##################################################
@@ -146,100 +146,100 @@ for my $key (keys %{$objects_to_test}) {
     my $statement = "GET hosts";
 
     #########################
-    my $ary_ref  = $nl->selectall_arrayref($statement);
+    my $ary_ref  = $ml->selectall_arrayref($statement);
     is_deeply($ary_ref, $selectall_arrayref1, 'selectall_arrayref($statement)')
         or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($selectall_arrayref1));
 
     #########################
-    $ary_ref  = $nl->selectall_arrayref($statement, { Slice => {} });
+    $ary_ref  = $ml->selectall_arrayref($statement, { Slice => {} });
     is_deeply($ary_ref, $selectall_arrayref2, 'selectall_arrayref($statement, { Slice => {} })')
         or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($selectall_arrayref2));
 
     #########################
-    my $hash_ref = $nl->selectall_hashref($statement, 'name');
+    my $hash_ref = $ml->selectall_hashref($statement, 'name');
     is_deeply($hash_ref, $selectall_hashref, 'selectall_hashref($statement, "name")')
         or diag("got: ".Dumper($hash_ref)."\nbut expected ".Dumper($selectall_hashref));
 
     #########################
-    $ary_ref  = $nl->selectcol_arrayref($statement);
+    $ary_ref  = $ml->selectcol_arrayref($statement);
     is_deeply($ary_ref, $selectcol_arrayref1, 'selectcol_arrayref($statement)')
         or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($selectcol_arrayref1));
 
     #########################
-    $ary_ref = $nl->selectcol_arrayref($statement, { Columns=>[1,2] });
+    $ary_ref = $ml->selectcol_arrayref($statement, { Columns=>[1,2] });
     is_deeply($ary_ref, $selectcol_arrayref2, 'selectcol_arrayref($statement, { Columns=>[1,2] })')
         or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($selectcol_arrayref2));
 
-    $ary_ref = $nl->selectcol_arrayref($statement, { Columns=>[1,2,3] });
+    $ary_ref = $ml->selectcol_arrayref($statement, { Columns=>[1,2,3] });
     is_deeply($ary_ref, $selectcol_arrayref3, 'selectcol_arrayref($statement, { Columns=>[1,2,3] })')
         or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($selectcol_arrayref3));
 
     #########################
-    my @row_ary  = $nl->selectrow_array($statement);
+    my @row_ary  = $ml->selectrow_array($statement);
     is_deeply(\@row_ary, \@selectrow_array, 'selectrow_array($statement)')
         or diag("got: ".Dumper(\@row_ary)."\nbut expected ".Dumper(\@selectrow_array));
 
     #########################
-    $ary_ref  = $nl->selectrow_arrayref($statement);
+    $ary_ref  = $ml->selectrow_arrayref($statement);
     is_deeply($ary_ref, $selectrow_arrayref, 'selectrow_arrayref($statement)')
         or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($selectrow_arrayref));
 
     #########################
-    $hash_ref = $nl->selectrow_hashref($statement);
+    $hash_ref = $ml->selectrow_hashref($statement);
     is_deeply($hash_ref, $selectrow_hashref, 'selectrow_hashref($statement)')
         or diag("got: ".Dumper($hash_ref)."\nbut expected ".Dumper($selectrow_hashref));
 
     ##################################################
     # stats querys
     ##################################################
-    $ary_ref  = $nl->selectall_arrayref($stats_statement);
+    $ary_ref  = $ml->selectall_arrayref($stats_statement);
     is_deeply($ary_ref, $stats_selectall_arrayref1, 'selectall_arrayref($stats_statement)')
         or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($stats_selectall_arrayref1));
 
-    $ary_ref  = $nl->selectall_arrayref($stats_statement, { Slice => {} });
+    $ary_ref  = $ml->selectall_arrayref($stats_statement, { Slice => {} });
     is_deeply($ary_ref, $stats_selectall_arrayref2, 'selectall_arrayref($stats_statement, { Slice => {} })')
         or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($stats_selectall_arrayref2));
 
-    $ary_ref  = $nl->selectcol_arrayref($stats_statement);
+    $ary_ref  = $ml->selectcol_arrayref($stats_statement);
     is_deeply($ary_ref, $stats_selectcol_arrayref, 'selectcol_arrayref($stats_statement)')
         or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($stats_selectcol_arrayref));
 
-    @row_ary = $nl->selectrow_array($stats_statement);
+    @row_ary = $ml->selectrow_array($stats_statement);
     is_deeply(\@row_ary, \@stats_selectrow_array, 'selectrow_arrayref($stats_statement)')
         or diag("got: ".Dumper(\@row_ary)."\nbut expected ".Dumper(\@stats_selectrow_array));
 
-    $ary_ref  = $nl->selectrow_arrayref($stats_statement);
+    $ary_ref  = $ml->selectrow_arrayref($stats_statement);
     is_deeply($ary_ref, $stats_selectrow_arrayref, 'selectrow_arrayref($stats_statement)')
         or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($stats_selectrow_arrayref));
 
-    $hash_ref = $nl->selectrow_hashref($stats_statement);
+    $hash_ref = $ml->selectrow_hashref($stats_statement);
     is_deeply($hash_ref, $stats_selectrow_hashref, 'selectrow_hashref($stats_statement)')
         or diag("got: ".Dumper($hash_ref)."\nbut expected ".Dumper($stats_selectrow_hashref));
 
-    my $scal = $nl->selectscalar_value($single_statement);
+    my $scal = $ml->selectscalar_value($single_statement);
     is($scal, $selectscalar_value, 'selectscalar_value($single_statement)')
         or diag("got: ".Dumper($scal)."\nbut expected ".Dumper($selectscalar_value));
 
     ##################################################
     # empty querys
     ##################################################
-    $ary_ref  = $nl->selectall_arrayref($empty_statement);
+    $ary_ref  = $ml->selectall_arrayref($empty_statement);
     is_deeply($ary_ref, $empty_selectall_arrayref, 'selectall_arrayref($empty_statement)')
         or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($empty_selectall_arrayref));
 
-    $ary_ref  = $nl->selectcol_arrayref($empty_statement);
+    $ary_ref  = $ml->selectcol_arrayref($empty_statement);
     is_deeply($ary_ref, $empty_selectcol_arrayref, 'selectcol_arrayref($empty_statement)')
         or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($empty_selectcol_arrayref));
 
-    @row_ary = $nl->selectrow_array($empty_statement);
+    @row_ary = $ml->selectrow_array($empty_statement);
     is_deeply(\@row_ary, \@empty_selectrow_array, 'selectrow_arrayref($empty_statement)')
         or diag("got: ".Dumper(\@row_ary)."\nbut expected ".Dumper(\@empty_selectrow_array));
 
-    $ary_ref  = $nl->selectrow_arrayref($empty_statement);
+    $ary_ref  = $ml->selectrow_arrayref($empty_statement);
     is_deeply($ary_ref, $empty_selectrow_arrayref, 'selectrow_arrayref($empty_statement)')
         or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($empty_selectrow_arrayref));
 
-    $hash_ref = $nl->selectrow_hashref($empty_statement);
+    $hash_ref = $ml->selectrow_hashref($empty_statement);
     is_deeply($hash_ref, $empty_selectrow_hashref, 'selectrow_hashref($empty_statement)')
         or diag("got: ".Dumper($hash_ref)."\nbut expected ".Dumper($empty_selectrow_hashref));
 

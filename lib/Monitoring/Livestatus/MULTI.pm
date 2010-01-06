@@ -1,4 +1,4 @@
-package Nagios::MKLivestatus::MULTI;
+package Monitoring::Livestatus::MULTI;
 
 use 5.000000;
 use strict;
@@ -7,25 +7,25 @@ use Carp;
 use Data::Dumper;
 use Config;
 use Time::HiRes qw( gettimeofday tv_interval );
-use Nagios::MKLivestatus;
-use base "Nagios::MKLivestatus";
+use Monitoring::Livestatus;
+use base "Monitoring::Livestatus";
 
 =head1 NAME
 
-Nagios::MKLivestatus::MULTI - connector with multiple peers
+Monitoring::Livestatus::MULTI - connector with multiple peers
 
 =head1 SYNOPSIS
 
-    use Nagios::MKLivestatus;
-    my $nl = Nagios::MKLivestatus::MULTI->new( qw{nagioshost1:9999 nagioshost2:9999 /var/spool/nagios/live.socket} );
+    use Monitoring::Livestatus;
+    my $nl = Monitoring::Livestatus::MULTI->new( qw{nagioshost1:9999 nagioshost2:9999 /var/spool/nagios/live.socket} );
     my $hosts = $nl->selectall_arrayref("GET hosts");
 
 =head1 CONSTRUCTOR
 
 =head2 new ( [ARGS] )
 
-Creates an C<Nagios::MKLivestatus::MULTI> object. C<new> takes at least the server.
-Arguments are the same as in L<Nagios::MKLivestatus>.
+Creates an C<Monitoring::Livestatus::MULTI> object. C<new> takes at least the server.
+Arguments are the same as in L<Monitoring::Livestatus>.
 
 =cut
 
@@ -35,7 +35,7 @@ sub new {
     my(%options) = @_;
 
     $options{'backend'} = $class;
-    my $self = Nagios::MKLivestatus->new(%options);
+    my $self = Monitoring::Livestatus->new(%options);
     bless $self, $class;
 
     if(!defined $self->{'peers'}) {
@@ -55,10 +55,10 @@ sub new {
             delete $peer_options{'server'};
 
             if($peer->{'type'} eq 'UNIX') {
-                push @{$peers}, new Nagios::MKLivestatus::UNIX(%peer_options);
+                push @{$peers}, new Monitoring::Livestatus::UNIX(%peer_options);
             }
             elsif($peer->{'type'} eq 'INET') {
-                push @{$peers}, new Nagios::MKLivestatus::INET(%peer_options);
+                push @{$peers}, new Monitoring::Livestatus::INET(%peer_options);
             }
         }
         $self->{'peers'} = $peers;
@@ -94,7 +94,7 @@ sub new {
     }
 
     $self->{'name'} = 'multiple connector' unless defined $self->{'name'};
-    $self->{'logger'}->debug('initialized Nagios::MKLivestatus::MULTI '.($self->{'use_threads'} ? 'with' : 'without' ).' threads') if defined $self->{'logger'};
+    $self->{'logger'}->debug('initialized Monitoring::Livestatus::MULTI '.($self->{'use_threads'} ? 'with' : 'without' ).' threads') if defined $self->{'logger'};
 
     return $self;
 }
@@ -106,7 +106,7 @@ sub new {
 
 =head2 do
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -128,7 +128,7 @@ sub do {
 
 =head2 selectall_arrayref
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -151,7 +151,7 @@ sub selectall_arrayref {
 
 =head2 selectall_hashref
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -174,7 +174,7 @@ sub selectall_hashref {
 
 =head2 selectcol_arrayref
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -197,7 +197,7 @@ sub selectcol_arrayref {
 
 =head2 selectrow_array
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -231,7 +231,7 @@ sub selectrow_array {
 
 =head2 selectrow_arrayref
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -265,7 +265,7 @@ sub selectrow_arrayref {
 
 =head2 selectrow_hashref
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -300,7 +300,7 @@ sub selectrow_hashref {
 
 =head2 selectscalar_value
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -337,7 +337,7 @@ sub selectscalar_value {
 
 =head2 errors_are_fatal
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -351,7 +351,7 @@ sub errors_are_fatal {
 
 =head2 warnings
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -365,7 +365,7 @@ sub warnings {
 
 =head2 verbose
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -380,7 +380,7 @@ sub verbose {
 
 =head2 peer_addr
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -400,7 +400,7 @@ sub peer_addr {
 
 =head2 peer_name
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -420,7 +420,7 @@ sub peer_name {
 
 =head2 peer_key
 
-See L<Nagios::MKLivestatus> for more information.
+See L<Monitoring::Livestatus> for more information.
 
 =cut
 
@@ -536,11 +536,11 @@ sub _do_wrapper {
     my $elapsed = tv_interval ( $t0 );
     $logger->debug(sprintf('%.4f', $elapsed).' sec for fetching data on '.$peer->peer_name.' ('.$peer->peer_addr.')') if defined $logger;
 
-    $Nagios::MKLivestatus::ErrorCode    = 0 unless defined $Nagios::MKLivestatus::ErrorCode;
-    $Nagios::MKLivestatus::ErrorMessage = '' unless defined $Nagios::MKLivestatus::ErrorMessage;
+    $Monitoring::Livestatus::ErrorCode    = 0 unless defined $Monitoring::Livestatus::ErrorCode;
+    $Monitoring::Livestatus::ErrorMessage = '' unless defined $Monitoring::Livestatus::ErrorMessage;
     my $return = {
-            'msg'  => $Nagios::MKLivestatus::ErrorMessage,
-            'code' => $Nagios::MKLivestatus::ErrorCode,
+            'msg'  => $Monitoring::Livestatus::ErrorMessage,
+            'code' => $Monitoring::Livestatus::ErrorCode,
             'data' => $data,
     };
     return $return;
@@ -625,8 +625,8 @@ sub _do_on_peers {
 
 
     # check if we different result stati
-    undef $Nagios::MKLivestatus::ErrorMessage;
-    $Nagios::MKLivestatus::ErrorCode = 0;
+    undef $Monitoring::Livestatus::ErrorMessage;
+    $Monitoring::Livestatus::ErrorCode = 0;
     my @codes = keys %codes;
     if(scalar @codes > 1) {
         # got different results for our backends
@@ -637,10 +637,10 @@ sub _do_on_peers {
         if($code >= 300) {
             my $msg  = $codes{$code}->[0]->{'msg'};
             print "same: $code -> $msg\n" if $self->{'verbose'};
-            $Nagios::MKLivestatus::ErrorMessage = $msg;
-            $Nagios::MKLivestatus::ErrorCode    = $code;
+            $Monitoring::Livestatus::ErrorMessage = $msg;
+            $Monitoring::Livestatus::ErrorCode    = $code;
             if($self->{'errors_are_fatal'}) {
-                croak("ERROR ".$code." - ".$Nagios::MKLivestatus::ErrorMessage." in query:\n'".$statement."'\n");
+                croak("ERROR ".$code." - ".$Monitoring::Livestatus::ErrorMessage." in query:\n'".$statement."'\n");
             }
             return;
         }

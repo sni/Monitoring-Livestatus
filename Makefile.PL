@@ -2,8 +2,8 @@
 # expected.  you have been warned
 use inc::Module::Install;
 
-name         'Nagios-MKLivestatus';
-all_from     'lib/Nagios/MKLivestatus.pm';
+name         'Monitoring-Livestatus';
+all_from     'lib/Monitoring/Livestatus.pm';
 perl_version '5.006';
 license      'perl';
 

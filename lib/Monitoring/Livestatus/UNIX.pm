@@ -1,28 +1,28 @@
-package Nagios::MKLivestatus::UNIX;
+package Monitoring::Livestatus::UNIX;
 
 use 5.000000;
 use strict;
 use warnings;
 use IO::Socket::UNIX;
 use Carp;
-use base "Nagios::MKLivestatus";
+use base "Monitoring::Livestatus";
 
 =head1 NAME
 
-Nagios::MKLivestatus::UNIX - connector with unix sockets
+Monitoring::Livestatus::UNIX - connector with unix sockets
 
 =head1 SYNOPSIS
 
-    use Nagios::MKLivestatus;
-    my $nl = Nagios::MKLivestatus::UNIX->new( '/var/lib/nagios3/rw/livestatus.sock' );
+    use Monitoring::Livestatus;
+    my $nl = Monitoring::Livestatus::UNIX->new( '/var/lib/livestatus/livestatus.sock' );
     my $hosts = $nl->selectall_arrayref("GET hosts");
 
 =head1 CONSTRUCTOR
 
 =head2 new ( [ARGS] )
 
-Creates an C<Nagios::MKLivestatus::UNIX> object. C<new> takes at least the socketpath.
-Arguments are the same as in C<Nagios::MKLivestatus>.
+Creates an C<Monitoring::Livestatus::UNIX> object. C<new> takes at least the socketpath.
+Arguments are the same as in C<Monitoring::Livestatus>.
 If the constructor is only passed a single argument, it is assumed to
 be a the C<socket> specification. Use either socker OR server.
 
@@ -35,7 +35,7 @@ sub new {
     $options{'name'} = $options{'peer'} unless defined $options{'name'};
 
     $options{'backend'} = $class;
-    my $self = Nagios::MKLivestatus->new(%options);
+    my $self = Monitoring::Livestatus->new(%options);
     bless $self, $class;
     confess('not a scalar') if ref $self->{'peer'} ne '';
 
@@ -56,8 +56,8 @@ sub _open {
         if($self->{'errors_are_fatal'}) {
             croak($msg);
         }
-        $Nagios::MKLivestatus::ErrorCode    = 500;
-        $Nagios::MKLivestatus::ErrorMessage = $msg;
+        $Monitoring::Livestatus::ErrorCode    = 500;
+        $Monitoring::Livestatus::ErrorMessage = $msg;
         return;
     }
     my $sock = IO::Socket::UNIX->new(
@@ -68,8 +68,8 @@ sub _open {
         if($self->{'errors_are_fatal'}) {
             croak($msg);
         }
-        $Nagios::MKLivestatus::ErrorCode    = 500;
-        $Nagios::MKLivestatus::ErrorMessage = $msg;
+        $Monitoring::Livestatus::ErrorCode    = 500;
+        $Monitoring::Livestatus::ErrorMessage = $msg;
         return;
     }
 

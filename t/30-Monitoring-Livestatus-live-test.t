@@ -13,7 +13,14 @@ if ( ! defined $ENV{TEST_SOCKET} and !defined $ENV{TEST_SERVER} ) {
     plan( tests => 673 );
 }
 
-use_ok('Nagios::MKLivestatus');
+# set an alarm
+$SIG{ALRM} = sub { 
+    my @caller = caller;
+    die "timeout reached:".Dumper(\@caller)."\n" 
+};
+alarm(120);
+
+use_ok('Monitoring::Livestatus');
 
 #########################
 my $line_seperator      = 10;
@@ -21,10 +28,10 @@ my $column_seperator    = 0;
 my $objects_to_test = {
   # UNIX
   # create unix object with a single arg
-  '01 unix_single_arg' => Nagios::MKLivestatus::UNIX->new( $ENV{TEST_SOCKET} ),
+  '01 unix_single_arg' => Monitoring::Livestatus::UNIX->new( $ENV{TEST_SOCKET} ),
 
   # create unix object with hash args
-  '02 unix_few_args' => Nagios::MKLivestatus->new(
+  '02 unix_few_args' => Monitoring::Livestatus->new(
                                       verbose             => 0,
                                       socket              => $ENV{TEST_SOCKET},
                                       line_seperator      => $line_seperator,
@@ -32,7 +39,7 @@ my $objects_to_test = {
                                     ),
 
   # create unix object with hash args
-  '03 unix_keepalive' => Nagios::MKLivestatus->new(
+  '03 unix_keepalive' => Monitoring::Livestatus->new(
                                       verbose             => 0,
                                       socket              => $ENV{TEST_SOCKET},
                                       keepalive           => 1,
@@ -40,10 +47,10 @@ my $objects_to_test = {
 
   # TCP
   # create inet object with a single arg
-  '04 inet_single_arg' => Nagios::MKLivestatus::INET->new( $ENV{TEST_SERVER} ),
+  '04 inet_single_arg' => Monitoring::Livestatus::INET->new( $ENV{TEST_SERVER} ),
 
   # create inet object with hash args
-  '05 inet_few_args' => Nagios::MKLivestatus->new(
+  '05 inet_few_args' => Monitoring::Livestatus->new(
                                       verbose             => 0,
                                       server              => $ENV{TEST_SERVER},
                                       line_seperator      => $line_seperator,
@@ -52,41 +59,41 @@ my $objects_to_test = {
 
 
   # create inet object with keepalive
-  '06 inet_keepalive' => Nagios::MKLivestatus->new(
+  '06 inet_keepalive' => Monitoring::Livestatus->new(
                                       verbose             => 0,
                                       server              => $ENV{TEST_SERVER},
                                       keepalive           => 1,
                                     ),
 
   # create multi single args
-  '07 multi_keepalive' => Nagios::MKLivestatus->new( [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ] ),
+  '07 multi_keepalive' => Monitoring::Livestatus->new( [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ] ),
 
   # create multi object with keepalive
-  '08 multi_keepalive_hash_args' => Nagios::MKLivestatus->new(
+  '08 multi_keepalive_hash_args' => Monitoring::Livestatus->new(
                                       verbose             => 0,
                                       peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
                                       keepalive           => 1,
                                     ),
 
   # create multi object without keepalive
-  '09 multi_no_keepalive' => Nagios::MKLivestatus->new(
+  '09 multi_no_keepalive' => Monitoring::Livestatus->new(
                                       peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
                                       keepalive           => 0,
                                     ),
 
   # create multi object without threads
-  '10 multi_no_threads' => Nagios::MKLivestatus->new(
+  '10 multi_no_threads' => Monitoring::Livestatus->new(
                                       peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
                                       use_threads         => 0,
                                     ),
 
   # create multi object with only one peer
-  '11 multi_one_peer' => Nagios::MKLivestatus::MULTI->new(
+  '11 multi_one_peer' => Monitoring::Livestatus::MULTI->new(
                                       peer                => $ENV{TEST_SERVER},
                                     ),
 
   # create multi object without threads
-  '12 multi_two_peers' => Nagios::MKLivestatus::MULTI->new(
+  '12 multi_two_peers' => Monitoring::Livestatus::MULTI->new(
                                       peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
                                     ),
 };
@@ -110,6 +117,7 @@ my $expected_keys = {
                          'in_service_notification_period','name','pager','service_notification_period',
                          'service_notifications_enabled'
                        ],
+#    'contactgroups' => [ 'name', 'alias', 'members' ],
     'downtimes'     => [
                          '__all_from_hosts__', '__all_from_services__',
                          'author','comment','duration','end_time','entry_time','fixed','id','start_time',
@@ -144,7 +152,7 @@ my $expected_keys = {
                        ],
     'log'           => [
                          '__all_from_hosts__','__all_from_services__','__all_from_contacts__','__all_from_commands__',
-                         'attempt','class','command_name','comment','contact_name','host_name','line','message','options','plugin_output',
+                         'attempt','class','command_name','comment','contact_name','host_name','lineno','message','plugin_output',
                          'service_description','state','state_type','time'
                        ],
     'servicegroups' => [
@@ -174,32 +182,33 @@ my $expected_keys = {
                          'accept_passive_host_checks','accept_passive_service_checks','cached_log_messages',
                          'check_external_commands','check_host_freshness','check_service_freshness','connections',
                          'connections_rate','enable_event_handlers','enable_flap_detection','enable_notifications',
-                         'execute_host_checks','execute_service_checks','host_checks','host_checks_rate',
+                         'execute_host_checks','execute_service_checks','host_checks','host_checks_rate',#'interval_length',
                          'last_command_check','last_log_rotation','livestatus_version','nagios_pid','neb_callbacks',
                          'neb_callbacks_rate','obsess_over_hosts','obsess_over_services','process_performance_data',
                          'program_start','program_version','requests','requests_rate','service_checks','service_checks_rate'
                        ],
+#    'timeperiods'   => [ 'name', 'alias' ],
 };
 
 for my $key (sort keys %{$objects_to_test}) {
-    my $nl = $objects_to_test->{$key};
-    isa_ok($nl, 'Nagios::MKLivestatus') or BAIL_OUT("no need to continue without a proper Nagios::MKLivestatus object: ".$key);
+    my $ml = $objects_to_test->{$key};
+    isa_ok($ml, 'Monitoring::Livestatus') or BAIL_OUT("no need to continue without a proper Monitoring::Livestatus object: ".$key);
 
     # dont die on errors
-    $nl->errors_are_fatal(0);
-    $nl->warnings(0);
+    $ml->errors_are_fatal(0);
+    $ml->warnings(0);
 
     #########################
     # set downtime for a host and service
-    my $firsthost = $nl->selectscalar_value("GET hosts\nColumns: name\nLimit: 1");
+    my $firsthost = $ml->selectscalar_value("GET hosts\nColumns: name\nLimit: 1");
     isnt($firsthost, undef, 'get test hostname') or BAIL_OUT($key.': got not test hostname');
-    $nl->do('COMMAND ['.time().'] SCHEDULE_HOST_DOWNTIME;'.$firsthost.';'.time().';'.(time()+60).';1;0;60;nagiosadmin;test');
-    my $firstservice = $nl->selectscalar_value("GET services\nColumns: description\nFilter: host_name = $firsthost\nLimit: 1");
+    $ml->do('COMMAND ['.time().'] SCHEDULE_HOST_DOWNTIME;'.$firsthost.';'.time().';'.(time()+60).';1;0;60;perl test;perl test: '.$0);
+    my $firstservice = $ml->selectscalar_value("GET services\nColumns: description\nFilter: host_name = $firsthost\nLimit: 1");
     isnt($firstservice, undef, 'get test servicename') or BAIL_OUT('got not test servicename');
-    $nl->do('COMMAND ['.time().'] SCHEDULE_SERVICE_DOWNTIME;'.$firsthost.';'.$firstservice.';'.time().';'.(time()+60).';1;0;60;nagiosadmin;test');
+    $ml->do('COMMAND ['.time().'] SCHEDULE_SVC_DOWNTIME;'.$firsthost.';'.$firstservice.';'.time().';'.(time()+60).';1;0;60;perl test;perl test: '.$0);
     # sometimes it takes while till the downtime is accepted
     my $waited = 0;
-    while(scalar @{$nl->selectall_arrayref("GET downtimes\nColumns: id")} == 0) {
+    while(scalar @{$ml->selectall_arrayref("GET downtimes\nColumns: id")} == 0) {
       print "waiting for the downtime...\n";
       sleep(1);
       $waited++;
@@ -209,7 +218,7 @@ for my $key (sort keys %{$objects_to_test}) {
 
     #########################
     # check tables
-    my $data            = $nl->selectall_hashref("GET columns\nColumns: table", 'table');
+    my $data            = $ml->selectall_hashref("GET columns\nColumns: table", 'table');
     my @tables          = sort keys %{$data};
     my @expected_tables = sort keys %{$expected_keys};
     is_deeply(\@tables, \@expected_tables, $key.' tables');
@@ -217,113 +226,116 @@ for my $key (sort keys %{$objects_to_test}) {
     #########################
     # check keys
     for my $type (keys %{$expected_keys}) {
+        my $filter = "";
+        $filter  = "Filter: time > ".(time() - 600)."\n" if $type eq 'log';
+        $filter .= "Filter: time < ".(time())."\n"       if $type eq 'log';
         my $expected_keys = get_expected_keys($type);
-        my $statement = "GET $type\nLimit: 1";
-        my $hash_ref  = $nl->selectrow_hashref($statement );
+        my $statement = "GET $type\n".$filter."Limit: 1";
+        my $hash_ref  = $ml->selectrow_hashref($statement );
         is(ref $hash_ref, 'HASH', 'keys are a hash') or BAIL_OUT('keys are not in hash format, got '.Dumper($hash_ref));
         my @keys      = sort keys %{$hash_ref};
         is_deeply(\@keys, $expected_keys, $key.' '.$type.'keys') or BAIL_OUT("got keys: ".Dumper(\@keys)." but expected\n".Dumper($expected_keys,));
     }
 
     my $statement = "GET hosts\nColumns: name as hostname state\nLimit: 1";
-    my $hash_ref  = $nl->selectrow_hashref($statement);
+    my $hash_ref  = $ml->selectrow_hashref($statement);
     isnt($hash_ref, undef, $key.' test column alias');
-    is($Nagios::MKLivestatus::ErrorCode, 0, $key.' test column alias') or
-        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+    is($Monitoring::Livestatus::ErrorCode, 0, $key.' test column alias') or
+        diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
 
     #########################
     # send a test command
     # commands still dont work and breaks livestatus
-    my $rt = $nl->do('COMMAND ['.time().'] SAVE_STATE_INFORMATION');
+    my $rt = $ml->do('COMMAND ['.time().'] SAVE_STATE_INFORMATION');
     is($rt, '1', $key.' test command');
 
     #########################
     # check for errors
-    #$nl->{'verbose'} = 1;
+    #$ml->{'verbose'} = 1;
     $statement = "GET hosts\nLimit: 1";
-    $hash_ref  = $nl->selectrow_hashref($statement );
+    $hash_ref  = $ml->selectrow_hashref($statement );
     isnt($hash_ref, undef, $key.' test error 200 body');
-    is($Nagios::MKLivestatus::ErrorCode, 0, $key.' test error 200 status') or
-        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+    is($Monitoring::Livestatus::ErrorCode, 0, $key.' test error 200 status') or
+        diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
 
     $statement = "BLAH hosts";
-    $hash_ref  = $nl->selectrow_hashref($statement );
+    $hash_ref  = $ml->selectrow_hashref($statement );
     is($hash_ref, undef, $key.' test error 401 body');
-    is($Nagios::MKLivestatus::ErrorCode, '401', $key.' test error 401 status') or
-        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+    is($Monitoring::Livestatus::ErrorCode, '401', $key.' test error 401 status') or
+        diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
 
     $statement = "GET hosts\nLimit: ";
-    $hash_ref  = $nl->selectrow_hashref($statement );
+    $hash_ref  = $ml->selectrow_hashref($statement );
     is($hash_ref, undef, $key.' test error 403 body');
-    is($Nagios::MKLivestatus::ErrorCode, '403', $key.' test error 403 status') or
-        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+    is($Monitoring::Livestatus::ErrorCode, '403', $key.' test error 403 status') or
+        diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
 
     $statement = "GET unknowntable\nLimit: 1";
-    $hash_ref  = $nl->selectrow_hashref($statement );
+    $hash_ref  = $ml->selectrow_hashref($statement );
     is($hash_ref, undef, $key.' test error 404 body');
-    is($Nagios::MKLivestatus::ErrorCode, '404', $key.' test error 404 status') or
-        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+    is($Monitoring::Livestatus::ErrorCode, '404', $key.' test error 404 status') or
+        diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
 
     $statement = "GET hosts\nColumns: unknown";
-    $hash_ref  = $nl->selectrow_hashref($statement );
+    $hash_ref  = $ml->selectrow_hashref($statement );
     is($hash_ref, undef, $key.' test error 405 body');
     TODO: {
         local $TODO = 'livestatus returns wrong status';
-        is($Nagios::MKLivestatus::ErrorCode, '405', $key.' test error 405 status') or
-            diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+        is($Monitoring::Livestatus::ErrorCode, '405', $key.' test error 405 status') or
+            diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
     };
 
     #########################
     # some more broken statements
     $statement = "GET ";
-    $hash_ref  = $nl->selectrow_hashref($statement);
+    $hash_ref  = $ml->selectrow_hashref($statement);
     is($hash_ref, undef, $key.' test error 403 body');
-    is($Nagios::MKLivestatus::ErrorCode, '403', $key.' test error 403 status: GET ') or
-        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+    is($Monitoring::Livestatus::ErrorCode, '403', $key.' test error 403 status: GET ') or
+        diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
 
     $statement = "GET hosts\nColumns: name, name";
-    $hash_ref  = $nl->selectrow_hashref($statement );
+    $hash_ref  = $ml->selectrow_hashref($statement );
     is($hash_ref, undef, $key.' test error 405 body');
-    is($Nagios::MKLivestatus::ErrorCode, '405', $key.' test error 405 status: GET hosts\nColumns: name, name') or
-        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+    is($Monitoring::Livestatus::ErrorCode, '405', $key.' test error 405 status: GET hosts\nColumns: name, name') or
+        diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
 
     $statement = "GET hosts\nColumns: ";
-    $hash_ref  = $nl->selectrow_hashref($statement );
+    $hash_ref  = $ml->selectrow_hashref($statement );
     is($hash_ref, undef, $key.' test error 405 body');
-    is($Nagios::MKLivestatus::ErrorCode, '405', $key.' test error 405 status: GET hosts\nColumns: ') or
-        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+    is($Monitoring::Livestatus::ErrorCode, '405', $key.' test error 405 status: GET hosts\nColumns: ') or
+        diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
 
     #########################
     # some forbidden headers
     $statement = "GET hosts\nKeepAlive: on";
-    $hash_ref  = $nl->selectrow_hashref($statement );
+    $hash_ref  = $ml->selectrow_hashref($statement );
     is($hash_ref, undef, $key.' test error 496 body');
-    is($Nagios::MKLivestatus::ErrorCode, '496', $key.' test error 496 status: KeepAlive: on') or
-        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+    is($Monitoring::Livestatus::ErrorCode, '496', $key.' test error 496 status: KeepAlive: on') or
+        diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
 
     $statement = "GET hosts\nResponseHeader: fixed16";
-    $hash_ref  = $nl->selectrow_hashref($statement );
+    $hash_ref  = $ml->selectrow_hashref($statement );
     is($hash_ref, undef, $key.' test error 495 body');
-    is($Nagios::MKLivestatus::ErrorCode, '495', $key.' test error 495 status: ResponseHeader: fixed16') or
-        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+    is($Monitoring::Livestatus::ErrorCode, '495', $key.' test error 495 status: ResponseHeader: fixed16') or
+        diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
 
     $statement = "GET hosts\nColumnHeaders: on";
-    $hash_ref  = $nl->selectrow_hashref($statement );
+    $hash_ref  = $ml->selectrow_hashref($statement );
     is($hash_ref, undef, $key.' test error 494 body');
-    is($Nagios::MKLivestatus::ErrorCode, '494', $key.' test error 494 status: ColumnHeader: on') or
-        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+    is($Monitoring::Livestatus::ErrorCode, '494', $key.' test error 494 status: ColumnHeader: on') or
+        diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
 
     $statement = "GET hosts\nOuputFormat: json";
-    $hash_ref  = $nl->selectrow_hashref($statement );
+    $hash_ref  = $ml->selectrow_hashref($statement );
     is($hash_ref, undef, $key.' test error 493 body');
-    is($Nagios::MKLivestatus::ErrorCode, '493', $key.' test error 493 status: OutputForma: json') or
-        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+    is($Monitoring::Livestatus::ErrorCode, '493', $key.' test error 493 status: OutputForma: json') or
+        diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
 
     $statement = "GET hosts\nSeparators: 0 1 2 3";
-    $hash_ref  = $nl->selectrow_hashref($statement );
+    $hash_ref  = $ml->selectrow_hashref($statement );
     is($hash_ref, undef, $key.' test error 492 body');
-    is($Nagios::MKLivestatus::ErrorCode, '492', $key.' test error 492 status: Seperators: 0 1 2 3') or
-        diag('got error: '.$Nagios::MKLivestatus::ErrorMessage);
+    is($Monitoring::Livestatus::ErrorCode, '492', $key.' test error 492 status: Seperators: 0 1 2 3') or
+        diag('got error: '.$Monitoring::Livestatus::ErrorMessage);
 
 
     #########################
@@ -350,7 +362,7 @@ StatsAnd: 3 as all_unknown_active_on_down_hosts
 Stats: state = 3
 Stats: active_checks_enabled = 1
 StatsOr: 2 as all_active_or_unknown";
-    $hash_ref  = $nl->selectrow_hashref($stats_query );
+    $hash_ref  = $ml->selectrow_hashref($stats_query );
     isnt($hash_ref, undef, $key.' test fancy stats query') or
         diag('got error: '.Dumper($hash_ref));
 

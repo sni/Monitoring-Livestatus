@@ -1,5 +1,5 @@
 ---
-abstract: 'access nagios runtime data from check_mk livestatus'
+abstract: 'Perl API for check_mk livestatus to access runtime'
 author:
   - 'Sven Nierlein, <nierlein@cpan.org>'
 build_requires:
@@ -19,7 +19,7 @@ license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
-name: Nagios-MKLivestatus
+name: Monitoring-Livestatus
 no_index:
   directory:
     - examples

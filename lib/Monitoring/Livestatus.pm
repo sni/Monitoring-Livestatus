@@ -1,4 +1,4 @@
-package Nagios::MKLivestatus;
+package Monitoring::Livestatus;
 
 use 5.006;
 use strict;
@@ -6,37 +6,37 @@ use warnings;
 use Data::Dumper;
 use Carp;
 use Digest::MD5 qw(md5_hex);
-use Nagios::MKLivestatus::INET;
-use Nagios::MKLivestatus::UNIX;
-use Nagios::MKLivestatus::MULTI;
+use Monitoring::Livestatus::INET;
+use Monitoring::Livestatus::UNIX;
+use Monitoring::Livestatus::MULTI;
 
 our $VERSION = '0.29_5';
 
 
 =head1 NAME
 
-Nagios::MKLivestatus - access nagios runtime data from check_mk livestatus
-Nagios addon
+Monitoring::Livestatus - Perl API for check_mk livestatus to access runtime
+data from Nagios and Icinga
 
 =head1 SYNOPSIS
 
-    use Nagios::MKLivestatus;
-    my $nl = Nagios::MKLivestatus->new(
-      socket => '/var/lib/nagios3/rw/livestatus.sock'
+    use Monitoring::Livestatus;
+    my $ml = Monitoring::Livestatus->new(
+      socket => '/var/lib/livestatus/livestatus.sock'
     );
-    my $hosts = $nl->selectall_arrayref("GET hosts");
+    my $hosts = $ml->selectall_arrayref("GET hosts");
 
 =head1 DESCRIPTION
 
-This module connects via socket to the check_mk livestatus nagios addon. You
-first have to install and activate the livestatus addon in your nagios
-installation.
+This module connects via socket/tcp to the check_mk livestatus addon for Nagios
+and Icinga. You first have to install and activate the mklivestatus addon in your
+monitoring installation.
 
 =head1 CONSTRUCTOR
 
 =head2 new ( [ARGS] )
 
-Creates an C<Nagios::MKLivestatus> object. C<new> takes at least the
+Creates an C<Monitoring::Livestatus> object. C<new> takes at least the
 socketpath.  Arguments are in key-value pairs.
 See L<EXAMPLES> for more complex variants.
 
@@ -157,16 +157,16 @@ sub new {
             $options{'name'} = $peer->{'name'};
             $options{'peer'} = $peer->{'peer'};
             if($peer->{'type'} eq 'UNIX') {
-                $self->{'CONNECTOR'} = new Nagios::MKLivestatus::UNIX(%options);
+                $self->{'CONNECTOR'} = new Monitoring::Livestatus::UNIX(%options);
             }
             elsif($peer->{'type'} eq 'INET') {
-                $self->{'CONNECTOR'} = new Nagios::MKLivestatus::INET(%options);
+                $self->{'CONNECTOR'} = new Monitoring::Livestatus::INET(%options);
             }
             $self->{'peer'} = $peer->{'peer'};
         }
         else {
             $options{'peer'} = $peers;
-            return new Nagios::MKLivestatus::MULTI(%options);
+            return new Monitoring::Livestatus::MULTI(%options);
         }
     }
 
@@ -178,7 +178,7 @@ sub new {
         $self->{'peer'} = $self->{'CONNECTOR'}->{'peer'};
     }
 
-    $self->{'logger'}->debug('initialized Nagios::MKLivestatus ('.$self->peer_name.')') if defined $self->{'logger'};
+    $self->{'logger'}->debug('initialized Monitoring::Livestatus ('.$self->peer_name.')') if defined $self->{'logger'};
 
     return $self;
 }
@@ -216,17 +216,17 @@ sub do {
 
 Sends a query and returns an array reference of arrays
 
-    my $arr_refs = $nl->selectall_arrayref("GET hosts");
+    my $arr_refs = $ml->selectall_arrayref("GET hosts");
 
 to get an array of hash references do something like
 
-    my $hash_refs = $nl->selectall_arrayref(
+    my $hash_refs = $ml->selectall_arrayref(
       "GET hosts", { Slice => {} }
     );
 
 to get an array of hash references from the first 2 returned rows only
 
-    my $hash_refs = $nl->selectall_arrayref(
+    my $hash_refs = $ml->selectall_arrayref(
       "GET hosts", { Slice => {} }, 2
     );
 
@@ -234,7 +234,7 @@ use limit to limit the result to this number of rows
 
 column aliases can be defined with a rename hash
 
-    my $hash_refs = $nl->selectall_arrayref(
+    my $hash_refs = $ml->selectall_arrayref(
       "GET hosts", {
         Slice => {},
         rename => {
@@ -314,7 +314,7 @@ sub selectall_arrayref {
 
 Sends a query and returns a hashref with the given key
 
-    my $hashrefs = $nl->selectall_hashref("GET hosts", "name");
+    my $hashrefs = $ml->selectall_hashref("GET hosts", "name");
 
 =cut
 
@@ -355,7 +355,7 @@ sub selectall_hashref {
 
 Sends a query an returns an arrayref for the first columns
 
-    my $array_ref = $nl->selectcol_arrayref("GET hosts\nColumns: name");
+    my $array_ref = $ml->selectcol_arrayref("GET hosts\nColumns: name");
 
     $VAR1 = [
               'localhost',
@@ -366,7 +366,7 @@ returns an empty array if nothing was found
 
 to get a different column use this
 
-    my $array_ref = $nl->selectcol_arrayref(
+    my $array_ref = $ml->selectcol_arrayref(
        "GET hosts\nColumns: name contacts",
        { Columns => [2] }
     );
@@ -374,7 +374,7 @@ to get a different column use this
  you can link 2 columns in a hash result set
 
     my %hash = @{
-      $nl->selectcol_arrayref(
+      $ml->selectcol_arrayref(
         "GET hosts\nColumns: name contacts",
         { Columns => [1,2] }
       )
@@ -423,7 +423,7 @@ sub selectcol_arrayref {
 
 Sends a query and returns an array for the first row
 
-    my @array = $nl->selectrow_array("GET hosts");
+    my @array = $ml->selectrow_array("GET hosts");
 
 returns undef if nothing was found
 
@@ -449,7 +449,7 @@ sub selectrow_array {
 
 Sends a query and returns an array reference for the first row
 
-    my $arrayref = $nl->selectrow_arrayref("GET hosts");
+    my $arrayref = $ml->selectrow_arrayref("GET hosts");
 
 returns undef if nothing was found
 
@@ -476,7 +476,7 @@ sub selectrow_arrayref {
 
 Sends a query and returns a hash reference for the first row
 
-    my $hashref = $nl->selectrow_hashref("GET hosts");
+    my $hashref = $ml->selectrow_hashref("GET hosts");
 
 returns undef if nothing was found
 
@@ -504,7 +504,7 @@ sub selectrow_hashref {
 
 Sends a query and returns a single scalar
 
-    my $count = $nl->selectscalar_value("GET hosts\nStats: state = 0");
+    my $count = $ml->selectscalar_value("GET hosts\nStats: state = 0");
 
 returns undef if nothing was found
 
@@ -596,7 +596,7 @@ sub verbose {
 
 =head2 peer_addr
 
- $nl->peer_addr()
+ $ml->peer_addr()
 
 returns the current peer address
 
@@ -614,8 +614,8 @@ sub peer_addr {
 
 =head2 peer_name
 
- $nl->peer_name()
- $nl->peer_name($string)
+ $ml->peer_name()
+ $ml->peer_name($string)
 
 if new value is set, name is set to this value
 
@@ -640,7 +640,7 @@ sub peer_name {
 
 =head2 peer_key
 
- $nl->peer_key()
+ $ml->peer_key()
 
 returns a uniq key for this peer
 
@@ -660,7 +660,7 @@ sub peer_key {
 
 =head2 marked_bad
 
- $nl->marked_bad()
+ $ml->marked_bad()
 
 returns true if the current connection is marked down
 
@@ -682,8 +682,8 @@ sub _send {
     my $header     = "";
     my $keys;
 
-    $Nagios::MKLivestatus::ErrorCode = 0;
-    undef $Nagios::MKLivestatus::ErrorMessage;
+    $Monitoring::Livestatus::ErrorCode = 0;
+    undef $Monitoring::Livestatus::ErrorMessage;
 
     return(490, $self->_get_error(490), undef) if !defined $statement;
     chomp($statement);
@@ -767,15 +767,15 @@ sub _send {
     if($status >= 300) {
         $body = '' if !defined $body;
         chomp($body);
-        $Nagios::MKLivestatus::ErrorCode    = $status;
+        $Monitoring::Livestatus::ErrorCode    = $status;
         if(defined $body and $body ne '') {
-            $Nagios::MKLivestatus::ErrorMessage = $body;
+            $Monitoring::Livestatus::ErrorMessage = $body;
         } else {
-            $Nagios::MKLivestatus::ErrorMessage = $msg;
+            $Monitoring::Livestatus::ErrorMessage = $msg;
         }
-        $self->{'logger'}->error($status." - ".$Nagios::MKLivestatus::ErrorMessage." in query:\n'".$statement) if defined $self->{'logger'};
+        $self->{'logger'}->error($status." - ".$Monitoring::Livestatus::ErrorMessage." in query:\n'".$statement) if defined $self->{'logger'};
         if($self->{'errors_are_fatal'}) {
-            croak("ERROR ".$status." - ".$Nagios::MKLivestatus::ErrorMessage." in query:\n'".$statement."'\n");
+            croak("ERROR ".$status." - ".$Monitoring::Livestatus::ErrorMessage." in query:\n'".$statement."'\n");
         }
         return;
     }
@@ -870,7 +870,7 @@ possible to set column aliases in various ways.
 
 adds the peers name, addr and key to the result set:
 
- my $hosts = $nl->selectall_hashref(
+ my $hosts = $ml->selectall_hashref(
    "GET hosts\nColumns: name alias state",
    "name",
    { AddPeer => 1 }
@@ -881,7 +881,7 @@ adds the peers name, addr and key to the result set:
 send the query only to some specific backends. Only
 useful when using multiple backends.
 
- my $hosts = $nl->selectall_arrayref(
+ my $hosts = $ml->selectall_arrayref(
    "GET hosts\nColumns: name alias state",
    { Backends => [ 'key1', 'key4' ] }
  );
@@ -890,7 +890,7 @@ useful when using multiple backends.
 
     only return the given column indexes
 
-    my $array_ref = $nl->selectcol_arrayref(
+    my $array_ref = $ml->selectcol_arrayref(
        "GET hosts\nColumns: name contacts",
        { Columns => [2] }
     );
@@ -910,7 +910,7 @@ useful when using multiple backends.
 The Sum option only applies when using multiple backends.
 The values from all backends with be summed up to a total.
 
- my $stats = $nl->selectrow_hashref(
+ my $stats = $ml->selectrow_hashref(
    "GET hosts\nStats: state = 0\nStats: state = 1",
    { Sum => 1 }
  );
@@ -1012,13 +1012,13 @@ possible to set column aliases in various ways.
 
 A valid Columns: Header could look like this:
 
- my $hosts = $nl->selectall_arrayref(
+ my $hosts = $ml->selectall_arrayref(
    "GET hosts\nColumns: state as status"
  );
 
 Stats queries could be aliased too:
 
- my $stats = $nl->selectall_arrayref(
+ my $stats = $ml->selectall_arrayref(
    "GET hosts\nStats: state = 0 as up"
  );
 
@@ -1028,7 +1028,7 @@ This syntax is available for: Stats, StatsAnd, StatsOr and StatsGroupBy
 An alternative way to set column aliases is to define rename option key/value
 pairs:
 
- my $hosts = $nl->selectall_arrayref(
+ my $hosts = $ml->selectall_arrayref(
    "GET hosts\nColumns: name", {
      rename => { 'name' => 'hostname' }
    }
@@ -1125,14 +1125,14 @@ sub _extract_keys_from_columns_header {
 
 Errorhandling can be done like this:
 
-    use Nagios::MKLivestatus;
-    my $nl = Nagios::MKLivestatus->new(
-      socket => '/var/lib/nagios3/rw/livestatus.sock'
+    use Monitoring::Livestatus;
+    my $ml = Monitoring::Livestatus->new(
+      socket => '/var/lib/livestatus/livestatus.sock'
     );
-    $nl->errors_are_fatal(0);
-    my $hosts = $nl->selectall_arrayref("GET hosts");
-    if($Nagios::MKLivestatus::ErrorCode) {
-        croak($Nagios::MKLivestatus::ErrorMessage);
+    $ml->errors_are_fatal(0);
+    my $hosts = $ml->selectall_arrayref("GET hosts");
+    if($Monitoring::Livestatus::ErrorCode) {
+        croak($Monitoring::Livestatus::ErrorMessage);
     }
 
 =cut
@@ -1250,27 +1250,27 @@ sub _get_peers {
 
 =head2 Multibackend Configuration
 
-    use Nagios::MKLivestatus;
-    my $nl = Nagios::MKLivestatus->new(
+    use Monitoring::Livestatus;
+    my $ml = Monitoring::Livestatus->new(
       name       => 'multiple connector',
       verbose   => 0,
       keepalive => 1,
       peer      => [
             {
-                name => 'DMZ Nagios',
+                name => 'DMZ Monitoring',
                 peer => '50.50.50.50:9999',
             },
             {
-                name => 'Local Nagios',
+                name => 'Local Monitoring',
                 peer => '/tmp/livestatus.socket',
             },
             {
-                name => 'Special Nagios',
+                name => 'Special Monitoring',
                 peer => '100.100.100.100:9999',
             }
       ],
     );
-    my $hosts = $nl->selectall_arrayref("GET hosts");
+    my $hosts = $ml->selectall_arrayref("GET hosts");
 
 =head1 SEE ALSO
 
