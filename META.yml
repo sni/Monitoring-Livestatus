@@ -34,4 +34,4 @@ requires:
   threads: 1.07
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.29_5
+version: 0.31_1

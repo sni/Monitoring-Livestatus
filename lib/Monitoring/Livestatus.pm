@@ -10,7 +10,7 @@ use Monitoring::Livestatus::INET;
 use Monitoring::Livestatus::UNIX;
 use Monitoring::Livestatus::MULTI;
 
-our $VERSION = '0.30';
+our $VERSION = '0.31_1';
 
 
 =head1 NAME
@@ -938,7 +938,7 @@ sub _send_socket {
         return('201', $self->_get_error(201), undef);
     }
 
-    $sock->read($header, 16) or return($self->_socket_error($statement, $sock, 'reading header failed: '.$!));
+    $sock->read($header, 16) or return($self->_socket_error($statement, $sock, 'reading from socket failed: '.$!));
     print "header: $header" if $self->{'verbose'};
     my($status, $msg, $content_length) = $self->_parse_header($header, $sock);
     return($status, $msg, undef) if !defined $content_length;
@@ -960,10 +960,10 @@ sub _socket_error {
     my $message = "\n";
     $message   .= "peer                ".Dumper($self->peer_name);
     $message   .= "statement           ".Dumper($statement);
-    $message   .= "socket->sockname()  ".Dumper($sock->sockname());
-    $message   .= "socket->atmark()    ".Dumper($sock->atmark());
-    $message   .= "socket->error()     ".Dumper($sock->error());
-    $message   .= "socket->timeout()   ".Dumper($sock->timeout());
+    #$message   .= "socket->sockname()  ".Dumper($sock->sockname());
+    #$message   .= "socket->atmark()    ".Dumper($sock->atmark());
+    #$message   .= "socket->error()     ".Dumper($sock->error());
+    #$message   .= "socket->timeout()   ".Dumper($sock->timeout());
     $message   .= "message             ".Dumper($body);
 
     $self->{'logger'}->error($message) if defined $self->{'logger'};

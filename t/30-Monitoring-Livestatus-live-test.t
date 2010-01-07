@@ -6,15 +6,15 @@ use strict;
 use Test::More;
 use Data::Dumper;
 
-if ( ! defined $ENV{TEST_SOCKET} and !defined $ENV{TEST_SERVER} ) {
+if ( ! defined $ENV{TEST_SOCKET} or !defined $ENV{TEST_SERVER} ) {
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} to run';
     plan( skip_all => $msg );
 } else {
-    plan( tests => 673 );
+    plan( tests => 721 );
 }
 
 # set an alarm
-$SIG{ALRM} = sub { 
+$SIG{ALRM} = sub {
     my @caller = caller;
     die "timeout reached:".Dumper(\@caller)."\n" 
 };
@@ -117,7 +117,7 @@ my $expected_keys = {
                          'in_service_notification_period','name','pager','service_notification_period',
                          'service_notifications_enabled'
                        ],
-#    'contactgroups' => [ 'name', 'alias', 'members' ],
+    'contactgroups' => [ 'name', 'alias', 'members' ],
     'downtimes'     => [
                          '__all_from_hosts__', '__all_from_services__',
                          'author','comment','duration','end_time','entry_time','fixed','id','start_time',
@@ -152,8 +152,8 @@ my $expected_keys = {
                        ],
     'log'           => [
                          '__all_from_hosts__','__all_from_services__','__all_from_contacts__','__all_from_commands__',
-                         'attempt','class','command_name','comment','contact_name','host_name','lineno','message','plugin_output',
-                         'service_description','state','state_type','time'
+                         'attempt','class','command_name','comment','contact_name','host_name','lineno','message','options',
+                         'plugin_output','service_description','state','state_type','time','type'
                        ],
     'servicegroups' => [
                          'action_url','alias','members','name','notes','notes_url','num_services','num_services_crit',
@@ -182,12 +182,12 @@ my $expected_keys = {
                          'accept_passive_host_checks','accept_passive_service_checks','cached_log_messages',
                          'check_external_commands','check_host_freshness','check_service_freshness','connections',
                          'connections_rate','enable_event_handlers','enable_flap_detection','enable_notifications',
-                         'execute_host_checks','execute_service_checks','host_checks','host_checks_rate',#'interval_length',
+                         'execute_host_checks','execute_service_checks','host_checks','host_checks_rate','interval_length',
                          'last_command_check','last_log_rotation','livestatus_version','nagios_pid','neb_callbacks',
                          'neb_callbacks_rate','obsess_over_hosts','obsess_over_services','process_performance_data',
                          'program_start','program_version','requests','requests_rate','service_checks','service_checks_rate'
                        ],
-#    'timeperiods'   => [ 'name', 'alias' ],
+    'timeperiods'   => [ 'name', 'alias' ],
 };
 
 for my $key (sort keys %{$objects_to_test}) {
@@ -202,10 +202,10 @@ for my $key (sort keys %{$objects_to_test}) {
     # set downtime for a host and service
     my $firsthost = $ml->selectscalar_value("GET hosts\nColumns: name\nLimit: 1");
     isnt($firsthost, undef, 'get test hostname') or BAIL_OUT($key.': got not test hostname');
-    $ml->do('COMMAND ['.time().'] SCHEDULE_HOST_DOWNTIME;'.$firsthost.';'.time().';'.(time()+60).';1;0;60;perl test;perl test: '.$0);
+    $ml->do('COMMAND ['.time().'] SCHEDULE_HOST_DOWNTIME;'.$firsthost.';'.time().';'.(time()+180).';1;0;180;perl test;perl test: '.$0);
     my $firstservice = $ml->selectscalar_value("GET services\nColumns: description\nFilter: host_name = $firsthost\nLimit: 1");
     isnt($firstservice, undef, 'get test servicename') or BAIL_OUT('got not test servicename');
-    $ml->do('COMMAND ['.time().'] SCHEDULE_SVC_DOWNTIME;'.$firsthost.';'.$firstservice.';'.time().';'.(time()+60).';1;0;60;perl test;perl test: '.$0);
+    $ml->do('COMMAND ['.time().'] SCHEDULE_SVC_DOWNTIME;'.$firsthost.';'.$firstservice.';'.time().';'.(time()+180).';1;0;180;perl test;perl test: '.$0);
     # sometimes it takes while till the downtime is accepted
     my $waited = 0;
     while(scalar @{$ml->selectall_arrayref("GET downtimes\nColumns: id")} == 0) {
@@ -232,7 +232,7 @@ for my $key (sort keys %{$objects_to_test}) {
         my $expected_keys = get_expected_keys($type);
         my $statement = "GET $type\n".$filter."Limit: 1";
         my $hash_ref  = $ml->selectrow_hashref($statement );
-        is(ref $hash_ref, 'HASH', 'keys are a hash') or BAIL_OUT('keys are not in hash format, got '.Dumper($hash_ref));
+        is(ref $hash_ref, 'HASH', $type.' keys are a hash') or BAIL_OUT('keys are not in hash format, got '.Dumper($hash_ref));
         my @keys      = sort keys %{$hash_ref};
         is_deeply(\@keys, $expected_keys, $key.' '.$type.'keys') or BAIL_OUT("got keys: ".Dumper(\@keys)." but expected\n".Dumper($expected_keys,));
     }

@@ -6,7 +6,7 @@ use strict;
 use Test::More;
 use Data::Dumper;
 
-if ( ! defined $ENV{TEST_SOCKET} and !defined $ENV{TEST_SERVER} ) {
+if ( ! defined $ENV{TEST_SOCKET} or !defined $ENV{TEST_SERVER} ) {
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} to run';
     plan( skip_all => $msg );
 } else {
