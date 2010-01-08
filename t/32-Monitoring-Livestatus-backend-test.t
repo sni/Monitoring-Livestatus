@@ -58,6 +58,9 @@ for my $key (sort keys %{$objects_to_test}) {
         my $keys  = $ml->selectrow_hashref($statement );
         is(ref $keys, 'HASH', $type.' keys are a hash');# or BAIL_OUT('keys are not in hash format, got '.Dumper($keys));
 
+        # status has no filter implemented
+        next if $type eq 'status';
+
         for my $key (keys %{$keys}) {
             my $value = $keys->{$key};
             if(index($value, ',') > 0) { my @vals = split /,/, $value; $value = $vals[0];  }
