@@ -10,6 +10,7 @@ license      'perl';
 requires 'IO::Socket::UNIX';
 requires 'IO::Socket::INET';
 requires 'Digest::MD5';
+requires 'Test::More'        => '0.87';
 requires 'threads'           => '1.07';
 requires 'Thread::Queue'     => '2.11';
 

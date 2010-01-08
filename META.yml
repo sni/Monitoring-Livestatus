@@ -29,6 +29,7 @@ requires:
   Digest::MD5: 0
   IO::Socket::INET: 0
   IO::Socket::UNIX: 0
+  Test::More: 0.87
   Thread::Queue: 2.11
   perl: 5.6.0
   threads: 1.07
