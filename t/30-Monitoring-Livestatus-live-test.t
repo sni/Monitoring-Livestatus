@@ -131,7 +131,7 @@ my $expected_keys = {
                          'num_services_warn','worst_host_state','worst_service_hard_state','worst_service_state'
                        ],
     'hosts'         => [
-                         'accept_passive_checks','acknowledged','acknowledgement_type','action_url',
+                         'accept_passive_checks','acknowledged','acknowledgement_type','action_url','action_url_expanded',
                          'active_checks_enabled','address','alias','check_command','check_freshness','check_interval',
                          'check_options','check_period','check_type','checks_enabled','childs','comments','contacts',
                          'current_attempt','current_notification_number','custom_variable_names',
@@ -141,8 +141,8 @@ my $expected_keys = {
                          'initial_state','is_executing','is_flapping','last_check','last_hard_state',
                          'last_hard_state_change','last_notification','last_state','last_state_change','latency',
                          'long_plugin_output','low_flap_threshold','max_check_attempts','name','next_check',
-                         'next_notification','notes','notes_url','notification_interval','notification_period',
-                         'notifications_enabled','num_services','num_services_crit','num_services_hard_crit',
+                         'next_notification','notes','notes_expanded','notes_url','notes_url_expanded','notification_interval',
+                         'notification_period','notifications_enabled','num_services','num_services_crit','num_services_hard_crit',
                          'num_services_hard_ok','num_services_hard_unknown','num_services_hard_warn','num_services_ok',
                          'num_services_pending','num_services_unknown','num_services_warn','obsess_over_host','parents',
                          'pending_flex_downtime','percent_state_change','perf_data','plugin_output',
@@ -163,7 +163,7 @@ my $expected_keys = {
                        ],
     'services'      => [
                          '__all_from_hosts__',
-                         'accept_passive_checks','acknowledged','acknowledgement_type','action_url',
+                         'accept_passive_checks','acknowledged','acknowledgement_type','action_url','action_url_expanded',
                          'active_checks_enabled','check_command','check_interval','check_options','check_period',
                          'check_type','checks_enabled','comments','contacts','current_attempt',
                          'current_notification_number','custom_variable_names','custom_variable_values',
@@ -173,9 +173,9 @@ my $expected_keys = {
                          'in_notification_period','initial_state','is_executing','is_flapping','last_check',
                          'last_hard_state','last_hard_state_change','last_notification','last_state',
                          'last_state_change','latency','long_plugin_output','low_flap_threshold','max_check_attempts',
-                         'next_check','next_notification','notes','notes_url','notification_interval',
-                         'notification_period','notifications_enabled','obsess_over_service','percent_state_change',
-                         'perf_data','plugin_output','process_performance_data','retry_interval',
+                         'next_check','next_notification','notes','notes_expanded','notes_url','notes_url_expanded',
+                         'notification_interval','notification_period','notifications_enabled','obsess_over_service',
+                         'percent_state_change','perf_data','plugin_output','process_performance_data','retry_interval',
                          'scheduled_downtime_depth','state','state_type'
                        ],
     'status'        => [
