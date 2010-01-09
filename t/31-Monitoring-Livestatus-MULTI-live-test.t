@@ -54,8 +54,8 @@ for my $key (keys %{$objects_to_test}) {
     is_deeply($data1, $data2, "data integrity with peers added and Column");
 
     $statement = "GET hosts\nLimit: 1";
-    $data1     = $ml->selectall_arrayref($statement, {Slice => 1});
-    $data2     = $ml->selectall_arrayref($statement, {Slice => 1, AddPeer => 1});
+    $data1     = $ml->selectall_arrayref($statement, {Slice => 1, Deepcopy => 1});
+    $data2     = $ml->selectall_arrayref($statement, {Slice => 1, AddPeer => 1, Deepcopy => 1});
     for my $data (@{$data2}) {
         delete $data->{'peer_name'};
         delete $data->{'peer_addr'};

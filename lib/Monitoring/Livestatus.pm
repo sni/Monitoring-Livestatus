@@ -10,7 +10,7 @@ use Monitoring::Livestatus::INET;
 use Monitoring::Livestatus::UNIX;
 use Monitoring::Livestatus::MULTI;
 
-our $VERSION = '0.31_2';
+our $VERSION = '0.31_3';
 
 
 =head1 NAME
@@ -131,6 +131,7 @@ sub new {
       "use_threads"               => undef,   # use threads, default is to use threads where available
       "warnings"                  => 1,       # show warnings, for example on querys without Column: Header
       "logger"                    => undef,   # logger object used for statistical informations and errors / warnings
+      "deepcopy"                  => undef,   # copy result set to avoid errors with tied structures
     };
 
     for my $opt_key (keys %options) {
@@ -898,6 +899,21 @@ useful when using multiple backends.
     );
 
   see L<selectcol_arrayref> for more examples
+
+=head2 Deepcopy
+
+    deep copy/clone the result set.
+
+    Only effective when using multiple backends and threads.
+    This can be safely turned off if you dont change the
+    result set.
+    If you get an error like "Invalid value for shared scalar" error" this
+    should be turned on.
+
+    my $array_ref = $ml->selectcol_arrayref(
+       "GET hosts\nColumns: name contacts",
+       { Deepcopy => 1 }
+    );
 
 =head2 Rename
 

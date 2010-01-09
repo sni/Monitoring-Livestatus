@@ -93,6 +93,16 @@ sub new {
         $self->{'peer_by_key'}->{$peer->peer_key} = $peer;
     }
 
+    $self->{'allowed_options'} = {
+        'addpeer'   => 1,
+        'backend'   => 1,
+        'columns'   => 1,
+        'deepcopy'  => 1,
+        'rename'    => 1,
+        'slice'     => 1,
+        'sum'       => 1,
+    };
+
     $self->{'name'} = 'multiple connector' unless defined $self->{'name'};
     $self->{'logger'}->debug('initialized Monitoring::Livestatus::MULTI '.($self->{'use_threads'} ? 'with' : 'without' ).' threads') if defined $self->{'logger'};
 
@@ -112,11 +122,8 @@ See L<Monitoring::Livestatus> for more information.
 
 sub do {
     my $self  = shift;
-    my $opts  = $_[1];
+    my $opts  = $self->_lowercase_and_verify_options($_[1]);
     my $t0    = [gettimeofday];
-
-    # make opt hash keys lowercase
-    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     $self->_do_on_peers("do", $opts->{'backends'}, @_);
     my $elapsed = tv_interval ( $t0 );
@@ -134,11 +141,8 @@ See L<Monitoring::Livestatus> for more information.
 
 sub selectall_arrayref {
     my $self  = shift;
-    my $opts  = $_[1];
+    my $opts  = $self->_lowercase_and_verify_options($_[1]);
     my $t0    = [gettimeofday];
-
-    # make opt hash keys lowercase
-    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     my $return  = $self->_merge_answer($self->_do_on_peers("selectall_arrayref", $opts->{'backends'}, @_));
     my $elapsed = tv_interval ( $t0 );
@@ -157,11 +161,8 @@ See L<Monitoring::Livestatus> for more information.
 
 sub selectall_hashref {
     my $self  = shift;
-    my $opts  = $_[2];
+    my $opts  = $self->_lowercase_and_verify_options($_[2]);
     my $t0    = [gettimeofday];
-
-    # make opt hash keys lowercase
-    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     my $return  = $self->_merge_answer($self->_do_on_peers("selectall_hashref", $opts->{'backends'}, @_));
     my $elapsed = tv_interval ( $t0 );
@@ -180,11 +181,8 @@ See L<Monitoring::Livestatus> for more information.
 
 sub selectcol_arrayref {
     my $self  = shift;
-    my $opts  = $_[1];
+    my $opts  = $self->_lowercase_and_verify_options($_[1]);
     my $t0    = [gettimeofday];
-
-    # make opt hash keys lowercase
-    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     my $return  = $self->_merge_answer($self->_do_on_peers("selectcol_arrayref", $opts->{'backends'}, @_));
     my $elapsed = tv_interval ( $t0 );
@@ -204,12 +202,9 @@ See L<Monitoring::Livestatus> for more information.
 sub selectrow_array {
     my $self      = shift;
     my $statement = $_[0];
-    my $opts      = $_[1];
+    my $opts      = $self->_lowercase_and_verify_options($_[1]);
     my $t0        = [gettimeofday];
     my @return;
-
-    # make opt hash keys lowercase
-    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
         @return = @{$self->_sum_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backends'}, @_))};
@@ -238,12 +233,9 @@ See L<Monitoring::Livestatus> for more information.
 sub selectrow_arrayref {
     my $self      = shift;
     my $statement = $_[0];
-    my $opts      = $_[1];
+    my $opts      = $self->_lowercase_and_verify_options($_[1]);
     my $t0        = [gettimeofday];
     my $return;
-
-    # make opt hash keys lowercase
-    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
         $return = $self->_sum_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backends'}, @_));
@@ -272,14 +264,11 @@ See L<Monitoring::Livestatus> for more information.
 sub selectrow_hashref {
     my $self      = shift;
     my $statement = $_[0];
-    my $opts      = $_[1];
+    my $opts      = $self->_lowercase_and_verify_options($_[1]);
 
     my $t0 = [gettimeofday];
 
     my $return;
-
-    # make opt hash keys lowercase
-    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
         $return = $self->_sum_answer($self->_do_on_peers("selectrow_hashref", $opts->{'backends'}, @_));
@@ -307,12 +296,9 @@ See L<Monitoring::Livestatus> for more information.
 sub selectscalar_value {
     my $self  = shift;
     my $statement = $_[0];
-    my $opts      = $_[1];
+    my $opts      = $self->_lowercase_and_verify_options($_[1]);
 
     my $t0 = [gettimeofday];
-
-    # make opt hash keys lowercase
-    %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     my $return;
 
@@ -548,18 +534,23 @@ sub _do_wrapper {
 
 ########################################
 sub _do_on_peers {
-    my $self      = shift;
-    my $sub       = shift;
-    my $backends  = shift;
-    my @opts      = @_;
-    my $statement = $opts[0];
-
-    my $t0 = [gettimeofday];
+    my $self        = shift;
+    my $sub         = shift;
+    my $backends    = shift;
+    my @opts        = @_;
+    my $statement   = $opts[0];
+    my $use_threads = $self->{'use_threads'};
+    my $t0          = [gettimeofday];
 
     my $return;
     my %codes;
     my %messages;
-    my $use_threads = $self->{'use_threads'};
+    my $query_options;
+    if($sub eq 'selectall_hashref') {
+        $query_options = $self->_lowercase_and_verify_options($opts[2]);
+    } else {
+        $query_options = $self->_lowercase_and_verify_options($opts[1]);
+    }
 
     # which peers affected?
     my @peers;
@@ -655,8 +646,16 @@ sub _do_on_peers {
     my $elapsed = tv_interval ( $t0 );
     $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for fetching all data') if defined $self->{'logger'};
 
-    if($use_threads) {
+    # deep copy result?
+    if($use_threads
+       and (
+            (defined $query_options->{'deepcopy'} and $query_options->{'deepcopy'} == 1)
+            or
+            (defined $self->{'deepcopy'}          and $self->{'deepcopy'} == 1)
+        )
+       ) {
         # result has to be cloned to avoid "Invalid value for shared scalar" error
+
         $return = $self->_clone($return, $self->{'logger'});
     }
 
@@ -776,6 +775,21 @@ sub _get_peer_by_key {
     return $self->{'peer_by_key'}->{$key};
 }
 
+########################################
+sub _lowercase_and_verify_options {
+    my $self = shift;
+    my $opts = shift;
+    my $return;
+
+    for my $key (keys %{$opts}) {
+        if($self->{'warnings'} and !defined $self->{'allowed_options'}->{lc $key}) {
+            carp("unknown option used: $key - please use only: ".join(", ", keys %{$self->{'allowed_options'}}));
+        }
+        $return->{lc $key} = $opts->{$key};
+    }
+
+    return($return);
+}
 ########################################
 
 END {
