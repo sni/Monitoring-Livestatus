@@ -118,7 +118,7 @@ sub do {
     # make opt hash keys lowercase
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
-    $self->_do_on_peers("do", $opts->{'backend'}, @_);
+    $self->_do_on_peers("do", $opts->{'backends'}, @_);
     my $elapsed = tv_interval ( $t0 );
     $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for do('.$_[0].') in total') if defined $self->{'logger'};
     return 1;
@@ -140,7 +140,7 @@ sub selectall_arrayref {
     # make opt hash keys lowercase
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
-    my $return  = $self->_merge_answer($self->_do_on_peers("selectall_arrayref", $opts->{'backend'}, @_));
+    my $return  = $self->_merge_answer($self->_do_on_peers("selectall_arrayref", $opts->{'backends'}, @_));
     my $elapsed = tv_interval ( $t0 );
     $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectall_arrayref() in total') if defined $self->{'logger'};
 
@@ -163,7 +163,7 @@ sub selectall_hashref {
     # make opt hash keys lowercase
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
-    my $return  = $self->_merge_answer($self->_do_on_peers("selectall_hashref", $opts->{'backend'}, @_));
+    my $return  = $self->_merge_answer($self->_do_on_peers("selectall_hashref", $opts->{'backends'}, @_));
     my $elapsed = tv_interval ( $t0 );
     $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectall_hashref() in total') if defined $self->{'logger'};
 
@@ -186,7 +186,7 @@ sub selectcol_arrayref {
     # make opt hash keys lowercase
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
-    my $return  = $self->_merge_answer($self->_do_on_peers("selectcol_arrayref", $opts->{'backend'}, @_));
+    my $return  = $self->_merge_answer($self->_do_on_peers("selectcol_arrayref", $opts->{'backends'}, @_));
     my $elapsed = tv_interval ( $t0 );
     $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectcol_arrayref() in total') if defined $self->{'logger'};
 
@@ -212,12 +212,12 @@ sub selectrow_array {
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
-        @return = @{$self->_sum_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backend'}, @_))};
+        @return = @{$self->_sum_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backends'}, @_))};
     } else {
         if($self->{'warnings'}) {
             carp("selectrow_arrayref without Stats on multi backend will not work as expected!");
         }
-        my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backend'}, @_));
+        my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backends'}, @_));
         @return = @{$rows} if defined $rows;
     }
 
@@ -246,12 +246,12 @@ sub selectrow_arrayref {
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
-        $return = $self->_sum_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backend'}, @_));
+        $return = $self->_sum_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backends'}, @_));
     } else {
         if($self->{'warnings'}) {
             carp("selectrow_arrayref without Stats on multi backend will not work as expected!");
         }
-        my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backend'}, @_));
+        my $rows = $self->_merge_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backends'}, @_));
         $return = $rows->[0] if defined $rows->[0];
     }
 
@@ -282,12 +282,12 @@ sub selectrow_hashref {
     %{$opts} = map { lc $_ => $opts->{$_} } keys %{$opts};
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
-        $return = $self->_sum_answer($self->_do_on_peers("selectrow_hashref", $opts->{'backend'}, @_));
+        $return = $self->_sum_answer($self->_do_on_peers("selectrow_hashref", $opts->{'backends'}, @_));
     } else {
         if($self->{'warnings'}) {
             carp("selectrow_hashref without Stats on multi backend will not work as expected!");
         }
-        $return = $self->_merge_answer($self->_do_on_peers("selectrow_hashref", $opts->{'backend'}, @_));
+        $return = $self->_merge_answer($self->_do_on_peers("selectrow_hashref", $opts->{'backends'}, @_));
     }
 
     my $elapsed = tv_interval ( $t0 );
@@ -317,12 +317,12 @@ sub selectscalar_value {
     my $return;
 
     if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
-        return $self->_sum_answer($self->_do_on_peers("selectscalar_value", $opts->{'backend'}, @_));
+        return $self->_sum_answer($self->_do_on_peers("selectscalar_value", $opts->{'backends'}, @_));
     } else {
         if($self->{'warnings'}) {
             carp("selectscalar_value without Stats on multi backend will not work as expected!");
         }
-        my $rows = $self->_merge_answer($self->_do_on_peers("selectscalar_value", $opts->{'backend'}, @_));
+        my $rows = $self->_merge_answer($self->_do_on_peers("selectscalar_value", $opts->{'backends'}, @_));
 
         $return = $rows->[0] if defined $rows->[0];
     }
@@ -589,14 +589,20 @@ sub _do_on_peers {
         # use the threaded variant
         print("using threads\n") if $self->{'verbose'};
 
-        my $x = 0;
+        my $peers_to_use;
         for my $peer (@peers) {
-            my $job = {
-                    'peer'   => $x,
-                    'sub'    => $sub,
-                    'opts'   => \@opts,
-            };
-            $self->{'WorkQueue'}->enqueue($job);
+            $peers_to_use->{$peer->peer_key} = 1;
+        }
+        my $x = 0;
+        for my $peer (@{$self->{'peers'}}) {
+            if(defined $peers_to_use->{$peer->peer_key}) {
+                my $job = {
+                        'peer'   => $x,
+                        'sub'    => $sub,
+                        'opts'   => \@opts,
+                };
+                $self->{'WorkQueue'}->enqueue($job);
+            }
             $x++;
         }
 
