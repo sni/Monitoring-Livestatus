@@ -10,8 +10,8 @@ if ( ! defined $ENV{TEST_SOCKET} or !defined $ENV{TEST_SERVER} or !defined $ENV{
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} and $ENV{TEST_BACKEND} to run';
     plan( skip_all => $msg );
 } else {
-# we dont know yet how many tests we got
-#    plan( tests => 2131 );
+    # we dont know yet how many tests we got
+    plan( tests => 2497 );
 }
 
 # set an alarm
@@ -80,5 +80,3 @@ for my $key (sort keys %{$objects_to_test}) {
         }
     }
 }
-
-done_testing();
