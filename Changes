@@ -1,9 +1,11 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
+0.32  Sat Jan  9 16:12:48 CET 2010
+	- added deepcopy option
+
 0.31  Thu Jan  7 08:56:48 CET 2010
 	- added generic tests for livestatus backend
 	- fixed problem when selecting specific backend
-	- added deepcopy option
 
 0.30  Wed Jan  6 16:05:33 CET 2010
 	- renamed project to Monitoring::Livestatus
