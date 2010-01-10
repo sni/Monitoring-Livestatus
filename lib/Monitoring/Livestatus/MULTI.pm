@@ -624,23 +624,29 @@ sub _do_on_peers {
     # check if we different result stati
     undef $Monitoring::Livestatus::ErrorMessage;
     $Monitoring::Livestatus::ErrorCode = 0;
-    my @codes = keys %codes;
+    my @codes = sort keys %codes;
     if(scalar @codes > 1) {
         # got different results for our backends
         print "got different result stati: ".Dumper(\%codes) if $self->{'verbose'};
     } else {
         # got same result codes for all backend
-        my $code = $codes[0];
-        if($code >= 300) {
-            my $msg  = $codes{$code}->[0]->{'msg'};
-            print "same: $code -> $msg\n" if $self->{'verbose'};
-            $Monitoring::Livestatus::ErrorMessage = $msg;
-            $Monitoring::Livestatus::ErrorCode    = $code;
-            if($self->{'errors_are_fatal'}) {
-                croak("ERROR ".$code." - ".$Monitoring::Livestatus::ErrorMessage." in query:\n'".$statement."'\n");
-            }
-            return;
+    }
+
+    my $failed = 0;
+    my $code = $codes[0];
+    if($code >= 300) {
+        $failed = 1;
+    }
+
+    if($failed) {
+        my $msg  = $codes{$code}->[0]->{'msg'};
+        print "same: $code -> $msg\n" if $self->{'verbose'};
+        $Monitoring::Livestatus::ErrorMessage = $msg;
+        $Monitoring::Livestatus::ErrorCode    = $code;
+        if($self->{'errors_are_fatal'}) {
+            croak("ERROR ".$code." - ".$Monitoring::Livestatus::ErrorMessage." in query:\n'".$statement."'\n");
         }
+        return;
     }
 
     my $elapsed = tv_interval ( $t0 );

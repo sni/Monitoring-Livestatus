@@ -35,4 +35,4 @@ requires:
   threads: 1.07
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.32
+version: 0.34

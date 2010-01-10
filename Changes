@@ -1,5 +1,8 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
+0.34  Sun Jan 10 12:29:57 CET 2010
+	- fixed return code with multi backend and different errors
+
 0.32  Sat Jan  9 16:12:48 CET 2010
 	- added deepcopy option
 

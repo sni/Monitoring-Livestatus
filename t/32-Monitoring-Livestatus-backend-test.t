@@ -11,7 +11,7 @@ if ( ! defined $ENV{TEST_SOCKET} or !defined $ENV{TEST_SERVER} or !defined $ENV{
     plan( skip_all => $msg );
 } else {
     # we dont know yet how many tests we got
-    plan( tests => 2497 );
+    plan( tests => 2512 );
 }
 
 # set an alarm
