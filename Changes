@@ -1,5 +1,8 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
+0.35  Mon Jan 11 15:37:51 CET 2010
+	- added TCP_NODELAY option for inet sockets
+
 0.34  Sun Jan 10 12:29:57 CET 2010
 	- fixed return code with multi backend and different errors
 

@@ -169,7 +169,7 @@ my $expected_keys = {
                          'current_notification_number','custom_variable_names','custom_variable_values',
                          'description','display_name','downtimes','event_handler','event_handler_enabled',
                          'execution_time','first_notification_delay','flap_detection_enabled','groups',
-                         'has_been_checked','high_flap_threshold','icon_image','icon_image_alt','in_check_period',
+                         'has_been_checked','high_flap_threshold','icon_image','icon_image_alt','icon_image_expanded','in_check_period',
                          'in_notification_period','initial_state','is_executing','is_flapping','last_check',
                          'last_hard_state','last_hard_state_change','last_notification','last_state',
                          'last_state_change','latency','long_plugin_output','low_flap_threshold','max_check_attempts',

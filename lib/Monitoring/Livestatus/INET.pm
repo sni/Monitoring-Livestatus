@@ -4,6 +4,7 @@ use 5.000000;
 use strict;
 use warnings;
 use IO::Socket::INET;
+use Socket qw(IPPROTO_TCP TCP_NODELAY);
 use Carp;
 use base "Monitoring::Livestatus";
 
@@ -68,6 +69,8 @@ sub _open {
         # set timeout
         $sock->timeout($self->{'timeout'});
     }
+
+    setsockopt($sock, IPPROTO_TCP, TCP_NODELAY, 1);
 
     return($sock);
 }

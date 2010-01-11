@@ -1,0 +1,8 @@
+^\.git
+^Makefile$
+Makefile.old
+blib
+pm_to_blib
+MANIFEST.bak
+MANIFEST.SKIP
+TODO
