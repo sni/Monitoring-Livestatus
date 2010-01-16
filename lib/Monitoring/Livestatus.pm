@@ -179,7 +179,7 @@ sub new {
         $self->{'peer'} = $self->{'CONNECTOR'}->{'peer'};
     }
 
-    if(defined $self->{'logger'} and $self->{'backend'} ne 'Monitoring::Livestatus::MULTI') {
+    if(defined $self->{'logger'} and (!defined $self->{'backend'} or $self->{'backend'} ne 'Monitoring::Livestatus::MULTI')) {
         $self->{'logger'}->debug('initialized Monitoring::Livestatus ('.$self->peer_name.')');
     }
 
