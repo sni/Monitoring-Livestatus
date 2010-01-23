@@ -10,11 +10,14 @@ license      'perl';
 requires 'IO::Socket::UNIX';
 requires 'IO::Socket::INET';
 requires 'Digest::MD5';
+requires 'Scalar::Util';
 requires 'Test::More'        => '0.87';
 requires 'threads'           => '1.07';
 requires 'Thread::Queue'     => '2.11';
 
-test_requires 'File::Copy::Recursive';
+# test requirements get into the META.yml and will break normal installation
+# install them by hand if you want to do author tests
+#test_requires 'File::Copy::Recursive';
 #test_requires 'Test::Pod' => 1.14;
 #test_requires 'Test::Perl::Critic';
 #test_requires 'Test::Pod::Coverage';

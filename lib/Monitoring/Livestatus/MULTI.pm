@@ -6,7 +6,8 @@ use warnings;
 use Carp;
 use Data::Dumper;
 use Config;
-use Time::HiRes qw( gettimeofday tv_interval );
+use Time::HiRes qw/gettimeofday tv_interval/;
+use Scalar::Util qw/looks_like_number/;
 use Monitoring::Livestatus;
 use base "Monitoring::Livestatus";
 
@@ -709,7 +710,7 @@ sub _sum_answer {
             for my $key (keys %{$data->{$peername}}) {
                 if(!defined $return->{$key}) {
                     $return->{$key} = $data->{$peername}->{$key};
-                } else {
+                } elsif(looks_like_number($data->{$peername}->{$key})) {
                     $return->{$key} += $data->{$peername}->{$key};
                 }
             }

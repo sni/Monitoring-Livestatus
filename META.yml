@@ -4,13 +4,6 @@ author:
   - 'Sven Nierlein, <nierlein@cpan.org>'
 build_requires:
   ExtUtils::MakeMaker: 6.42
-  File::Copy::Recursive: 0
-  Perl::Critic::Policy::Dynamic::NoIndirect: 0
-  Perl::Critic::Policy::NamingConventions::ProhibitMixedCaseSubs: 0
-  Perl::Critic::Policy::ValuesAndExpressions::ProhibitAccessOfPrivateData: 0
-  Test::Perl::Critic: 0
-  Test::Pod: 1.14
-  Test::Pod::Coverage: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.42
 distribution_type: module
@@ -29,10 +22,11 @@ requires:
   Digest::MD5: 0
   IO::Socket::INET: 0
   IO::Socket::UNIX: 0
+  Scalar::Util: 0
   Test::More: 0.87
   Thread::Queue: 2.11
   perl: 5.6.0
   threads: 1.07
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.35_1
+version: 0.36
