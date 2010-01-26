@@ -207,7 +207,7 @@ sub selectrow_array {
     my $t0        = [gettimeofday];
     my @return;
 
-    if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
+    if((defined $opts->{'sum'} and $opts->{'sum'} == 1) or (!defined $opts->{'sum'} and $statement =~ m/^Stats:/mx)) {
         @return = @{$self->_sum_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backends'}, @_))};
     } else {
         if($self->{'warnings'}) {
@@ -238,7 +238,7 @@ sub selectrow_arrayref {
     my $t0        = [gettimeofday];
     my $return;
 
-    if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
+    if((defined $opts->{'sum'} and $opts->{'sum'} == 1) or (!defined $opts->{'sum'} and $statement =~ m/^Stats:/mx)) {
         $return = $self->_sum_answer($self->_do_on_peers("selectrow_arrayref", $opts->{'backends'}, @_));
     } else {
         if($self->{'warnings'}) {
@@ -271,7 +271,7 @@ sub selectrow_hashref {
 
     my $return;
 
-    if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
+    if((defined $opts->{'sum'} and $opts->{'sum'} == 1) or (!defined $opts->{'sum'} and $statement =~ m/^Stats:/mx)) {
         $return = $self->_sum_answer($self->_do_on_peers("selectrow_hashref", $opts->{'backends'}, @_));
     } else {
         if($self->{'warnings'}) {
@@ -303,7 +303,7 @@ sub selectscalar_value {
 
     my $return;
 
-    if(defined $opts->{'sum'} or $statement =~ m/^Stats:/mx) {
+    if((defined $opts->{'sum'} and $opts->{'sum'} == 1) or (!defined $opts->{'sum'} and $statement =~ m/^Stats:/mx)) {
         return $self->_sum_answer($self->_do_on_peers("selectscalar_value", $opts->{'backends'}, @_));
     } else {
         if($self->{'warnings'}) {
