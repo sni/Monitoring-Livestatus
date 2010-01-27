@@ -228,14 +228,14 @@ for my $key (sort keys %{$objects_to_test}) {
     # check keys
     for my $type (keys %{$expected_keys}) {
         my $filter = "";
-        $filter  = "Filter: time > ".(time() - 3600)."\n" if $type eq 'log';
-        $filter .= "Filter: time < ".(time())."\n"        if $type eq 'log';
+        $filter  = "Filter: time > ".(time() - 86400)."\n" if $type eq 'log';
+        $filter .= "Filter: time < ".(time())."\n"         if $type eq 'log';
         my $expected_keys = get_expected_keys($type);
         my $statement = "GET $type\n".$filter."Limit: 1";
         my $hash_ref  = $ml->selectrow_hashref($statement );
-        is(ref $hash_ref, 'HASH', $type.' keys are a hash') or BAIL_OUT('keys are not in hash format, got '.Dumper($hash_ref));
+        is(ref $hash_ref, 'HASH', $type.' keys are a hash') or BAIL_OUT($type.'keys are not in hash format, got '.Dumper($hash_ref));
         my @keys      = sort keys %{$hash_ref};
-        is_deeply(\@keys, $expected_keys, $key.' '.$type.'keys') or BAIL_OUT("got keys: ".Dumper(\@keys)." but expected\n".Dumper($expected_keys,));
+        is_deeply(\@keys, $expected_keys, $key.' '.$type.'keys') or BAIL_OUT("got $type keys: ".Dumper(\@keys)." but expected\n".Dumper($expected_keys,));
     }
 
     my $statement = "GET hosts\nColumns: name as hostname state\nLimit: 1";

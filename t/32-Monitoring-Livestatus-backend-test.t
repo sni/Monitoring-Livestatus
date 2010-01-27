@@ -3,6 +3,7 @@
 #########################
 
 use strict;
+use Carp;
 use Test::More;
 use Data::Dumper;
 
@@ -17,9 +18,8 @@ if ( ! defined $ENV{TEST_SOCKET} or !defined $ENV{TEST_SERVER} or !defined $ENV{
 # set an alarm
 $SIG{ALRM} = sub {
     my @caller = caller;
-    die "timeout reached:".Dumper(\@caller)."\n" 
+    confess "timeout reached:".Dumper(\@caller)."\n" 
 };
-alarm(30);
 
 use_ok('Monitoring::Livestatus');
 
@@ -51,10 +51,10 @@ for my $key (sort keys %{$objects_to_test}) {
     #########################
     # check keys
     for my $type (@tables) {
-        alarm(30);
+        alarm(120);
         my $filter = "";
-        $filter  = "Filter: time > ".(time() - 3600)."\n" if $type eq 'log';
-        $filter .= "Filter: time < ".(time())."\n"        if $type eq 'log';
+        $filter  = "Filter: time > ".(time() - 86400)."\n" if $type eq 'log';
+        $filter .= "Filter: time < ".(time())."\n"         if $type eq 'log';
         my $statement = "GET $type\n".$filter."Limit: 1";
         my $keys  = $ml->selectrow_hashref($statement );
         is(ref $keys, 'HASH', $type.' keys are a hash');# or BAIL_OUT('keys are not in hash format, got '.Dumper($keys));
