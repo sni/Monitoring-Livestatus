@@ -10,7 +10,7 @@ use Monitoring::Livestatus::INET;
 use Monitoring::Livestatus::UNIX;
 use Monitoring::Livestatus::MULTI;
 
-our $VERSION = '0.37_1';
+our $VERSION = '0.37_2';
 
 
 =head1 NAME
@@ -256,7 +256,7 @@ sub selectall_arrayref {
     my $result;
 
     # make opt hash keys lowercase
-    %{$opt} = map { lc $_ => $opt->{$_} } keys %{$opt};
+    $opt = $self->_lowercase_and_verify_options($opt);
 
     if(defined $self->{'logger'}) {
         my $d = Data::Dumper->new([$opt]);
@@ -269,11 +269,7 @@ sub selectall_arrayref {
         $self->{'logger'}->debug('selectall_arrayref("'.$cleanstatement.'", '.$optstring.', '.$limit.')')
     }
 
-    if(defined $opt->{'addpeer'} and $opt->{'addpeer'}) {
-        $result = $self->_send($statement, 1);
-    } else {
-        $result = $self->_send($statement);
-    }
+    $result = $self->_send($statement, $opt);
 
     if(!defined $result) {
         return unless $self->{'errors_are_fatal'};
@@ -327,7 +323,9 @@ sub selectall_hashref {
     my $key_field = shift;
     my $opt       = shift;
 
-    $opt->{'Slice'} = 1 unless defined $opt->{'Slice'};
+    $opt = $self->_lowercase_and_verify_options($opt);
+
+    $opt->{'slice'} = 1;
 
     croak("key is required for selectall_hashref") if !defined $key_field;
 
@@ -398,7 +396,7 @@ sub selectcol_arrayref {
     my $opt       = shift;
 
     # make opt hash keys lowercase
-    %{$opt} = map { lc $_ => $opt->{$_} } keys %{$opt};
+    $opt = $self->_lowercase_and_verify_options($opt);
 
     # if now colums are set, use just the first one
     if(!defined $opt->{'columns'} or ref $opt->{'columns'} ne 'ARRAY') {
@@ -435,7 +433,9 @@ sub selectrow_array {
     my $self      = shift;
     my $statement = shift;
     my $opt       = shift;
-    $opt          = {} unless defined $opt;
+
+    # make opt hash keys lowercase
+    $opt = $self->_lowercase_and_verify_options($opt);
 
     my @result = @{$self->selectall_arrayref($statement, $opt, 1)};
     return @{$result[0]} if scalar @result > 0;
@@ -461,7 +461,9 @@ sub selectrow_arrayref {
     my $self      = shift;
     my $statement = shift;
     my $opt       = shift;
-    $opt          = {} unless defined $opt;
+
+    # make opt hash keys lowercase
+    $opt = $self->_lowercase_and_verify_options($opt);
 
     my $result = $self->selectall_arrayref($statement, $opt, 1);
     return if !defined $result;
@@ -489,7 +491,9 @@ sub selectrow_hashref {
     my $statement = shift;
     my $opt       = shift;
 
-    $opt->{'Slice'} = 1 unless defined $opt->{'Slice'};
+    # make opt hash keys lowercase
+    $opt = $self->_lowercase_and_verify_options($opt);
+    $opt->{slice} = 1;
 
     my $result = $self->selectall_arrayref($statement, $opt, 1);
     return if !defined $result;
@@ -516,6 +520,9 @@ sub selectscalar_value {
     my $self      = shift;
     my $statement = shift;
     my $opt       = shift;
+
+    # make opt hash keys lowercase
+    $opt = $self->_lowercase_and_verify_options($opt);
 
     my $row = $self->selectrow_arrayref($statement);
     return if !defined $row;
@@ -681,9 +688,17 @@ sub marked_bad {
 sub _send {
     my $self       = shift;
     my $statement  = shift;
-    my $with_peers = shift;
+    my $opt        = shift;
+
+    delete $self->{'meta_data'};
+
     my $header     = "";
     my $keys;
+
+    my $with_peers = 0;
+    if(defined $opt->{'addpeer'} and $opt->{'addpeer'}) {
+        $with_peers = 1;
+    }
 
     $Monitoring::Livestatus::ErrorCode = 0;
     undef $Monitoring::Livestatus::ErrorMessage;
@@ -741,6 +756,11 @@ sub _send {
 
     else {
 
+        # Add Limits header
+        if(defined $opt->{'limit_start'}) {
+            $statement .= "\nLimit: ".($opt->{'limit_start'} + $opt->{'limit_length'});
+        }
+
         # for querys with column header, no seperate columns will be returned
         if($statement =~ m/^Columns:\ (.*)$/mx) {
             ($statement,$keys) = $self->_extract_keys_from_columns_header($statement);
@@ -793,9 +813,20 @@ sub _send {
     my $peer_addr = $self->peer_addr;
     my $peer_key  = $self->peer_key;
 
+    my $limit_start = 0;
+    if(defined $opt->{'limit_start'}) { $limit_start = $opt->{'limit_start'}; }
+
     my @result;
+    my $row_count = 0;
     ## no critic
     for my $line (split/$line_seperator/m, $body) {
+        $row_count++;
+        next unless $row_count >= $limit_start;
+
+        if(defined $opt->{'limit_length'}) {
+            last if scalar @result >= $opt->{'limit_length'};
+        }
+
         my $row = [ split/$col_seperator/m, $line ];
         if(defined $with_peers and $with_peers == 1) {
             unshift @{$row}, $peer_name;
@@ -828,7 +859,13 @@ sub _send {
         unshift @{$keys}, 'peer_key';
     }
 
-    return({ keys => $keys, result => \@result});
+    # set some metadata
+    $self->{'meta_data'} = {
+                    'row_count'    => $row_count,
+                    'result_count' => scalar @result,
+    };
+
+    return({ keys => $keys, result => \@result });
 }
 
 ########################################
@@ -914,6 +951,29 @@ useful when using multiple backends.
        "GET hosts\nColumns: name contacts",
        { Deepcopy => 1 }
     );
+
+=head2 Limit
+
+    Just like the Limit: <nr> option from livestatus itself.
+    In addition you can add a start,length limit.
+
+    my $array_ref = $ml->selectcol_arrayref(
+       "GET hosts\nColumns: name contacts",
+       { Limit => "10,20" }
+    );
+
+    This example will return 20 rows starting at row 10. You will
+    get row 10-30.
+
+    Cannot be combined with a Limit inside the query
+    because a Limit will be added automatically.
+
+    Adding a limit this way will greatly increase performance and
+    reduce memory usage.
+
+    This option is multibackend safe contrary to the "Limit: " part of a statement.
+    Sending a statement like "GET...Limit: 10" with 3 backends will result in 30 rows.
+    Using this options, you will receive only the first 10 rows.
 
 =head2 Rename
 
@@ -1261,6 +1321,54 @@ sub _get_peers {
 
     return $peers;
 }
+
+
+########################################
+sub _lowercase_and_verify_options {
+    my $self   = shift;
+    my $opts   = shift;
+    my $return = {};
+
+    # list of allowed options
+    my $allowed_options = {
+        'addpeer'       => 1,
+        'backend'       => 1,
+        'columns'       => 1,
+        'deepcopy'      => 1,
+        'limit'         => 1,
+        'limit_start'   => 1,
+        'limit_length'  => 1,
+        'rename'        => 1,
+        'slice'         => 1,
+        'sum'           => 1,
+    };
+
+    for my $key (keys %{$opts}) {
+        if($self->{'warnings'} and !defined $allowed_options->{lc $key}) {
+            carp("unknown option used: $key - please use only: ".join(", ", keys %{$allowed_options}));
+        }
+        $return->{lc $key} = $opts->{$key};
+    }
+
+    # set limits
+    if(defined $return->{'limit'}) {
+        if(index($return->{'limit'}, ',') != -1) {
+            my($limit_start,$limit_length) = split /,/mx, $return->{'limit'};
+            $return->{'limit_start'}  = $limit_start;
+            $return->{'limit_length'} = $limit_length;
+        }
+        else {
+            $return->{'limit_start'}  = 0;
+            $return->{'limit_length'} = $return->{'limit'};
+        }
+        delete $return->{'limit'};
+    }
+
+    return($return);
+}
+
+
+########################################
 
 1;
 

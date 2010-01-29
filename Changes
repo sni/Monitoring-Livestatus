@@ -1,5 +1,8 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
+0.37  Fri Jan 29 20:54:50 CET 2010
+	- added limit option
+
 0.36  Sun Jan 24 00:14:13 CET 2010
 	- added more backend tests
 	- fixed problem with summing up non numbers

@@ -94,16 +94,6 @@ sub new {
         $self->{'peer_by_key'}->{$peer->peer_key} = $peer;
     }
 
-    $self->{'allowed_options'} = {
-        'addpeer'   => 1,
-        'backend'   => 1,
-        'columns'   => 1,
-        'deepcopy'  => 1,
-        'rename'    => 1,
-        'slice'     => 1,
-        'sum'       => 1,
-    };
-
     $self->{'name'} = 'multiple connector' unless defined $self->{'name'};
     $self->{'logger'}->debug('initialized Monitoring::Livestatus::MULTI '.($self->{'use_threads'} ? 'with' : 'without' ).' threads') if defined $self->{'logger'};
 
@@ -132,6 +122,7 @@ sub do {
     return 1;
 }
 
+
 ########################################
 
 =head2 selectall_arrayref
@@ -151,6 +142,7 @@ sub selectall_arrayref {
 
     return $return;
 }
+
 
 ########################################
 
@@ -172,6 +164,7 @@ sub selectall_hashref {
     return $return;
 }
 
+
 ########################################
 
 =head2 selectcol_arrayref
@@ -191,6 +184,7 @@ sub selectcol_arrayref {
 
     return $return;
 }
+
 
 ########################################
 
@@ -223,6 +217,7 @@ sub selectrow_array {
     return @return;
 }
 
+
 ########################################
 
 =head2 selectrow_arrayref
@@ -253,6 +248,7 @@ sub selectrow_arrayref {
 
     return $return;
 }
+
 
 ########################################
 
@@ -285,6 +281,7 @@ sub selectrow_hashref {
 
     return $return;
 }
+
 
 ########################################
 
@@ -320,6 +317,7 @@ sub selectscalar_value {
     return $return;
 }
 
+
 ########################################
 
 =head2 errors_are_fatal
@@ -334,6 +332,7 @@ sub errors_are_fatal {
     return $self->_change_setting('errors_are_fatal', $value);
 }
 
+
 ########################################
 
 =head2 warnings
@@ -347,6 +346,7 @@ sub warnings {
     my $value = shift;
     return $self->_change_setting('warnings', $value);
 }
+
 
 ########################################
 
@@ -450,6 +450,7 @@ sub _change_setting {
     return $old;
 }
 
+
 ########################################
 sub _start_worker {
     my $self = shift;
@@ -475,6 +476,7 @@ sub _start_worker {
     return;
 }
 
+
 ########################################
 sub _stop_worker {
     # try to kill our threads safely
@@ -485,6 +487,7 @@ sub _stop_worker {
     };
     return;
 }
+
 
 ########################################
 sub _worker_thread {
@@ -509,6 +512,7 @@ sub _worker_thread {
     return;
 }
 
+
 ########################################
 sub _do_wrapper {
     my $peer   = shift;
@@ -532,6 +536,7 @@ sub _do_wrapper {
     };
     return $return;
 }
+
 
 ########################################
 sub _do_on_peers {
@@ -577,6 +582,9 @@ sub _do_on_peers {
     # its faster without threads for only one peer
     if(scalar @peers <= 1) { $use_threads = 0; }
 
+    # if we have limits set, we cannot use threads
+    if(defined $query_options->{'limit_start'}) { $use_threads = 0; }
+
     if($use_threads) {
         # use the threaded variant
         print("using threads\n") if $self->{'verbose'};
@@ -617,6 +625,15 @@ sub _do_on_peers {
                 my $erg = _do_wrapper($peer, $sub, $self->{'logger'}, @opts);
                 $return->{$peer->peer_key} = $erg->{'data'};
                 push @{$codes{$erg->{'code'}}}, { 'peer' => $peer, 'msg' => $erg->{'msg'} };
+
+                # compute limits
+                if(defined $query_options->{'limit_length'} and $peer->{'meta_data'}->{'result_count'}) {
+                    last;
+                }
+                # set a new start if we had rows already
+                if(defined $query_options->{'limit_start'}) {
+                    $query_options->{'limit_start'} = $query_options->{'limit_start'} - $peer->{'meta_data'}->{'row_count'};
+                }
             }
         }
     }
@@ -669,6 +686,7 @@ sub _do_on_peers {
     return($return);
 }
 
+
 ########################################
 sub _merge_answer {
     my $self   = shift;
@@ -698,6 +716,7 @@ sub _merge_answer {
 
     return($return);
 }
+
 
 ########################################
 sub _sum_answer {
@@ -738,6 +757,7 @@ sub _sum_answer {
     return $return;
 }
 
+
 ########################################
 sub _clone {
     my $self   = shift;
@@ -771,6 +791,7 @@ sub _clone {
     return $return;
 }
 
+
 ########################################
 sub _get_peer_by_key {
     my $self = shift;
@@ -782,21 +803,7 @@ sub _get_peer_by_key {
     return $self->{'peer_by_key'}->{$key};
 }
 
-########################################
-sub _lowercase_and_verify_options {
-    my $self = shift;
-    my $opts = shift;
-    my $return;
 
-    for my $key (keys %{$opts}) {
-        if($self->{'warnings'} and !defined $self->{'allowed_options'}->{lc $key}) {
-            carp("unknown option used: $key - please use only: ".join(", ", keys %{$self->{'allowed_options'}}));
-        }
-        $return->{lc $key} = $opts->{$key};
-    }
-
-    return($return);
-}
 ########################################
 
 END {
