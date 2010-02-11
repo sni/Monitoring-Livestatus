@@ -10,7 +10,7 @@ use Monitoring::Livestatus::INET;
 use Monitoring::Livestatus::UNIX;
 use Monitoring::Livestatus::MULTI;
 
-our $VERSION = '0.38';
+our $VERSION = '0.40';
 
 
 =head1 NAME
@@ -95,12 +95,23 @@ currently only querys without Columns: Header will result in a warning
 
 =item timeout
 
-set a general timeout. Used for connect and querys, Default 10sec
+set a general timeout. Used for connect and querys, no default
+
+=item query_timeout
+
+set a query timeout. Used for retrieving querys, Default 60sec
+
+=item connect_timeout
+
+set a connect timeout. Used for initial connections, default 5sec
 
 =item use_threads
 
 only used with multiple backend connections.
-Default is to use threads where available.
+Default is to don't threads where available. As threads in perl
+are causing problems with tied resultset and using more memory.
+Querys are usually faster without threads, except for very slow backends
+connections.
 
 =back
 
@@ -127,7 +138,10 @@ sub new {
       "keepalive"                 => 0,       # enable keepalive?
       "errors_are_fatal"          => 1,       # die on errors
       "backend"                   => undef,   # should be keept undef, used internally
-      "timeout"                   => 10,      # timeout for tcp connections
+      "timeout"                   => undef,   # timeout for tcp connections
+      "query_timeout"             => 60,      # query timeout for tcp connections
+      "connect_timeout"           => 5,       # connect timeout for tcp connections
+      "timeout"                   => undef,   # timeout for tcp connections
       "use_threads"               => undef,   # use threads, default is to use threads where available
       "warnings"                  => 1,       # show warnings, for example on querys without Column: Header
       "logger"                    => undef,   # logger object used for statistical informations and errors / warnings
@@ -141,6 +155,12 @@ sub new {
         else {
             croak("unknown option: $opt_key");
         }
+    }
+
+    # setting a general timeout?
+    if(defined $self->{'timeout'}) {
+        $self->{'query_timeout'}   = $self->{'timeout'};
+        $self->{'connect_timeout'} = $self->{'timeout'};
     }
 
     bless $self, $class;
@@ -885,9 +905,6 @@ sub _open {
         $self->{'sock'} = $sock;
     }
 
-    # set timeout
-    $sock->timeout($self->{'timeout'}) if defined $sock;
-
     return($sock);
 }
 
@@ -1038,10 +1055,6 @@ sub _socket_error {
     my $message = "\n";
     $message   .= "peer                ".Dumper($self->peer_name);
     $message   .= "statement           ".Dumper($statement);
-    #$message   .= "socket->sockname()  ".Dumper($sock->sockname());
-    #$message   .= "socket->atmark()    ".Dumper($sock->atmark());
-    #$message   .= "socket->error()     ".Dumper($sock->error());
-    #$message   .= "socket->timeout()   ".Dumper($sock->timeout());
     $message   .= "message             ".Dumper($body);
 
     $self->{'logger'}->error($message) if defined $self->{'logger'};

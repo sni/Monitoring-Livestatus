@@ -93,6 +93,7 @@ Log::Log4perl->easy_init($DEBUG);
 my $nl = Monitoring::Livestatus->new(
                                      peer        => \@opt_f,
                                      verbose     => $opt_v,
+                                     timeout     => 5,
                                      keepalive   => 1,
                                      logger      => get_logger(),
                                    );
@@ -100,14 +101,14 @@ my $log = get_logger();
 
 #########################################################################
 my $querys = [
-    { 'query' => "GET status\nColumns: connections connections_rate host_checks host_checks_rate requests requests_rate service_checks service_checks_rate neb_callbacks neb_callbacks_rate",
-      'sub'   => "selectrow_arrayref",
-      'opt'   => {Slice => 1, Sum => 1}
+    { 'query' => "GET comments",
+      'sub'   => "selectall_arrayref",
+      'opt'   => {Slice => 1 }
     },
-    { 'query' => "GET downtimes\nColumns: id\nLimit: 1",
-      'sub'   => "selectrow_arrayref",
-      'opt'   => {Slice => 1, Sum => 1}
-    },
+#    { 'query' => "GET downtimes",
+#      'sub'   => "selectall_arrayref",
+#      'opt'   => {Slice => 1, Sum => 1}
+#    },
 #    { 'query' => "GET log\nFilter: time > ".(time() - 600)."\nLimit: 1",
 #      'sub'   => "selectall_arrayref",
 #      'opt'   => {Slice => 1, AddPeer => 1}

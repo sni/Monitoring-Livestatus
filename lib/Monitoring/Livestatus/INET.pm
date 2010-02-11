@@ -54,6 +54,7 @@ sub _open {
     my $self = shift;
     my $sock = IO::Socket::INET->new(
                                      PeerAddr => $self->{'peer'},
+                                     Timeout  => $self->{'connect_timeout'},
                                      );
     if(!defined $sock or !$sock->connected()) {
         my $msg = "failed to connect to $self->{'peer'} :$!";
@@ -65,9 +66,9 @@ sub _open {
         return;
     }
 
-    if(defined $self->{'timeout'}) {
+    if(defined $self->{'query_timeout'}) {
         # set timeout
-        $sock->timeout($self->{'timeout'});
+        $sock->timeout($self->{'query_timeout'});
     }
 
     setsockopt($sock, IPPROTO_TCP, TCP_NODELAY, 1);

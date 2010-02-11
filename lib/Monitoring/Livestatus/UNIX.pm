@@ -73,6 +73,11 @@ sub _open {
         return;
     }
 
+    if(defined $self->{'query_timeout'}) {
+        # set timeout
+        $sock->timeout($self->{'query_timeout'});
+    }
+
     return($sock);
 }
 

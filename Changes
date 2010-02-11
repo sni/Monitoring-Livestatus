@@ -1,7 +1,14 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
-0.37  Fri Jan 29 20:54:50 CET 2010
+
+0.40  Thu Feb 11 01:00:20 CET 2010
+	- fixed timeout for inet sockets
+
+0.38  Fri Jan 29 20:54:50 CET 2010
 	- added limit option
+
+0.37  Thu Jan 28 21:23:19 CET 2010
+	- removed inc from repository
 
 0.36  Sun Jan 24 00:14:13 CET 2010
 	- added more backend tests

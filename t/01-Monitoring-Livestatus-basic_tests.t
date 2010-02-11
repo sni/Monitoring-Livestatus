@@ -3,7 +3,7 @@
 #########################
 
 use strict;
-use Test::More tests => 24;
+use Test::More tests => 34;
 use File::Temp;
 use Data::Dumper;
 use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
@@ -95,6 +95,33 @@ $ml = Monitoring::Livestatus->new(
 isa_ok($ml, 'Monitoring::Livestatus', 'peer hash arg multi with keepalive');
 is($ml->peer_name(), $socket_path, 'get peer_name()');
 is($ml->peer_addr(), $socket_path, 'get peer_addr()');
+
+#########################
+# timeout checks
+$ml = Monitoring::Livestatus->new(
+                                     peer        => [ $socket_path ],
+                                     verbose     => 0,
+                                     timeout     => 13,
+                                     logger      => undef,
+                                );
+isa_ok($ml, 'Monitoring::Livestatus', 'peer hash arg multi with general timeout');
+is($ml->peer_name(), $socket_path, 'get peer_name()');
+is($ml->peer_addr(), $socket_path, 'get peer_addr()');
+is($ml->{'connect_timeout'}, 13,   'connect_timeout');
+is($ml->{'query_timeout'}, 13,     'query_timeout');
+
+$ml = Monitoring::Livestatus->new(
+                                     peer            => [ $socket_path ],
+                                     verbose         => 0,
+                                     query_timeout   => 14,
+                                     connect_timeout => 17,
+                                     logger          => undef,
+                                );
+isa_ok($ml, 'Monitoring::Livestatus', 'peer hash arg multi with general timeout');
+is($ml->peer_name(), $socket_path, 'get peer_name()');
+is($ml->peer_addr(), $socket_path, 'get peer_addr()');
+is($ml->{'connect_timeout'}, 17,   'connect_timeout');
+is($ml->{'query_timeout'}, 14,     'query_timeout');
 
 #########################
 # cleanup
