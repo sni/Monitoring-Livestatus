@@ -3,11 +3,20 @@
 #########################
 
 use strict;
-use Test::More tests => 57;
+use Test::More;
 use Data::Dumper;
 use File::Temp;
 use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
 use_ok('Monitoring::Livestatus::MULTI');
+
+BEGIN {
+    if( $^O eq 'MSWin32' ) {
+        plan skip_all => 'no sockets on windows';
+    }
+    else {
+        plan tests => 57;
+    }
+}
 
 #########################
 # create 2 test sockets

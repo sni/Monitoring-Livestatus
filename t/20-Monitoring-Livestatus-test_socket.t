@@ -11,7 +11,11 @@ BEGIN {
   eval {require threads;};
   if ( $@ ) {
     plan skip_all => 'need threads support for testing a real socket'
-  }else{
+  }
+  elsif( $^O eq 'MSWin32' ) {
+      plan skip_all => 'no sockets on windows';
+  }
+  else{
     plan tests => 105
   }
 }

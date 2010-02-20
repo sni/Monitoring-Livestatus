@@ -10,7 +10,7 @@ use Monitoring::Livestatus::INET;
 use Monitoring::Livestatus::UNIX;
 use Monitoring::Livestatus::MULTI;
 
-our $VERSION = '0.40';
+our $VERSION = '0.41_1';
 
 
 =head1 NAME

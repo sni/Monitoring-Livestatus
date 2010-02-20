@@ -3,11 +3,20 @@
 #########################
 
 use strict;
-use Test::More tests => 14;
+use Test::More;
 use File::Temp;
 use Data::Dumper;
 use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
 use_ok('Monitoring::Livestatus');
+
+BEGIN {
+    if( $^O eq 'MSWin32' ) {
+        plan skip_all => 'no sockets on windows';
+    }
+    else {
+        plan tests => 14;
+    }
+}
 
 #########################
 # get a temp file from File::Temp and replace it with our socket
