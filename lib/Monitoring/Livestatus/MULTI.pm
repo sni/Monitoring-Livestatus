@@ -424,6 +424,57 @@ sub peer_key {
 
 
 ########################################
+
+=head2 disable
+
+ $ml->disable()
+
+disables this connection, returns the last state.
+
+=cut
+sub disable {
+    my $self     = shift;
+    my $peer_key = shift;
+    if(!defined $peer_key) {
+        for my $peer (@{$self->{'peers'}}) {
+            $peer->disable();
+        }
+        return 1;
+    } else {
+        my $peer     = $self->_get_peer_by_key($peer_key);
+        my $prev     = $peer->{'disabled'};
+        $peer->{'disabled'} = 1;
+        return $prev;
+    }
+}
+
+
+########################################
+
+=head2 enable
+
+ $ml->enable()
+
+enables this connection, returns the last state.
+
+=cut
+sub enable {
+    my $self     = shift;
+    my $peer_key = shift;
+    if(!defined $peer_key) {
+        for my $peer (@{$self->{'peers'}}) {
+            $peer->enable();
+        }
+        return 1;
+    } else {
+        my $peer     = $self->_get_peer_by_key($peer_key);
+        my $prev     = $peer->{'disabled'};
+        $peer->{'disabled'} = 0;
+        return $prev;
+    }
+}
+
+########################################
 # INTERNAL SUBS
 ########################################
 
@@ -571,8 +622,9 @@ sub _do_on_peers {
             croak("unsupported type for backend: ".ref($backends));
         }
 
-        for my $back (@backends) {
-            push @peers, $self->_get_peer_by_key($back);
+        for my $key (@backends) {
+            my $backend = $self->_get_peer_by_key($key);
+            push @peers, $backend unless $backend->{'disabled'};
         }
     } else {
         # use all backends
@@ -619,7 +671,10 @@ sub _do_on_peers {
     } else {
         print("not using threads\n") if $self->{'verbose'};
         for my $peer (@peers) {
-            if($peer->marked_bad) {
+            if($peer->{'disabled'}) {
+                # dont send any query
+            }
+            elsif($peer->marked_bad) {
                 warn($peer->peer_name.' ('.$peer->peer_key.') is marked bad') if $self->{'verbose'};
             } else {
                 my $erg = _do_wrapper($peer, $sub, $self->{'logger'}, @opts);
@@ -652,7 +707,7 @@ sub _do_on_peers {
 
     my $failed = 0;
     my $code = $codes[0];
-    if($code >= 300) {
+    if(defined $code and $code >= 300) {
         $failed = 1;
     }
 

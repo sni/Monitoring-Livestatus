@@ -1,6 +1,9 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
 
+0.42  Thu Feb 25 21:32:37 CET 2010
+	- added possibility to disable specific backends
+
 0.41  Sat Feb 20 20:37:36 CET 2010
 	- fixed tests on windows
 

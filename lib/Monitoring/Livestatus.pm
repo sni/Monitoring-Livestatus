@@ -10,7 +10,7 @@ use Monitoring::Livestatus::INET;
 use Monitoring::Livestatus::UNIX;
 use Monitoring::Livestatus::MULTI;
 
-our $VERSION = '0.41_1';
+our $VERSION = '0.42';
 
 
 =head1 NAME
@@ -146,6 +146,7 @@ sub new {
       "warnings"                  => 1,       # show warnings, for example on querys without Column: Header
       "logger"                    => undef,   # logger object used for statistical informations and errors / warnings
       "deepcopy"                  => undef,   # copy result set to avoid errors with tied structures
+      "disabled"                  => 0,       # if disabled, this peer will not receive any query
     };
 
     for my $opt_key (keys %options) {
@@ -224,6 +225,7 @@ Always returns true.
 sub do {
     my $self      = shift;
     my $statement = shift;
+    return if $self->{'disabled'};
     $self->_send($statement);
     return(1);
 }
@@ -273,6 +275,7 @@ sub selectall_arrayref {
     my $statement = shift;
     my $opt       = shift;
     my $limit     = shift || 0;
+    return if $self->{'disabled'};
     my $result;
 
     # make opt hash keys lowercase
@@ -701,6 +704,39 @@ sub marked_bad {
     return 0;
 }
 
+
+########################################
+
+=head2 disable
+
+ $ml->disable()
+
+disables this connection, returns the last state.
+
+=cut
+sub disable {
+    my $self  = shift;
+    my $prev = $self->{'disabled'};
+    $self->{'disabled'} = 1;
+    return $prev;
+}
+
+
+########################################
+
+=head2 enable
+
+ $ml->enable()
+
+enables this connection, returns the last state.
+
+=cut
+sub enable {
+    my $self  = shift;
+    my $prev = $self->{'disabled'};
+    $self->{'disabled'} = 0;
+    return $prev;
+}
 
 ########################################
 # INTERNAL SUBS
