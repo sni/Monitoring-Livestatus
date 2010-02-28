@@ -643,7 +643,15 @@ sub _do_on_peers {
 
         my $peers_to_use;
         for my $peer (@peers) {
-            $peers_to_use->{$peer->peer_key} = 1;
+            if($peer->{'disabled'}) {
+                # dont send any query
+            }
+            elsif($peer->marked_bad) {
+                warn($peer->peer_name.' ('.$peer->peer_key.') is marked bad') if $self->{'verbose'};
+            }
+            else {
+                $peers_to_use->{$peer->peer_key} = 1;
+            }
         }
         my $x = 0;
         for my $peer (@{$self->{'peers'}}) {
@@ -658,7 +666,7 @@ sub _do_on_peers {
             $x++;
         }
 
-        for(my $x = 0; $x < scalar @peers; $x++) {
+        for(my $x = 0; $x < scalar keys %{$peers_to_use}; $x++) {
             my $result = $self->{'WorkResults'}->dequeue;
             my $peer   = $self->{'peers'}->[$result->{'peer'}];
             if(defined $result->{'result'}) {
