@@ -10,7 +10,7 @@ use Monitoring::Livestatus::INET;
 use Monitoring::Livestatus::UNIX;
 use Monitoring::Livestatus::MULTI;
 
-our $VERSION = '0.44';
+our $VERSION = '0.45_1';
 
 
 =head1 NAME
@@ -1270,6 +1270,7 @@ sub _get_error {
     my $codes = {
         '200' => 'OK. Reponse contains the queried data.',
         '201' => 'COMMANDs never return something',
+        '400' => 'The request contains an invalid header.',
         '401' => 'The request contains an invalid header.',
         '402' => 'The request is completely invalid.',
         '403' => 'The request is incomplete.',
