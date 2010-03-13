@@ -282,14 +282,7 @@ sub selectall_arrayref {
     $opt = $self->_lowercase_and_verify_options($opt);
 
     if(defined $self->{'logger'}) {
-        my $d = Data::Dumper->new([$opt]);
-        $d->Indent(0);
-        my $optstring = $d->Dump;
-        $optstring =~ s/^\$VAR1\s+=\s+//mx;
-        $optstring =~ s/;$//mx;
-        my $cleanstatement = $statement;
-        $cleanstatement =~ s/\n/\\n/gmx;
-        $self->{'logger'}->debug('selectall_arrayref("'.$cleanstatement.'", '.$optstring.', '.$limit.')')
+        $self->_log_statement($statement, $opt, $limit);
     }
 
     $result = $self->_send($statement, $opt);
@@ -1417,6 +1410,25 @@ sub _lowercase_and_verify_options {
     return($return);
 }
 
+########################################
+sub _log_statement {
+    my $self      = shift;
+    my $statement = shift;
+    my $opt       = shift;
+    my $limit     = shift;
+    my $d = Data::Dumper->new([$opt]);
+    $d->Indent(0);
+    my $optstring = $d->Dump;
+    $optstring =~ s/^\$VAR1\s+=\s+//mx;
+    $optstring =~ s/;$//mx;
+
+    # remove empty lines from statement
+    $statement =~ s/\n+/\n/gmx;
+
+    my $cleanstatement = $statement;
+    $cleanstatement =~ s/\n/\\n/gmx;
+    $self->{'logger'}->debug('selectall_arrayref("'.$cleanstatement.'", '.$optstring.', '.$limit.')')
+}
 
 ########################################
 

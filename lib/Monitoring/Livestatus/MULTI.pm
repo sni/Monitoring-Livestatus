@@ -136,9 +136,17 @@ sub selectall_arrayref {
     my $opts  = $self->_lowercase_and_verify_options($_[1]);
     my $t0    = [gettimeofday];
 
+    if(defined $self->{'logger'}) {
+        $self->_log_statement($_[0], $opts, 0);
+    }
+
     my $return  = $self->_merge_answer($self->_do_on_peers("selectall_arrayref", $opts->{'backends'}, @_));
     my $elapsed = tv_interval ( $t0 );
-    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectall_arrayref() in total') if defined $self->{'logger'};
+    if(defined $self->{'logger'}) {
+        my $total_results = 0;
+        $total_results    = scalar @{$return} if defined $return;
+        $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectall_arrayref() in total, results: '.$total_results);
+    }
 
     return $return;
 }
@@ -639,7 +647,7 @@ sub _do_on_peers {
 
     if($use_threads) {
         # use the threaded variant
-        print("using threads\n") if $self->{'verbose'};
+        $self->{'logger'}->debug('using threads') if defined $self->{'logger'};
 
         my $peers_to_use;
         for my $peer (@peers) {
@@ -677,7 +685,7 @@ sub _do_on_peers {
             }
         }
     } else {
-        print("not using threads\n") if $self->{'verbose'};
+        $self->{'logger'}->debug('not using threads') if defined $self->{'logger'};
         for my $peer (@peers) {
             if($peer->{'disabled'}) {
                 # dont send any query
@@ -708,7 +716,9 @@ sub _do_on_peers {
     my @codes = sort keys %codes;
     if(scalar @codes > 1) {
         # got different results for our backends
-        print "got different result stati: ".Dumper(\%codes) if $self->{'verbose'};
+        if(defined $self->{'logger'}) {
+            $self->{'logger'}->warn("got different result stati: ".Dumper(\%codes));
+        }
     } else {
         # got same result codes for all backend
     }
