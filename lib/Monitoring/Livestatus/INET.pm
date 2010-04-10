@@ -52,8 +52,10 @@ sub new {
 
 sub _open {
     my $self = shift;
+
     my $sock = IO::Socket::INET->new(
                                      PeerAddr => $self->{'peer'},
+                                     Type     => SOCK_STREAM,
                                      Timeout  => $self->{'connect_timeout'},
                                      );
     if(!defined $sock or !$sock->connected()) {
@@ -82,6 +84,7 @@ sub _open {
 sub _close {
     my $self = shift;
     my $sock = shift;
+    return unless defined $sock;
     return close($sock);
 }
 

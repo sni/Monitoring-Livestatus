@@ -158,6 +158,11 @@ sub new {
         }
     }
 
+    if($self->{'verbose'} and !defined $self->{'logger'}) {
+        croak('please specify a logger object when using verbose mode');
+        $self->{'verbose'} = 0;
+    }
+
     # setting a general timeout?
     if(defined $self->{'timeout'}) {
         $self->{'query_timeout'}   = $self->{'timeout'};
@@ -200,7 +205,7 @@ sub new {
         $self->{'peer'} = $self->{'CONNECTOR'}->{'peer'};
     }
 
-    if(defined $self->{'logger'} and (!defined $self->{'backend'} or $self->{'backend'} ne 'Monitoring::Livestatus::MULTI')) {
+    if($self->{'verbose'} and (!defined $self->{'backend'} or $self->{'backend'} ne 'Monitoring::Livestatus::MULTI')) {
         $self->{'logger'}->debug('initialized Monitoring::Livestatus ('.$self->peer_name.')');
     }
 
@@ -281,9 +286,7 @@ sub selectall_arrayref {
     # make opt hash keys lowercase
     $opt = $self->_lowercase_and_verify_options($opt);
 
-    if(defined $self->{'logger'}) {
-        $self->_log_statement($statement, $opt, $limit);
-    }
+    $self->_log_statement($statement, $opt, $limit) if $self->{'verbose'};
 
     $result = $self->_send($statement, $opt);
 
@@ -827,13 +830,16 @@ sub _send {
         }
         chomp($statement);
         my $send = "$statement\n$header";
-        print "> ".Dumper($send) if $self->{'verbose'};
+        $self->{'logger'}->debug("> ".Dumper($send)) if $self->{'verbose'};
         ($status,$msg,$body) = $self->_send_socket($send);
         if($self->{'verbose'}) {
-            print "status: ".Dumper($status);
-            print "msg:    ".Dumper($msg);
-            print "< ".Dumper($body);
+            #$self->{'logger'}->debug("got:");
+            #$self->{'logger'}->debug(Dumper(\@erg));
+            $self->{'logger'}->debug("status: ".Dumper($status));
+            $self->{'logger'}->debug("msg:    ".Dumper($msg));
+            $self->{'logger'}->debug("< ".Dumper($body));
         }
+        #($status,$msg,$body) = @erg;
     }
 
     if($status >= 300) {
@@ -845,7 +851,7 @@ sub _send {
         } else {
             $Monitoring::Livestatus::ErrorMessage = $msg;
         }
-        $self->{'logger'}->error($status." - ".$Monitoring::Livestatus::ErrorMessage." in query:\n'".$statement) if defined $self->{'logger'};
+        $self->{'logger'}->error($status." - ".$Monitoring::Livestatus::ErrorMessage." in query:\n'".$statement) if $self->{'verbose'};
         if($self->{'errors_are_fatal'}) {
             croak("ERROR ".$status." - ".$Monitoring::Livestatus::ErrorMessage." in query:\n'".$statement."'\n");
         }
@@ -888,7 +894,7 @@ sub _send {
 
     # for querys with column header, no seperate columns will be returned
     if(!defined $keys) {
-        $self->{'logger'}->warn("got statement without Columns: header!") if defined $self->{'logger'};
+        $self->{'logger'}->warn("got statement without Columns: header!") if $self->{'verbose'};
         if($self->{'warnings'}) {
             carp("got statement without Columns: header! -> ".$statement);
         }
@@ -923,7 +929,8 @@ sub _open {
     my $statement = shift;
 
     # return the current socket in keep alive mode
-    if($self->{'keepalive'} and defined $self->{'sock'} and $self->{'sock'}->atmark()) {
+    if($self->{'keepalive'} and defined $self->{'sock'} and defined $self->{'sock'}->connected()) {
+        $self->{'logger'}->debug("reusing old connection") if $self->{'verbose'};
         return($self->{'sock'});
     }
 
@@ -934,6 +941,7 @@ sub _open {
         $self->{'sock'} = $sock;
     }
 
+    $self->{'logger'}->debug("using new connection") if $self->{'verbose'};
     return($sock);
 }
 
@@ -1046,24 +1054,33 @@ The values from all backends with be summed up to a total.
 sub _send_socket {
     my $self      = shift;
     my $statement = shift;
+    my $retry     = shift || 0;
     my($recv,$header);
 
     my $sock = $self->_open() or return(491, $self->_get_error(491), $!);
-    print $sock $statement or return($self->_socket_error($statement, $sock, 'connection failed: '.$!));;
+    if($retry == 0) {
+        local $SIG{PIPE} = sub {
+            $self->{'logger'}->debug("broken pipe, closing socket") if $self->{'verbose'};
+            $self->_close($sock);
+            return($self->_socket_error($statement, $sock, 'write to socket failed: '.$!));
+        };
+    }
+
+    print $sock $statement or return($self->_send_socket($statement, 1));
+
     if($self->{'keepalive'}) {
         print $sock "\n";
-    }else {
+    } else {
         $sock->shutdown(1) or croak("shutdown failed: $!");
     }
 
     # COMMAND statements never return something
     if($statement =~ m/^COMMAND/mx) {
-        $self->_close($sock);
         return('201', $self->_get_error(201), undef);
     }
 
     $sock->read($header, 16) or return($self->_socket_error($statement, $sock, 'reading from socket failed: '.$!));
-    print "header: $header" if $self->{'verbose'};
+    $self->{'logger'}->debug("header: $header") if $self->{'verbose'};
     my($status, $msg, $content_length) = $self->_parse_header($header, $sock);
     return($status, $msg, undef) if !defined $content_length;
     if($content_length > 0) {
@@ -1086,13 +1103,14 @@ sub _socket_error {
     $message   .= "statement           ".Dumper($statement);
     $message   .= "message             ".Dumper($body);
 
-    $self->{'logger'}->error($message) if defined $self->{'logger'};
+    $self->{'logger'}->error($message) if $self->{'verbose'};
 
     if($self->{'errors_are_fatal'}) {
         croak($message);
     } else {
         carp($message);
     }
+    $self->_close();
     return(500, $self->_get_error(500), $message);
 }
 
@@ -1427,7 +1445,8 @@ sub _log_statement {
 
     my $cleanstatement = $statement;
     $cleanstatement =~ s/\n/\\n/gmx;
-    $self->{'logger'}->debug('selectall_arrayref("'.$cleanstatement.'", '.$optstring.', '.$limit.')')
+    $self->{'logger'}->debug('selectall_arrayref("'.$cleanstatement.'", '.$optstring.', '.$limit.')');
+    return 1;
 }
 
 ########################################

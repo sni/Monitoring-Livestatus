@@ -51,6 +51,7 @@ sub new {
 
 sub _open {
     my $self      = shift;
+
     if(!-S $self->{'peer'}) {
         my $msg = "failed to open socket $self->{'peer'}: $!";
         if($self->{'errors_are_fatal'}) {
@@ -62,6 +63,7 @@ sub _open {
     }
     my $sock = IO::Socket::UNIX->new(
                                         Peer     => $self->{'peer'},
+                                        Type     => SOCK_STREAM,
                                      );
     if(!defined $sock or !$sock->connected()) {
         my $msg = "failed to connect to $self->{'peer'} :$!";
@@ -87,6 +89,7 @@ sub _open {
 sub _close {
     my $self = shift;
     my $sock = shift;
+    return unless defined $sock;
     return close($sock);
 }
 
