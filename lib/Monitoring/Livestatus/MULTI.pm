@@ -79,13 +79,19 @@ sub new {
         $self->{'use_threads'} = 0;
         if($Config{useithreads}) {
             $self->{'use_threads'} = 1;
-        };
+        }
     }
     if($self->{'use_threads'}) {
-        require threads;
-        require Thread::Queue;
-
-        $self->_start_worker;
+        eval {
+            require threads;
+            require Thread::Queue;
+        };
+        if($@) {
+            $self->{'use_threads'} = 0;
+            $self->{'logger'}->debug('error initializing threads: '.$@) if defined $self->{'logger'};
+        } else {
+            $self->_start_worker;
+        }
     }
 
     # initialize peer keys
