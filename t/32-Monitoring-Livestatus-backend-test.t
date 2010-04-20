@@ -12,14 +12,15 @@ if ( ! defined $ENV{TEST_SOCKET} or !defined $ENV{TEST_SERVER} or !defined $ENV{
     plan( skip_all => $msg );
 } else {
     # we dont know yet how many tests we got
-    plan( tests => 32296 );
+    plan( tests => 55237 );
 }
 
 # set an alarm
 my $lastquery;
 $SIG{ALRM} = sub {
     my @caller = caller;
-    print STDERR 'last query: '.$lastquery if defined $lastquery;
+    $lastquery =~ s/\n+/\n/g;
+    print STDERR 'last query: '.$lastquery."\n" if defined $lastquery;
     confess "timeout reached:".Dumper(\@caller)."\n" 
 };
 
