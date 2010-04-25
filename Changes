@@ -1,8 +1,11 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
 
-0.45  Sun Mar  7 14:57:34 CET 2010
-	- error code have been changed in livestatus (1.1.3)
+0.48  Sun Apr 25 17:02:59 CEST 2010
+	- added new columns from livestatus 1.1.4
+
+0.46  Tue Mar 16 15:19:08 CET 2010
+    - error code have been changed in livestatus (1.1.3)
 	- fixed threads support
 
 0.44  Sun Feb 28 12:19:56 CET 2010
