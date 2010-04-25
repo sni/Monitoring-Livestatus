@@ -79,13 +79,19 @@ sub new {
         $self->{'use_threads'} = 0;
         if($Config{useithreads}) {
             $self->{'use_threads'} = 1;
-        };
+        }
     }
     if($self->{'use_threads'}) {
-        require threads;
-        require Thread::Queue;
-
-        $self->_start_worker;
+        eval {
+            require threads;
+            require Thread::Queue;
+        };
+        if($@) {
+            $self->{'use_threads'} = 0;
+            $self->{'logger'}->debug('error initializing threads: '.$@) if defined $self->{'logger'};
+        } else {
+            $self->_start_worker;
+        }
     }
 
     # initialize peer keys
@@ -97,7 +103,7 @@ sub new {
     }
 
     $self->{'name'} = 'multiple connector' unless defined $self->{'name'};
-    $self->{'logger'}->debug('initialized Monitoring::Livestatus::MULTI '.($self->{'use_threads'} ? 'with' : 'without' ).' threads') if defined $self->{'logger'};
+    $self->{'logger'}->debug('initialized Monitoring::Livestatus::MULTI '.($self->{'use_threads'} ? 'with' : 'without' ).' threads') if $self->{'verbose'};
 
     return $self;
 }
@@ -120,7 +126,7 @@ sub do {
 
     $self->_do_on_peers("do", $opts->{'backends'}, @_);
     my $elapsed = tv_interval ( $t0 );
-    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for do('.$_[0].') in total') if defined $self->{'logger'};
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for do('.$_[0].') in total') if $self->{'verbose'};
     return 1;
 }
 
@@ -138,13 +144,11 @@ sub selectall_arrayref {
     my $opts  = $self->_lowercase_and_verify_options($_[1]);
     my $t0    = [gettimeofday];
 
-    if(defined $self->{'logger'}) {
-        $self->_log_statement($_[0], $opts, 0);
-    }
+    $self->_log_statement($_[0], $opts, 0) if $self->{'verbose'};
 
     my $return  = $self->_merge_answer($self->_do_on_peers("selectall_arrayref", $opts->{'backends'}, @_));
     my $elapsed = tv_interval ( $t0 );
-    if(defined $self->{'logger'}) {
+    if($self->{'verbose'}) {
         my $total_results = 0;
         $total_results    = scalar @{$return} if defined $return;
         $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectall_arrayref() in total, results: '.$total_results);
@@ -169,7 +173,7 @@ sub selectall_hashref {
 
     my $return  = $self->_merge_answer($self->_do_on_peers("selectall_hashref", $opts->{'backends'}, @_));
     my $elapsed = tv_interval ( $t0 );
-    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectall_hashref() in total') if defined $self->{'logger'};
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectall_hashref() in total') if $self->{'verbose'};
 
     return $return;
 }
@@ -190,7 +194,7 @@ sub selectcol_arrayref {
 
     my $return  = $self->_merge_answer($self->_do_on_peers("selectcol_arrayref", $opts->{'backends'}, @_));
     my $elapsed = tv_interval ( $t0 );
-    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectcol_arrayref() in total') if defined $self->{'logger'};
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectcol_arrayref() in total') if $self->{'verbose'};
 
     return $return;
 }
@@ -222,7 +226,7 @@ sub selectrow_array {
     }
 
     my $elapsed = tv_interval ( $t0 );
-    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectrow_array() in total') if defined $self->{'logger'};
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectrow_array() in total') if $self->{'verbose'};
 
     return @return;
 }
@@ -254,7 +258,7 @@ sub selectrow_arrayref {
     }
 
     my $elapsed = tv_interval ( $t0 );
-    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectrow_arrayref() in total') if defined $self->{'logger'};
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectrow_arrayref() in total') if $self->{'verbose'};
 
     return $return;
 }
@@ -287,7 +291,7 @@ sub selectrow_hashref {
     }
 
     my $elapsed = tv_interval ( $t0 );
-    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectrow_hashref() in total') if defined $self->{'logger'};
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectrow_hashref() in total') if $self->{'verbose'};
 
     return $return;
 }
@@ -322,7 +326,7 @@ sub selectscalar_value {
     }
 
     my $elapsed = tv_interval ( $t0 );
-    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectscalar_value() in total') if defined $self->{'logger'};
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for selectscalar_value() in total') if $self->{'verbose'};
 
     return $return;
 }
@@ -649,7 +653,7 @@ sub _do_on_peers {
 
     if($use_threads) {
         # use the threaded variant
-        $self->{'logger'}->debug('using threads') if defined $self->{'logger'};
+        $self->{'logger'}->debug('using threads') if $self->{'verbose'};
 
         my $peers_to_use;
         for my $peer (@peers) {
@@ -687,7 +691,7 @@ sub _do_on_peers {
             }
         }
     } else {
-        $self->{'logger'}->debug('not using threads') if defined $self->{'logger'};
+        $self->{'logger'}->debug('not using threads') if $self->{'verbose'};
         for my $peer (@peers) {
             if($peer->{'disabled'}) {
                 # dont send any query
@@ -718,7 +722,7 @@ sub _do_on_peers {
     my @codes = sort keys %codes;
     if(scalar @codes > 1) {
         # got different results for our backends
-        if(defined $self->{'logger'}) {
+        if($self->{'verbose'}) {
             $self->{'logger'}->warn("got different result stati: ".Dumper(\%codes));
         }
     } else {
@@ -733,7 +737,7 @@ sub _do_on_peers {
 
     if($failed) {
         my $msg  = $codes{$code}->[0]->{'msg'};
-        print "same: $code -> $msg\n" if $self->{'verbose'};
+        $self->{'logger'}->debug("same: $code -> $msg") if $self->{'verbose'};
         $Monitoring::Livestatus::ErrorMessage = $msg;
         $Monitoring::Livestatus::ErrorCode    = $code;
         if($self->{'errors_are_fatal'}) {
@@ -743,7 +747,7 @@ sub _do_on_peers {
     }
 
     my $elapsed = tv_interval ( $t0 );
-    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for fetching all data') if defined $self->{'logger'};
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for fetching all data') if $self->{'verbose'};
 
     # deep copy result?
     if($use_threads
@@ -787,7 +791,7 @@ sub _merge_answer {
     }
 
     my $elapsed = tv_interval ( $t0 );
-    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for merging data') if defined $self->{'logger'};
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for merging data') if $self->{'verbose'};
 
     return($return);
 }
@@ -827,7 +831,7 @@ sub _sum_answer {
     }
 
     my $elapsed = tv_interval ( $t0 );
-    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for summarizing data') if defined $self->{'logger'};
+    $self->{'logger'}->debug(sprintf('%.4f', $elapsed).' sec for summarizing data') if $self->{'verbose'};
 
     return $return;
 }

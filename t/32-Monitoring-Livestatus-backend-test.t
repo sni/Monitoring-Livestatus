@@ -12,12 +12,15 @@ if ( ! defined $ENV{TEST_SOCKET} or !defined $ENV{TEST_SERVER} or !defined $ENV{
     plan( skip_all => $msg );
 } else {
     # we dont know yet how many tests we got
-    plan( tests => 32296 );
+    plan( tests => 55237 );
 }
 
 # set an alarm
+my $lastquery;
 $SIG{ALRM} = sub {
     my @caller = caller;
+    $lastquery =~ s/\n+/\n/g;
+    print STDERR 'last query: '.$lastquery."\n" if defined $lastquery;
     confess "timeout reached:".Dumper(\@caller)."\n" 
 };
 
@@ -56,7 +59,9 @@ for my $key (sort keys %{$objects_to_test}) {
         $filter  = "Filter: time > ".(time() - 86400)."\n" if $type eq 'log';
         $filter .= "Filter: time < ".(time())."\n"         if $type eq 'log';
         my $statement = "GET $type\n".$filter."Limit: 1";
+        $lastquery = $statement;
         my $keys  = $ml->selectrow_hashref($statement );
+        undef $lastquery;
         is(ref $keys, 'HASH', $type.' keys are a hash');# or BAIL_OUT('keys are not in hash format, got '.Dumper($keys));
 
         # status has no filter implemented
@@ -70,7 +75,9 @@ for my $key (sort keys %{$objects_to_test}) {
                 $typefilter = "Filter: $key =\n";
             }
             my $statement  = "GET $type\n".$filter.$typefilter."Limit: 1";
+            $lastquery = $statement;
             my $hash_ref   = $ml->selectrow_hashref($statement );
+            undef $lastquery;
             is($Monitoring::Livestatus::ErrorCode, 0, "GET ".$type." Filter: ".$key." >= ".$value) or BAIL_OUT("query failed: ".$statement);
             #isnt($hash_ref, undef, "GET ".$type." Filter: ".$key." >= ".$value);# or BAIL_OUT("got undef for ".$statement);
 
@@ -78,11 +85,15 @@ for my $key (sort keys %{$objects_to_test}) {
             my $stats_query = [ $key.' = '.$value, 'std '.$key, 'min '.$key, 'max '.$key, 'avg '.$key, 'sum '.$key ];
             for my $stats_part (@{$stats_query}) {
                 my $statement  = "GET $type\n".$filter.$typefilter."\nStats: $stats_part";
+                $lastquery = $statement;
                 my $hash_ref   = $ml->selectrow_hashref($statement );
+                undef $lastquery;
                 is($Monitoring::Livestatus::ErrorCode, 0, "GET ".$type." Filter: ".$key." >= ".$value." Stats: $stats_part") or BAIL_OUT("query failed:\n".$statement);
 
                 $statement  = "GET $type\n".$filter.$typefilter."\nStats: $stats_part\nStatsGroupBy: $key";
+                $lastquery = $statement;
                 $hash_ref   = $ml->selectrow_hashref($statement );
+                undef $lastquery;
                 is($Monitoring::Livestatus::ErrorCode, 0, "GET ".$type." Filter: ".$key." >= ".$value." Stats: $stats_part StatsGroupBy: $key") or BAIL_OUT("query failed:\n".$statement);
             }
 
