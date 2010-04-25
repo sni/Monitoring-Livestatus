@@ -12,7 +12,6 @@ requires 'IO::Socket::INET';
 requires 'Digest::MD5';
 requires 'Scalar::Util';
 requires 'Test::More'        => '0.87';
-requires 'threads'           => '1.07';
 requires 'Thread::Queue'     => '2.11';
 
 # test requirements get into the META.yml and will break normal installation
