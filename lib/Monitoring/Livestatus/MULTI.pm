@@ -90,8 +90,10 @@ sub new {
 
     # initialize peer keys
     $self->{'peer_by_key'} = {};
+    $self->{'peer_by_addr'} = {};
     for my $peer (@{$self->{'peers'}}) {
-        $self->{'peer_by_key'}->{$peer->peer_key} = $peer;
+        $self->{'peer_by_key'}->{$peer->peer_key}   = $peer;
+        $self->{'peer_by_addr'}->{$peer->peer_addr} = $peer;
     }
 
     $self->{'name'} = 'multiple connector' unless defined $self->{'name'};
@@ -874,6 +876,18 @@ sub _get_peer_by_key {
     return unless defined $self->{'peer_by_key'}->{$key};
 
     return $self->{'peer_by_key'}->{$key};
+}
+
+
+########################################
+sub _get_peer_by_addr {
+    my $self = shift;
+    my $addr = shift;
+
+    return unless defined $addr;
+    return unless defined $self->{'peer_by_addr'}->{$addr};
+
+    return $self->{'peer_by_addr'}->{$addr};
 }
 
 
