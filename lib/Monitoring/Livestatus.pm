@@ -147,6 +147,8 @@ sub new {
       "logger"                    => undef,   # logger object used for statistical informations and errors / warnings
       "deepcopy"                  => undef,   # copy result set to avoid errors with tied structures
       "disabled"                  => 0,       # if disabled, this peer will not receive any query
+      "retries_on_error"          => 3,       # retry x times to connect
+      "retry_interval"            => 1,       # retry after x seconds
     };
 
     for my $opt_key (keys %options) {
@@ -1051,22 +1053,45 @@ The values from all backends with be summed up to a total.
 
 
 ########################################
+# wrapper around _send_socket_do
 sub _send_socket {
     my $self      = shift;
     my $statement = shift;
-    my $retry     = shift || 0;
+
+    return $self->_send_socket_do($statement) if $self->{'retries_on_error'} <= 0;
+
+    my $retries = 0;
+    my($status, $msg, $recv);
+    while((!defined $status or $status >= 400) and $retries < $self->{'retries_on_error'}) {
+        $retries++;
+        ($status, $msg, $recv) = $self->_send_socket_do($statement);
+        $self->{'logger'}->debug('query status '.$status) if $self->{'verbose'};
+        if($status >= 400) {
+            $self->{'logger'}->debug('got status '.$status.' retrying in '.$self->{'retry_interval'}.' seconds') if $self->{'verbose'};
+            sleep($self->{'retry_interval'}) if $retries < $self->{'retries_on_error'};
+        }
+    }
+
+    if($status >= 400) {
+        if($self->{'errors_are_fatal'}) {
+            croak($msg);
+        }
+        else {
+            carp($msg);
+        }
+    }
+
+    return($status, $msg, $recv);
+}
+
+########################################
+sub _send_socket_do {
+    my $self      = shift;
+    my $statement = shift;
     my($recv,$header);
 
     my $sock = $self->_open() or return(491, $self->_get_error(491), $!);
-    if($retry == 0) {
-        local $SIG{PIPE} = sub {
-            $self->{'logger'}->debug("broken pipe, closing socket") if $self->{'verbose'};
-            $self->_close($sock);
-            return($self->_socket_error($statement, $sock, 'write to socket failed: '.$!));
-        };
-    }
-
-    print $sock $statement or return($self->_send_socket($statement, 1));
+    print $sock $statement or return($self->_socket_error($statement, $sock, 'write to socket failed: '.$!));
 
     if($self->{'keepalive'}) {
         print $sock "\n";
@@ -1079,7 +1104,7 @@ sub _send_socket {
         return('201', $self->_get_error(201), undef);
     }
 
-    $sock->read($header, 16) or return($self->_socket_error($statement, $sock, 'reading from socket failed: '.$!));
+    $sock->read($header, 16) or return($self->_socket_error($statement, $sock, 'reading header from socket failed, check your livestatus logfile: '.$!));
     $self->{'logger'}->debug("header: $header") if $self->{'verbose'};
     my($status, $msg, $content_length) = $self->_parse_header($header, $sock);
     return($status, $msg, undef) if !defined $content_length;
@@ -1105,10 +1130,13 @@ sub _socket_error {
 
     $self->{'logger'}->error($message) if $self->{'verbose'};
 
-    if($self->{'errors_are_fatal'}) {
-        croak($message);
-    } else {
-        carp($message);
+    if($self->{'retries_on_error'} <= 0) {
+        if($self->{'errors_are_fatal'}) {
+            croak($message);
+        }
+        else {
+            carp($message);
+        }
     }
     $self->_close();
     return(500, $self->_get_error(500), $message);

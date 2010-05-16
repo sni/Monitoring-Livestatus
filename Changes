@@ -1,7 +1,8 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
 
-0.48  Sun Apr 25 17:02:59 CEST 2010
+0.48  Sun May 16 15:16:12 CEST 2010
+	- added retry option for better core restart handling
 	- added new columns from livestatus 1.1.4
 
 0.46  Tue Mar 16 15:19:08 CET 2010

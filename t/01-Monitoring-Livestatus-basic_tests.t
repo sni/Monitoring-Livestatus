@@ -14,7 +14,7 @@ BEGIN {
         plan skip_all => 'no sockets on windows';
     }
     else {
-        plan tests => 34;
+        plan tests => 35;
     }
 }
 
@@ -131,6 +131,18 @@ is($ml->peer_name(), $socket_path, 'get peer_name()');
 is($ml->peer_addr(), $socket_path, 'get peer_addr()');
 is($ml->{'connect_timeout'}, 17,   'connect_timeout');
 is($ml->{'query_timeout'}, 14,     'query_timeout');
+
+
+#########################
+# error retry
+$ml = Monitoring::Livestatus->new(
+                                     peer             => [ $socket_path ],
+                                     verbose          => 0,
+                                     retries_on_error => 3,
+                                     retry_interval   => 1,
+                                     logger           => undef,
+                                );
+isa_ok($ml, 'Monitoring::Livestatus', 'peer hash arg multi with error retry');
 
 #########################
 # cleanup

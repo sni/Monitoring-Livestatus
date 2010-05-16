@@ -91,20 +91,26 @@ if(scalar @opt_f == 0) {
 #########################################################################
 Log::Log4perl->easy_init($DEBUG);
 my $nl = Monitoring::Livestatus->new(
-                                     peer        => \@opt_f,
-                                     verbose     => $opt_v,
-                                     timeout     => 5,
-                                     keepalive   => 1,
-                                     logger      => get_logger(),
+                                     peer             => \@opt_f,
+                                     verbose          => $opt_v,
+                                     timeout          => 5,
+                                     keepalive        => 1,
+                                     retries_on_error => 3,
+                                     retry_interval   => 3,
+                                     logger           => get_logger(),
                                    );
 my $log = get_logger();
 
 #########################################################################
 my $querys = [
-    { 'query' => "GET comments",
+    { 'query' => "GET status\nColums: program_start program_version",
       'sub'   => "selectall_arrayref",
       'opt'   => {Slice => 1 }
     },
+#    { 'query' => "GET comments",
+#      'sub'   => "selectall_arrayref",
+#      'opt'   => {Slice => 1 }
+#    },
 #    { 'query' => "GET downtimes",
 #      'sub'   => "selectall_arrayref",
 #      'opt'   => {Slice => 1, Sum => 1}
