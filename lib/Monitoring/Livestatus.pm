@@ -1072,14 +1072,7 @@ sub _send_socket {
         }
     }
 
-    if($status >= 400) {
-        if($self->{'errors_are_fatal'}) {
-            croak($msg);
-        }
-        else {
-            carp($msg);
-        }
-    }
+    croak($msg) if($status >= 400 and $self->{'errors_are_fatal'});
 
     return($status, $msg, $recv);
 }

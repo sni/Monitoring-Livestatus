@@ -216,7 +216,9 @@ for my $key (sort keys %{$objects_to_test}) {
 
     #########################
     # set downtime for a host and service
-    my $num_downtimes = scalar @{$ml->selectall_arrayref("GET downtimes\nColumns: id")};
+    my $downtimes = $ml->selectall_arrayref("GET downtimes\nColumns: id");
+    my $num_downtimes = 0;
+    $num_downtimes = scalar @{$downtimes} if defined $downtimes;
     my $firsthost = $ml->selectscalar_value("GET hosts\nColumns: name\nLimit: 1");
     isnt($firsthost, undef, 'get test hostname') or BAIL_OUT($key.': got not test hostname');
     $ml->do('COMMAND ['.time().'] SCHEDULE_HOST_DOWNTIME;'.$firsthost.';'.time().';'.(time()+180).';1;0;180;perl test;perl test: '.$0);
