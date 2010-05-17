@@ -5,8 +5,6 @@
 use strict;
 use Test::More;
 use Data::Dumper;
-use Log::Log4perl qw(:easy);
-Log::Log4perl->easy_init($DEBUG);
 
 if ( ! defined $ENV{TEST_SOCKET} or !defined $ENV{TEST_SERVER} ) {
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} to run';
@@ -40,7 +38,6 @@ my $objects_to_test = {
                                       socket              => $ENV{TEST_SOCKET},
                                       line_seperator      => $line_seperator,
                                       column_seperator    => $column_seperator,
-                                      #logger              => get_logger(),
                                     ),
 
   # create unix object with hash args
