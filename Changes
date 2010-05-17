@@ -1,8 +1,11 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
 
+0.52  Mon May 17 15:54:42 CEST 2010
+	- fixed connection timeout
+
 0.50  Mon May 17 12:29:20 CEST 2010
-	- added retry option for better core restart handling
+	- fixed test requirements
 
 0.48  Sun May 16 15:16:12 CEST 2010
 	- added retry option for better core restart handling

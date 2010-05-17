@@ -52,28 +52,41 @@ sub new {
 
 sub _open {
     my $self = shift;
+    my $sock;
 
-    my $sock = IO::Socket::INET->new(
-                                     PeerAddr => $self->{'peer'},
-                                     Type     => SOCK_STREAM,
-                                     Timeout  => $self->{'connect_timeout'},
-                                     );
-    if(!defined $sock or !$sock->connected()) {
-        my $msg = "failed to connect to $self->{'peer'} :$!";
-        if($self->{'errors_are_fatal'}) {
-            croak($msg);
+    eval {
+        local $SIG{ALRM} = sub { die "timeout while connecting to ".$self->{'peer'} };
+        alarm($self->{'connect_timeout'});
+
+
+        $sock = IO::Socket::INET->new(
+                                         PeerAddr => $self->{'peer'},
+                                         Type     => SOCK_STREAM,
+                                         Timeout  => $self->{'connect_timeout'},
+                                         );
+        if(!defined $sock or !$sock->connected()) {
+            my $msg = "failed to connect to $self->{'peer'} :$!";
+            if($self->{'errors_are_fatal'}) {
+                croak($msg);
+            }
+            $Monitoring::Livestatus::ErrorCode    = 500;
+            $Monitoring::Livestatus::ErrorMessage = $msg;
+            return;
         }
+
+        if(defined $self->{'query_timeout'}) {
+            # set timeout
+            $sock->timeout($self->{'query_timeout'});
+        }
+
+        setsockopt($sock, IPPROTO_TCP, TCP_NODELAY, 1);
+    };
+
+    if($@) {
         $Monitoring::Livestatus::ErrorCode    = 500;
-        $Monitoring::Livestatus::ErrorMessage = $msg;
+        $Monitoring::Livestatus::ErrorMessage = $@;
         return;
     }
-
-    if(defined $self->{'query_timeout'}) {
-        # set timeout
-        $sock->timeout($self->{'query_timeout'});
-    }
-
-    setsockopt($sock, IPPROTO_TCP, TCP_NODELAY, 1);
 
     return($sock);
 }

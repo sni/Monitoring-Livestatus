@@ -10,7 +10,7 @@ use Monitoring::Livestatus::INET;
 use Monitoring::Livestatus::UNIX;
 use Monitoring::Livestatus::MULTI;
 
-our $VERSION = '0.50';
+our $VERSION = '0.52';
 
 
 =head1 NAME
@@ -931,7 +931,7 @@ sub _open {
     my $statement = shift;
 
     # return the current socket in keep alive mode
-    if($self->{'keepalive'} and defined $self->{'sock'} and defined $self->{'sock'}->connected()) {
+    if($self->{'keepalive'} and defined $self->{'sock'} and $self->{'sock'}->connected) {
         $self->{'logger'}->debug("reusing old connection") if $self->{'verbose'};
         return($self->{'sock'});
     }
@@ -951,6 +951,7 @@ sub _open {
 sub _close {
     my $self  = shift;
     my $sock  = shift;
+    undef $self->{'sock'};
     return($self->{'CONNECTOR'}->_close($sock));
 }
 
@@ -1068,6 +1069,7 @@ sub _send_socket {
         $self->{'logger'}->debug('query status '.$status) if $self->{'verbose'};
         if($status >= 400) {
             $self->{'logger'}->debug('got status '.$status.' retrying in '.$self->{'retry_interval'}.' seconds') if $self->{'verbose'};
+            $self->_close();
             sleep($self->{'retry_interval'}) if $retries < $self->{'retries_on_error'};
         }
     }
