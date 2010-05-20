@@ -29,6 +29,7 @@ t/22-Monitoring-Livestatus-UNIX.t
 t/30-Monitoring-Livestatus-live-test.t
 t/31-Monitoring-Livestatus-MULTI-live-test.t
 t/32-Monitoring-Livestatus-backend-test.t
+t/33-Monitoring-Livestatus-test_socket_timeout.t
 t/97-Pod.t
 t/98-Pod-Coverage.t
 t/99-Perl-Critic.t

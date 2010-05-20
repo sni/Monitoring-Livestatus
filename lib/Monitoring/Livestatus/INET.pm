@@ -55,10 +55,6 @@ sub _open {
     my $sock;
 
     eval {
-        local $SIG{ALRM} = sub { die "timeout while connecting to ".$self->{'peer'} };
-        alarm($self->{'connect_timeout'});
-
-
         $sock = IO::Socket::INET->new(
                                          PeerAddr => $self->{'peer'},
                                          Type     => SOCK_STREAM,

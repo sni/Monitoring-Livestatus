@@ -1059,19 +1059,38 @@ sub _send_socket {
     my $self      = shift;
     my $statement = shift;
 
-    return $self->_send_socket_do($statement) if $self->{'retries_on_error'} <= 0;
-
     my $retries = 0;
     my($status, $msg, $recv);
-    while((!defined $status or $status >= 400) and $retries < $self->{'retries_on_error'}) {
-        $retries++;
-        ($status, $msg, $recv) = $self->_send_socket_do($statement);
-        $self->{'logger'}->debug('query status '.$status) if $self->{'verbose'};
-        if($status >= 400) {
-            $self->{'logger'}->debug('got status '.$status.' retrying in '.$self->{'retry_interval'}.' seconds') if $self->{'verbose'};
-            $self->_close();
-            sleep($self->{'retry_interval'}) if $retries < $self->{'retries_on_error'};
+
+    eval {
+        local $SIG{PIPE} = sub {
+            die("broken pipe");
+            $self->{'logger'}->debug("broken pipe, closing socket") if $self->{'verbose'};
+            $self->_close($self->{'sock'});
+        };
+
+        if($self->{'retries_on_error'} <= 0) {
+            ($status, $msg, $recv) = $self->_send_socket_do($statement);
+            return;
         }
+
+        while((!defined $status or $status >= 400) and $retries < $self->{'retries_on_error'}) {
+            $retries++;
+            ($status, $msg, $recv) = $self->_send_socket_do($statement);
+            $self->{'logger'}->debug('query status '.$status) if $self->{'verbose'};
+            if($status >= 400) {
+                $self->{'logger'}->debug('got status '.$status.' retrying in '.$self->{'retry_interval'}.' seconds') if $self->{'verbose'};
+                $self->_close();
+                sleep($self->{'retry_interval'}) if $retries < $self->{'retries_on_error'};
+            }
+        }
+    };
+    if($@) {
+        $self->{'logger'}->debug("try 1 failed: $@") if $self->{'verbose'};
+        if(defined $@ and $@ =~ /broken\ pipe/mx) {
+            return $self->_send_socket_do($statement);
+        }
+        croak($@) if $self->{'errors_are_fatal'};
     }
 
     croak($msg) if($status >= 400 and $self->{'errors_are_fatal'});
