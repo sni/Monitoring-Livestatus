@@ -126,29 +126,29 @@ sub new {
     my(%options) = @_;
 
     my $self = {
-      "verbose"                   => 0,       # enable verbose output
-      "socket"                    => undef,   # use unix sockets
-      "server"                    => undef,   # use tcp connections
-      "peer"                      => undef,   # use for socket / server connections
-      "name"                      => undef,   # human readable name
-      "line_seperator"            => 10,      # defaults to newline
-      "column_seperator"          => 0,       # defaults to null byte
-      "list_seperator"            => 44,      # defaults to comma
-      "host_service_seperator"    => 124,     # defaults to pipe
-      "keepalive"                 => 0,       # enable keepalive?
-      "errors_are_fatal"          => 1,       # die on errors
-      "backend"                   => undef,   # should be keept undef, used internally
-      "timeout"                   => undef,   # timeout for tcp connections
-      "query_timeout"             => 60,      # query timeout for tcp connections
-      "connect_timeout"           => 5,       # connect timeout for tcp connections
-      "timeout"                   => undef,   # timeout for tcp connections
-      "use_threads"               => undef,   # use threads, default is to use threads where available
-      "warnings"                  => 1,       # show warnings, for example on querys without Column: Header
-      "logger"                    => undef,   # logger object used for statistical informations and errors / warnings
-      "deepcopy"                  => undef,   # copy result set to avoid errors with tied structures
-      "disabled"                  => 0,       # if disabled, this peer will not receive any query
-      "retries_on_error"          => 3,       # retry x times to connect
-      "retry_interval"            => 1,       # retry after x seconds
+      "verbose"                     => 0,       # enable verbose output
+      "socket"                      => undef,   # use unix sockets
+      "server"                      => undef,   # use tcp connections
+      "peer"                        => undef,   # use for socket / server connections
+      "name"                        => undef,   # human readable name
+      "line_seperator"              => 10,      # defaults to newline
+      "column_seperator"            => 0,       # defaults to null byte
+      "list_seperator"              => 44,      # defaults to comma
+      "host_service_seperator"      => 124,     # defaults to pipe
+      "keepalive"                   => 0,       # enable keepalive?
+      "errors_are_fatal"            => 1,       # die on errors
+      "backend"                     => undef,   # should be keept undef, used internally
+      "timeout"                     => undef,   # timeout for tcp connections
+      "query_timeout"               => 60,      # query timeout for tcp connections
+      "connect_timeout"             => 5,       # connect timeout for tcp connections
+      "timeout"                     => undef,   # timeout for tcp connections
+      "use_threads"                 => undef,   # use threads, default is to use threads where available
+      "warnings"                    => 1,       # show warnings, for example on querys without Column: Header
+      "logger"                      => undef,   # logger object used for statistical informations and errors / warnings
+      "deepcopy"                    => undef,   # copy result set to avoid errors with tied structures
+      "disabled"                    => 0,       # if disabled, this peer will not receive any query
+      "retries_on_connection_error" => 3,       # retry x times to connect
+      "retry_interval"              => 1,       # retry after x seconds
     };
 
     for my $opt_key (keys %options) {
@@ -1062,6 +1062,8 @@ sub _send_socket {
     my $retries = 0;
     my($status, $msg, $recv);
 
+
+    # try to avoid connection errors
     eval {
         local $SIG{PIPE} = sub {
             die("broken pipe");
@@ -1069,19 +1071,19 @@ sub _send_socket {
             $self->_close($self->{'sock'});
         };
 
-        if($self->{'retries_on_error'} <= 0) {
+        if($self->{'retries_on_connection_error'} <= 0) {
             ($status, $msg, $recv) = $self->_send_socket_do($statement);
             return;
         }
 
-        while((!defined $status or $status >= 400) and $retries < $self->{'retries_on_error'}) {
+        while((!defined $status or ($status == 497 or $status == 499 or $status == 400)) and $retries < $self->{'retries_on_connection_error'}) {
             $retries++;
             ($status, $msg, $recv) = $self->_send_socket_do($statement);
             $self->{'logger'}->debug('query status '.$status) if $self->{'verbose'};
-            if($status >= 400) {
+            if($status == 497 or $status == 499 or $status == 400) {
                 $self->{'logger'}->debug('got status '.$status.' retrying in '.$self->{'retry_interval'}.' seconds') if $self->{'verbose'};
                 $self->_close();
-                sleep($self->{'retry_interval'}) if $retries < $self->{'retries_on_error'};
+                sleep($self->{'retry_interval'}) if $retries < $self->{'retries_on_connection_error'};
             }
         }
     };
@@ -1144,7 +1146,7 @@ sub _socket_error {
 
     $self->{'logger'}->error($message) if $self->{'verbose'};
 
-    if($self->{'retries_on_error'} <= 0) {
+    if($self->{'retries_on_connection_error'} <= 0) {
         if($self->{'errors_are_fatal'}) {
             croak($message);
         }

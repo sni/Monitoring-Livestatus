@@ -36,12 +36,12 @@ my $statement    = "GET hosts\nColumns: alias\nFilter: name = host1";
 my $objects_to_test = {
   # create inet object with hash args
   '01 inet_hash_args' => Monitoring::Livestatus->new(
-                                      verbose             => 0,
-                                      server              => $ENV{TEST_SERVER},
-                                      keepalive           => 1,
-                                      timeout             => 3,
-                                      retries_on_error    => 0,
-#                                      logger              => get_logger(),
+                                      verbose                     => 0,
+                                      server                      => $ENV{TEST_SERVER},
+                                      keepalive                   => 1,
+                                      timeout                     => 3,
+                                      retries_on_connection_error => 0,
+#                                      logger                     => get_logger(),
                                     ),
 
   # create inet object with a single arg

@@ -136,11 +136,11 @@ is($ml->{'query_timeout'}, 14,     'query_timeout');
 #########################
 # error retry
 $ml = Monitoring::Livestatus->new(
-                                     peer             => [ $socket_path ],
-                                     verbose          => 0,
-                                     retries_on_error => 3,
-                                     retry_interval   => 1,
-                                     logger           => undef,
+                                     peer                        => [ $socket_path ],
+                                     verbose                     => 0,
+                                     retries_on_connection_error => 3,
+                                     retry_interval              => 1,
+                                     logger                      => undef,
                                 );
 isa_ok($ml, 'Monitoring::Livestatus', 'peer hash arg multi with error retry');
 
