@@ -1076,11 +1076,11 @@ sub _send_socket {
             return;
         }
 
-        while((!defined $status or ($status == 497 or $status == 499 or $status == 400)) and $retries < $self->{'retries_on_connection_error'}) {
+        while((!defined $status or ($status == 491 or $status == 497 or $status == 500)) and $retries < $self->{'retries_on_connection_error'}) {
             $retries++;
             ($status, $msg, $recv) = $self->_send_socket_do($statement);
             $self->{'logger'}->debug('query status '.$status) if $self->{'verbose'};
-            if($status == 497 or $status == 499 or $status == 400) {
+            if($status == 491 or $status == 497 or $status == 500) {
                 $self->{'logger'}->debug('got status '.$status.' retrying in '.$self->{'retry_interval'}.' seconds') if $self->{'verbose'};
                 $self->_close();
                 sleep($self->{'retry_interval'}) if $retries < $self->{'retries_on_connection_error'};
