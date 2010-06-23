@@ -196,7 +196,7 @@ my $expected_keys = {
                          'check_external_commands','check_host_freshness','check_service_freshness','connections',
                          'connections_rate','enable_event_handlers','enable_flap_detection','enable_notifications',
                          'execute_host_checks','execute_service_checks','forks','forks_rate','host_checks','host_checks_rate','interval_length',
-                         'last_command_check','last_log_rotation','livestatus_version','nagios_pid','neb_callbacks',
+                         'last_command_check','last_log_rotation','livestatus_version','log_messages','log_messages_rate','nagios_pid','neb_callbacks',
                          'neb_callbacks_rate','obsess_over_hosts','obsess_over_services','process_performance_data',
                          'program_start','program_version','requests','requests_rate','service_checks','service_checks_rate'
                        ],

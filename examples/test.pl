@@ -95,15 +95,13 @@ my $nl = Monitoring::Livestatus->new(
                                      verbose          => $opt_v,
                                      timeout          => 5,
                                      keepalive        => 1,
-                                     retries_on_error => 3,
-                                     retry_interval   => 3,
                                      logger           => get_logger(),
                                    );
 my $log = get_logger();
 
 #########################################################################
 my $querys = [
-    { 'query' => "GET status\nColums: program_start program_version",
+    { 'query' => "GET servicesbygroup\nLimit: 1\n",
       'sub'   => "selectall_arrayref",
       'opt'   => {Slice => 1 }
     },
