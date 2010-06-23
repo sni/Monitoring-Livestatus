@@ -1,6 +1,9 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
 
+0.54  Wed Jun 23 16:43:11 CEST 2010
+	- fixed utf8 support
+
 0.52  Mon May 17 15:54:42 CEST 2010
 	- fixed connection timeout
 

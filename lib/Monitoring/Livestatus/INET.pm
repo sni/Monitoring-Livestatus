@@ -76,6 +76,7 @@ sub _open {
         }
 
         setsockopt($sock, IPPROTO_TCP, TCP_NODELAY, 1);
+
     };
 
     if($@) {
@@ -83,6 +84,8 @@ sub _open {
         $Monitoring::Livestatus::ErrorMessage = $@;
         return;
     }
+
+    binmode $sock => ":encoding(utf8)";
 
     return($sock);
 }
