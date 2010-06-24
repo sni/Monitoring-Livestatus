@@ -13,6 +13,7 @@ requires 'Digest::MD5';
 requires 'Scalar::Util';
 requires 'Test::More'        => '0.87';
 requires 'Thread::Queue'     => '2.11';
+requires 'utf8';
 
 # test requirements get into the META.yml and will break normal installation
 # install them by hand if you want to do author tests

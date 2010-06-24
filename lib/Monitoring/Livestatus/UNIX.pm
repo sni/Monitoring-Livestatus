@@ -80,8 +80,6 @@ sub _open {
         $sock->timeout($self->{'query_timeout'});
     }
 
-    binmode $sock => ":encoding(utf8)";
-
     return($sock);
 }
 

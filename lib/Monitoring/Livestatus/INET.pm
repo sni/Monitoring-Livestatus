@@ -85,8 +85,6 @@ sub _open {
         return;
     }
 
-    binmode $sock => ":encoding(utf8)";
-
     return($sock);
 }
 
