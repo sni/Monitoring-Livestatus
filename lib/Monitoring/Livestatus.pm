@@ -1107,7 +1107,8 @@ sub _send_socket_do {
     my($recv,$header);
 
     my $sock = $self->_open() or return(491, $self->_get_error(491), $!);
-    utf8::encode($statement);
+    #utf8::encode($statement);
+    utf8::upgrade($statement);
     print $sock $statement or return($self->_socket_error($statement, $sock, 'write to socket failed: '.$!));
 
     if($self->{'keepalive'}) {

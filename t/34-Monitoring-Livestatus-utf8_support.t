@@ -10,7 +10,7 @@ if ( !defined $ENV{TEST_SERVER} ) {
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} to run';
     plan( skip_all => $msg );
 } else {
-    plan( tests => 7 );
+    plan( tests => 9 );
 }
 
 use_ok('Monitoring::Livestatus');
@@ -34,6 +34,7 @@ my $objects_to_test = {
   '02 inet_single_arg' => Monitoring::Livestatus::INET->new( $ENV{TEST_SERVER} ),
 };
 
+my $author = 'Monitoring::Livestatus test';
 for my $key (sort keys %{$objects_to_test}) {
     my $ml = $objects_to_test->{$key};
     isa_ok($ml, 'Monitoring::Livestatus');
@@ -51,18 +52,23 @@ for my $key (sort keys %{$objects_to_test}) {
     my $firsthost = $ml->selectscalar_value("GET hosts\nColumns: name\nLimit: 1");
     isnt($firsthost, undef, 'get test hostname') or BAIL_OUT($key.': got not test hostname');
 
-    my $teststring = "aa \x{c2}\x{b2}&\x{c3}\x{a9}\"'''(\x{c2}\x{a7}\x{c3}\x{a8}!\x{c3}\x{a7}\x{c3}\x{a0})- %s ''%s'' aa ~ \x{e2}\x{82}\x{ac} bb";
-    $ml->do('COMMAND ['.time().'] SCHEDULE_HOST_DOWNTIME;'.$firsthost.';'.time().';'.(time()+180).';1;0;180;perl test;'.$teststring);
+    my $teststrings = [
+        "aa ²&é\"'''(§è!çà)- %s ''%s'' aa ~ € bb",
+        "aa \x{c2}\x{b2}&\x{c3}\x{a9}\"'''(\x{c2}\x{a7}\x{c3}\x{a8}!\x{c3}\x{a7}\x{c3}\x{a0})- %s ''%s'' aa ~ \x{e2}\x{82}\x{ac} bb",
+    ];
+    for my $string (@{$teststrings}) {
+        $ml->do('COMMAND ['.time().'] SCHEDULE_HOST_DOWNTIME;'.$firsthost.';'.time().';'.(time()+300).';1;0;300;'.$author.';'.$string);
 
-    # sometimes it takes while till the downtime is accepted
-    my $waited = 0;
-    while($downtimes = $ml->selectall_arrayref("GET downtimes\nColumns: id comment", { Slice => 1 }) and scalar @{$downtimes} < $num_downtimes + 1) {
-      print "waiting for the downtime...\n";
-      sleep(1);
-      $waited++;
-      BAIL_OUT('waited 30 seconds for the downtime...') if $waited > 30;
+        # sometimes it takes while till the downtime is accepted
+        my $waited = 0;
+        while($downtimes = $ml->selectall_arrayref("GET downtimes\nColumns: id comment", { Slice => 1 }) and scalar @{$downtimes} < $num_downtimes + 1) {
+          print "waiting for the downtime...\n";
+          sleep(1);
+          $waited++;
+          BAIL_OUT('waited 30 seconds for the downtime...') if $waited > 30;
+        }
+
+        my $last_downtime = pop @{$downtimes};
+        is($last_downtime->{'comment'}, $teststrings->[0], 'get same utf8 comment');
     }
-
-    my $last_downtime = shift @{$downtimes};
-    is($teststring, $last_downtime->{'comment'}, 'get same utf8 comment');
 }
