@@ -3,6 +3,7 @@
 #########################
 
 use strict;
+use Encode;
 use Test::More;
 use Data::Dumper;
 
@@ -52,8 +53,11 @@ for my $key (sort keys %{$objects_to_test}) {
     my $firsthost = $ml->selectscalar_value("GET hosts\nColumns: name\nLimit: 1");
     isnt($firsthost, undef, 'get test hostname') or BAIL_OUT($key.': got not test hostname');
 
+    my $expect = "aa ²&é\"'''(§è!çà)- %s ''%s'' aa ~ € bb";
+    #my $expect = "öäüß";
     my $teststrings = [
-        "aa ²&é\"'''(§è!çà)- %s ''%s'' aa ~ € bb",
+        $expect,
+        #"\xc3\xa4\xc3\xb6\xc3\xbc\xc3\x9f",
         "aa \x{c2}\x{b2}&\x{c3}\x{a9}\"'''(\x{c2}\x{a7}\x{c3}\x{a8}!\x{c3}\x{a7}\x{c3}\x{a0})- %s ''%s'' aa ~ \x{e2}\x{82}\x{ac} bb",
     ];
     for my $string (@{$teststrings}) {
@@ -69,6 +73,7 @@ for my $key (sort keys %{$objects_to_test}) {
         }
 
         my $last_downtime = pop @{$downtimes};
-        is($last_downtime->{'comment'}, $teststrings->[0], 'get same utf8 comment');
+        utf8::decode($expect);
+        is($last_downtime->{'comment'}, $expect, 'get same utf8 comment');
     }
 }

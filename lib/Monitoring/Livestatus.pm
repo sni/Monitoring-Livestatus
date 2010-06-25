@@ -9,6 +9,7 @@ use Digest::MD5 qw(md5_hex);
 use Monitoring::Livestatus::INET;
 use Monitoring::Livestatus::UNIX;
 use Monitoring::Livestatus::MULTI;
+use Encode;
 
 our $VERSION = '0.54';
 
@@ -877,6 +878,7 @@ sub _send {
     my $row_count = 0;
     ## no critic
     for my $line (split/$line_seperator/m, $body) {
+        utf8::decode($line);
         $row_count++;
         next unless $row_count >= $limit_start;
 
@@ -1107,9 +1109,8 @@ sub _send_socket_do {
     my($recv,$header);
 
     my $sock = $self->_open() or return(491, $self->_get_error(491), $!);
-    #utf8::encode($statement);
-    utf8::upgrade($statement);
-    print $sock $statement or return($self->_socket_error($statement, $sock, 'write to socket failed: '.$!));
+    utf8::decode($statement);
+    print $sock encode('utf-8' => $statement) or return($self->_socket_error($statement, $sock, 'write to socket failed: '.$!));
 
     if($self->{'keepalive'}) {
         print $sock "\n";
