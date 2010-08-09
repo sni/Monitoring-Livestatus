@@ -101,7 +101,7 @@ my $log = get_logger();
 
 #########################################################################
 my $querys = [
-    { 'query' => "GET servicesbygroup\nLimit: 1\n",
+    { 'query' => "GET hostgroups\nColumns: members\nFilter: name = flap\nFilter: name = down\nOr: 2",
       'sub'   => "selectall_arrayref",
       'opt'   => {Slice => 1 }
     },

@@ -6,6 +6,7 @@ use strict;
 use Test::More;
 use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
 use Data::Dumper;
+use JSON::XS;
 
 BEGIN {
   eval {require threads;};
@@ -16,7 +17,7 @@ BEGIN {
       plan skip_all => 'no sockets on windows';
   }
   else{
-    plan tests => 105
+    plan tests => 109
   }
 }
 
@@ -33,6 +34,8 @@ my $test_data           = [ ["alias","name","contacts"],       # table header
                             ["alias2","host2","contact2"],     # row 2
                             ["alias3","host3","contact3"],     # row 3
                           ];
+my $test_hostgroups     = [['']]; # test one row with no data
+
 # expected results
 my $selectall_arrayref1 = [ [ 'alias1', 'host1', 'contact1' ],
                             [ 'alias2', 'host2', 'contact2' ],
@@ -246,6 +249,14 @@ for my $key (keys %{$objects_to_test}) {
     $hash_ref = $ml->selectrow_hashref($empty_statement);
     is_deeply($hash_ref, $empty_selectrow_hashref, 'selectrow_hashref($empty_statement)')
         or diag("got: ".Dumper($hash_ref)."\nbut expected ".Dumper($empty_selectrow_hashref));
+        
+    ##################################################
+    # empty rows and columns
+    ##################################################
+    my $empty_hostgroups_stm = "GET hostgroups\nColumns: members";
+    $ary_ref  = $ml->selectall_arrayref($empty_hostgroups_stm);
+    is_deeply($ary_ref, $test_hostgroups, 'selectall_arrayref($empty_hostgroups_stm)')
+        or diag("got: ".Dumper($ary_ref)."\nbut expected ".Dumper($test_hostgroups));
 
 }
 
@@ -292,16 +303,20 @@ sub create_socket {
             $data = '';
         }
         elsif($recv =~ m/^GET hosts\s+Columns: alias/m) {
-            $data = join( chr($line_seperator), map( join( chr($column_seperator), $_->[0]), @{$test_data}[1..3] ) )."\n";
+            my @data = @{$test_data}[1..3];
+            $data = encode_json(\@data)."\n";
         }
         elsif($recv =~ m/^GET hosts\s+Columns: name/m) {
-            $data = join( chr($line_seperator), map( join( chr($column_seperator), $_->[1]), @{$test_data}[1..3] ) )."\n";
+            $data = encode_json(\@{$test_data}[1..3])."\n";
         }
         elsif($recv =~ m/^GET hosts/) {
-            $data = join( chr($line_seperator), map( join( chr($column_seperator), @{$_}), @{$test_data} ) )."\n";
+            $data = encode_json($test_data)."\n";
+        }
+        elsif($recv =~ m/^GET hostgroups/) {
+            $data = encode_json(\@{$test_hostgroups})."\n";
         }
         elsif($recv =~ m/^GET services/ and $recv =~ m/Stats:/m) {
-            $data = join( chr($line_seperator), map( join( chr($column_seperator), @{$_}), @{$stats_data} ) )."\n";
+            $data = encode_json(\@{$stats_data})."\n";
         }
         my $content_length = sprintf("%11s", length($data));
         print $socket $status." ".$content_length."\n";
