@@ -7,6 +7,13 @@ all_from     'lib/Monitoring/Livestatus.pm';
 perl_version '5.006';
 license      'perl';
 
+resources(
+    'homepage',   => 'http://search.cpan.org/dist/Monitoring-Livestatus/',
+    'bugtracker'  => 'http://github.com/sni/Monitoring-Livestatus/issues',
+    'repository', => 'http://github.com/sni/Monitoring-Livestatus',
+);
+
+
 requires 'IO::Socket::UNIX';
 requires 'IO::Socket::INET';
 requires 'Digest::MD5';
@@ -17,15 +24,14 @@ requires 'utf8';
 requires 'Encode';
 requires 'JSON::XS';
 
-# test requirements get into the META.yml and will break normal installation
-# install them by hand if you want to do author tests
-#test_requires 'File::Copy::Recursive';
-#test_requires 'Test::Pod' => 1.14;
-#test_requires 'Test::Perl::Critic';
-#test_requires 'Test::Pod::Coverage';
-#test_requires 'Perl::Critic::Policy::Dynamic::NoIndirect';
-#test_requires 'Perl::Critic::Policy::NamingConventions::ProhibitMixedCaseSubs';
-#test_requires 'Perl::Critic::Policy::ValuesAndExpressions::ProhibitAccessOfPrivateData';
+# test requirements
+test_requires 'File::Copy::Recursive';
+test_requires 'Test::Pod' => 1.14;
+test_requires 'Test::Perl::Critic';
+test_requires 'Test::Pod::Coverage';
+test_requires 'Perl::Critic::Policy::Dynamic::NoIndirect';
+test_requires 'Perl::Critic::Policy::NamingConventions::ProhibitMixedCaseSubs';
+test_requires 'Perl::Critic::Policy::ValuesAndExpressions::ProhibitAccessOfPrivateData';
 
 auto_install;
 WriteAll;

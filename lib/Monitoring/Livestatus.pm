@@ -12,7 +12,7 @@ use Monitoring::Livestatus::MULTI;
 use Encode;
 use JSON::XS;
 
-our $VERSION = '0.54';
+our $VERSION = '0.58';
 
 
 =head1 NAME
@@ -318,9 +318,31 @@ sub selectall_arrayref {
                 }
                 $hash_ref->{$key} = $res->[$x];
             }
+            # add callbacks
+            if(exists $opt->{'callbacks'}) {
+                for my $key (keys %{$opt->{'callbacks'}}) {
+                    $hash_ref->{$key} = $opt->{'callbacks'}->{$key}->($hash_ref);
+                }
+            }
             push @hash_refs, $hash_ref;
         }
         return(\@hash_refs);
+    }
+    elsif(exists $opt->{'callbacks'}) {
+        for my $res (@{$result->{'result'}}) {
+            # add callbacks
+            if(exists $opt->{'callbacks'}) {
+                for my $key (keys %{$opt->{'callbacks'}}) {
+                    push @{$res}, $opt->{'callbacks'}->{$key}->($res);
+                }
+            }
+        }
+    }
+
+    if(exists $opt->{'callbacks'}) {
+        for my $key (keys %{$opt->{'callbacks'}}) {
+            push @{$result->{'keys'}}, $key;
+        }
     }
 
     return($result->{'result'});
@@ -1442,6 +1464,7 @@ sub _lowercase_and_verify_options {
         'rename'        => 1,
         'slice'         => 1,
         'sum'           => 1,
+        'callbacks'     => 1,
     };
 
     for my $key (keys %{$opts}) {

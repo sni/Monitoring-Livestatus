@@ -31,6 +31,7 @@ t/31-Monitoring-Livestatus-MULTI-live-test.t
 t/32-Monitoring-Livestatus-backend-test.t
 t/33-Monitoring-Livestatus-test_socket_timeout.t
 t/34-Monitoring-Livestatus-utf8_support.t
+t/35-Monitoring-Livestatus-callbacks_support.t
 t/97-Pod.t
 t/98-Pod-Coverage.t
 t/99-Perl-Critic.t
