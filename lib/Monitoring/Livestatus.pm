@@ -875,9 +875,20 @@ sub _send {
 
     my $limit_start = 0;
     if(defined $opt->{'limit_start'}) { $limit_start = $opt->{'limit_start'}; }
-
-    utf8::decode($body);
-    my $result = decode_json($body);
+    #utf8::encode($body);
+    my $result;
+    # fix json output
+    $body =~ s/\],\n\]\n$/]]/mx;
+    eval {
+        $result = decode_json($body);
+    };
+    if($@) {
+        my $message = "ERROR ".$@." in text: '".$body."'\" for statement: '$statement'\n";
+        $self->{'logger'}->error($message) if $self->{'verbose'};
+        if($self->{'errors_are_fatal'}) {
+            croak($message);
+        }
+    }
 
     # for querys with column header, no separate columns will be returned
     if(!defined $keys) {
@@ -886,13 +897,6 @@ sub _send {
             carp("got statement without Columns: header! -> ".$statement);
         }
         $keys = shift @{$result};
-
-        # remove first element of keys, because its the peer_name
-        if(defined $with_peers and $with_peers == 1) {
-            shift @{$keys};
-            shift @{$keys};
-            shift @{$keys};
-        }
     }
 
     # add peer information?
@@ -900,7 +904,7 @@ sub _send {
         unshift @{$keys}, 'peer_name';
         unshift @{$keys}, 'peer_addr';
         unshift @{$keys}, 'peer_key';
-        
+
         for my $row (@{$result}) {
             unshift @{$row}, $peer_name;
             unshift @{$row}, $peer_addr;

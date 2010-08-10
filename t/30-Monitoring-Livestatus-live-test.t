@@ -200,7 +200,7 @@ my $expected_keys = {
                          'neb_callbacks_rate','obsess_over_hosts','obsess_over_services','process_performance_data',
                          'program_start','program_version','requests','requests_rate','service_checks','service_checks_rate'
                        ],
-    'timeperiods'   => [ 'name', 'alias' ],
+    'timeperiods'   => [ 'in', 'name', 'alias' ],
 };
 
 my $author = 'Monitoring::Livestatus test';
