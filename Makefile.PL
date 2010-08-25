@@ -25,13 +25,16 @@ requires 'Encode';
 requires 'JSON::XS';
 
 # test requirements
-test_requires 'File::Copy::Recursive';
-test_requires 'Test::Pod' => 1.14;
-test_requires 'Test::Perl::Critic';
-test_requires 'Test::Pod::Coverage';
-test_requires 'Perl::Critic::Policy::Dynamic::NoIndirect';
-test_requires 'Perl::Critic::Policy::NamingConventions::ProhibitMixedCaseSubs';
-test_requires 'Perl::Critic::Policy::ValuesAndExpressions::ProhibitAccessOfPrivateData';
+feature     ('authortests',
+  -default                                                                  => 0,
+  'File::Copy::Recursive'                                                   => 0,
+  'Test::Pod'                                                               => 1.14,
+  'Test::Perl::Critic'                                                      => 0,
+  'Test::Pod::Coverage'                                                     => 0,
+  'Perl::Critic::Policy::Dynamic::NoIndirect'                               => 0,
+  'Perl::Critic::Policy::NamingConventions::ProhibitMixedCaseSubs'          => 0,
+  'Perl::Critic::Policy::ValuesAndExpressions::ProhibitAccessOfPrivateData' => 0,
+);
 
 auto_install;
 WriteAll;

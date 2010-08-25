@@ -12,7 +12,7 @@ use Monitoring::Livestatus::MULTI;
 use Encode;
 use JSON::XS;
 
-our $VERSION = '0.58';
+our $VERSION = '0.60';
 
 
 =head1 NAME
@@ -866,7 +866,6 @@ sub _send {
             $self->{'logger'}->debug("msg:    ".Dumper($msg));
             $self->{'logger'}->debug("< ".Dumper($body));
         }
-        #($status,$msg,$body) = @erg;
     }
 
     if($status >= 300) {

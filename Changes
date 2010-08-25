@@ -1,6 +1,9 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
 
+0.60  Wed Aug 25 15:04:22 CEST 2010
+	- fixed package and made author tests optional
+
 0.58  Wed Aug 11 09:30:30 CEST 2010
 	- added callback support
 
