@@ -1126,11 +1126,7 @@ sub _send_socket_do {
     utf8::decode($statement);
     print $sock encode('utf-8' => $statement) or return($self->_socket_error($statement, $sock, 'write to socket failed: '.$!));
 
-    if($self->{'keepalive'}) {
-        print $sock "\n";
-    } else {
-        $sock->shutdown(1) or croak("shutdown failed: $!");
-    }
+    print $sock "\n";
 
     # COMMAND statements never return something
     if($statement =~ m/^COMMAND/mx) {

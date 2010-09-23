@@ -296,7 +296,7 @@ sub create_socket {
     }
     while( my $socket = $listener->accept() or die('cannot accept: $!') ) {
         my $recv = "";
-        while(<$socket>) { $recv .= $_; }
+        while(<$socket>) { $recv .= $_; last if $_ eq "\n" }
         my $data;
         my $status = 200;
         if($recv =~ m/^GET .*?\s+Filter:.*?empty/m) {
