@@ -275,6 +275,8 @@ sub create_socket {
     my $type = shift;
     my $listener;
 
+    $SIG{'KILL'} = sub { threads->exit(); };
+
     if($type eq 'unix') {
       print "creating unix socket\n";
       $listener = IO::Socket::UNIX->new(
