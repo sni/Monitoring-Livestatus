@@ -25,16 +25,17 @@ requires 'Encode';
 requires 'JSON::XS';
 
 # test requirements
-feature     ('authortests',
-  -default                                                                  => 0,
-  'File::Copy::Recursive'                                                   => 0,
-  'Test::Pod'                                                               => 1.14,
-  'Test::Perl::Critic'                                                      => 0,
-  'Test::Pod::Coverage'                                                     => 0,
-  'Perl::Critic::Policy::Dynamic::NoIndirect'                               => 0,
-  'Perl::Critic::Policy::NamingConventions::ProhibitMixedCaseSubs'          => 0,
-  'Perl::Critic::Policy::ValuesAndExpressions::ProhibitAccessOfPrivateData' => 0,
-);
+# these requirements still make it into the META.yml, so they are commented so far
+#feature     ('authortests',
+#  -default                                                                  => 0,
+#  'File::Copy::Recursive'                                                   => 0,
+#  'Test::Pod'                                                               => 1.14,
+#  'Test::Perl::Critic'                                                      => 0,
+#  'Test::Pod::Coverage'                                                     => 0,
+#  'Perl::Critic::Policy::Dynamic::NoIndirect'                               => 0,
+#  'Perl::Critic::Policy::NamingConventions::ProhibitMixedCaseSubs'          => 0,
+#  'Perl::Critic::Policy::ValuesAndExpressions::ProhibitAccessOfPrivateData' => 0,
+#);
 
 auto_install;
 WriteAll;

@@ -1,6 +1,9 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
 
+0.64  Fri Nov  5 11:02:51 CET 2010
+	- removed useless test dependecies
+
 0.62  Wed Nov  3 15:20:02 CET 2010
 	- fixed tests with threads > 1.79
 
