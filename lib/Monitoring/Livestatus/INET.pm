@@ -55,6 +55,8 @@ sub _open {
     my $sock;
 
     eval {
+        local $SIG{'ALRM'} = sub { die("connection timeout"); };
+        alarm($self->{'connect_timeout'});
         $sock = IO::Socket::INET->new(
                                          PeerAddr => $self->{'peer'},
                                          Type     => SOCK_STREAM,
@@ -69,6 +71,8 @@ sub _open {
             $Monitoring::Livestatus::ErrorMessage = $msg;
             return;
         }
+
+        alarm(0);
 
         if(defined $self->{'query_timeout'}) {
             # set timeout

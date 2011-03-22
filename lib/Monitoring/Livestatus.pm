@@ -12,7 +12,7 @@ use Monitoring::Livestatus::MULTI;
 use Encode;
 use JSON::XS;
 
-our $VERSION = '0.64';
+our $VERSION = '0.66';
 
 
 =head1 NAME
@@ -855,6 +855,14 @@ sub _send {
                 $header .= "KeepAlive: on\n";
             }
         }
+
+        # add additional headers
+        if(defined $opt->{'header'} and ref $opt->{'header'} eq 'HASH') {
+            for my $key ( keys %{$opt->{'header'}}) {
+                $header .= "\n".$key.": ".$opt->{'header'}->{$key};
+            }
+        }
+
         chomp($statement);
         my $send = "$statement\n$header";
         $self->{'logger'}->debug("> ".Dumper($send)) if $self->{'verbose'};
@@ -1453,6 +1461,7 @@ sub _lowercase_and_verify_options {
         'backend'       => 1,
         'columns'       => 1,
         'deepcopy'      => 1,
+        'header'        => 1,
         'limit'         => 1,
         'limit_start'   => 1,
         'limit_length'  => 1,

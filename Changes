@@ -1,6 +1,9 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
 
+0.66  Tue Mar 22 23:19:23 CET 2011
+	- added support for additonal headers
+
 0.64  Fri Nov  5 11:02:51 CET 2010
 	- removed useless test dependecies
 
