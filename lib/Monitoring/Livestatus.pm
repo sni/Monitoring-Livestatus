@@ -12,7 +12,7 @@ use Monitoring::Livestatus::MULTI;
 use Encode;
 use JSON::XS;
 
-our $VERSION = '0.66';
+our $VERSION = '0.68';
 
 
 =head1 NAME
@@ -859,7 +859,7 @@ sub _send {
         # add additional headers
         if(defined $opt->{'header'} and ref $opt->{'header'} eq 'HASH') {
             for my $key ( keys %{$opt->{'header'}}) {
-                $header .= "\n".$key.": ".$opt->{'header'}->{$key};
+                $header .= $key.": ".$opt->{'header'}->{$key}."\n";
             }
         }
 
