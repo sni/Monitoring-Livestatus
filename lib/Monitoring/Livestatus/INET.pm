@@ -69,10 +69,9 @@ sub _open {
             }
             $Monitoring::Livestatus::ErrorCode    = 500;
             $Monitoring::Livestatus::ErrorMessage = $msg;
+            alarm(0);
             return;
         }
-
-        alarm(0);
 
         if(defined $self->{'query_timeout'}) {
             # set timeout
@@ -82,6 +81,7 @@ sub _open {
         setsockopt($sock, IPPROTO_TCP, TCP_NODELAY, 1);
 
     };
+    alarm(0);
 
     if($@) {
         $Monitoring::Livestatus::ErrorCode    = 500;
