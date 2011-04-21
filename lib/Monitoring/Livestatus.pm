@@ -12,7 +12,7 @@ use Monitoring::Livestatus::MULTI;
 use Encode;
 use JSON::XS;
 
-our $VERSION = '0.72';
+our $VERSION = '0.74';
 
 
 =head1 NAME
@@ -784,9 +784,6 @@ sub _send {
     return(490, $self->_get_error(490), undef) if !defined $statement;
     chomp($statement);
 
-    # remove empty lines from statement
-    $statement =~ s/\n+/\n/gmx;
-
     my($status,$msg,$body);
     if($statement =~ m/^Separators:/mx) {
         $status = 492;
@@ -848,12 +845,13 @@ sub _send {
 
         # Commands need no additional header
         if($statement !~ m/^COMMAND/mx) {
-            #$header .= "ColumnHeaders: on\n";
             $header .= "OutputFormat: json\n";
             $header .= "ResponseHeader: fixed16\n";
             if($self->{'keepalive'}) {
                 $header .= "KeepAlive: on\n";
             }
+            # remove empty lines from statement
+            $statement =~ s/\n+/\n/gmx;
         }
 
         # add additional headers
@@ -904,7 +902,6 @@ sub _send {
 
     my $limit_start = 0;
     if(defined $opt->{'limit_start'}) { $limit_start = $opt->{'limit_start'}; }
-    #utf8::encode($body);
     my $result;
     # fix json output
     $body =~ s/\],\n\]\n$/]]/mx;
