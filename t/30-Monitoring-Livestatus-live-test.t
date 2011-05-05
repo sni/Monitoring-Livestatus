@@ -109,7 +109,7 @@ my $expected_keys = {
                        ],
     'comments'      => [
                          '__all_from_hosts__', '__all_from_services__',
-                         'author','comment','entry_time','entry_type','expire_time','expires', 'id','persistent',
+                         'author','comment','entry_time','entry_type','expire_time','expires', 'id','is_service','persistent',
                          'source','type'
                        ],
     'contacts'      => [
@@ -122,7 +122,7 @@ my $expected_keys = {
     'contactgroups' => [ 'name', 'alias', 'members' ],
     'downtimes'     => [
                          '__all_from_hosts__', '__all_from_services__',
-                         'author','comment','duration','end_time','entry_time','fixed','id','start_time',
+                         'author','comment','duration','end_time','entry_time','fixed','id','is_service','start_time',
                          'triggered_by','type'
                        ],
     'hostgroups'    => [
@@ -134,7 +134,7 @@ my $expected_keys = {
                        ],
     'hosts'         => [
                          'accept_passive_checks','acknowledged','acknowledgement_type','action_url','action_url_expanded',
-                         'active_checks_enabled','address','alias','check_command','check_freshness','check_interval',
+                         'active_checks_enabled','address','alias','check_command','check_flapping_recovery_notification','check_freshness','check_interval',
                          'check_options','check_period','check_type','checks_enabled','childs','comments','comments_with_info',
                          'contacts','current_attempt','current_notification_number','custom_variable_names',
                          'custom_variable_values','display_name','downtimes','downtimes_with_info','event_handler_enabled',
@@ -144,12 +144,12 @@ my $expected_keys = {
                          'last_hard_state_change','last_notification','last_state','last_state_change','latency','last_time_down',
                          'last_time_unreachable','last_time_up','long_plugin_output','low_flap_threshold','max_check_attempts','name',
                          'modified_attributes','modified_attributes_list','next_check',
-                         'next_notification','notes','notes_expanded','notes_url','notes_url_expanded','notification_interval',
+                         'next_notification','no_more_notifications','notes','notes_expanded','notes_url','notes_url_expanded','notification_interval',
                          'notification_period','notifications_enabled','num_services','num_services_crit','num_services_hard_crit',
                          'num_services_hard_ok','num_services_hard_unknown','num_services_hard_warn','num_services_ok',
                          'num_services_pending','num_services_unknown','num_services_warn','obsess_over_host','parents',
-                         'pending_flex_downtime','percent_state_change','perf_data','plugin_output',
-                         'process_performance_data','retry_interval','scheduled_downtime_depth','services','services_with_state',
+                         'pending_flex_downtime','percent_state_change','pnpgraph_present','perf_data','plugin_output',
+                         'process_performance_data','retry_interval','scheduled_downtime_depth','services','services_with_info','services_with_state',
                          'state','state_type','statusmap_image','total_services','worst_service_hard_state','worst_service_state',
                          'x_3d','y_3d','z_3d'
                        ],
@@ -183,9 +183,9 @@ my $expected_keys = {
                          'last_hard_state','last_hard_state_change','last_notification','last_state',
                          'last_state_change','latency','last_time_critical','last_time_ok','last_time_unknown','last_time_warning',
                          'long_plugin_output','low_flap_threshold','max_check_attempts','modified_attributes','modified_attributes_list',
-                         'next_check','next_notification','notes','notes_expanded','notes_url','notes_url_expanded',
+                         'next_check','next_notification','no_more_notifications','notes','notes_expanded','notes_url','notes_url_expanded',
                          'notification_interval','notification_period','notifications_enabled','obsess_over_service',
-                         'percent_state_change','perf_data','plugin_output','process_performance_data','retry_interval',
+                         'percent_state_change','pnpgraph_present','perf_data','plugin_output','process_performance_data','retry_interval',
                          'scheduled_downtime_depth','state','state_type'
                        ],
     'servicesbyhostgroup' => [
@@ -195,7 +195,7 @@ my $expected_keys = {
                          'accept_passive_host_checks','accept_passive_service_checks','cached_log_messages',
                          'check_external_commands','check_host_freshness','check_service_freshness','connections',
                          'connections_rate','enable_event_handlers','enable_flap_detection','enable_notifications',
-                         'execute_host_checks','execute_service_checks','forks','forks_rate','host_checks','host_checks_rate','interval_length',
+                         'execute_host_checks','execute_service_checks','external_command_buffer_max','external_command_buffer_slots','external_command_buffer_usage','external_commands','external_commands_rate','forks','forks_rate','host_checks','host_checks_rate','interval_length',
                          'last_command_check','last_log_rotation','livestatus_version','log_messages','log_messages_rate','nagios_pid','neb_callbacks',
                          'neb_callbacks_rate','obsess_over_hosts','obsess_over_services','process_performance_data',
                          'program_start','program_version','requests','requests_rate','service_checks','service_checks_rate'
