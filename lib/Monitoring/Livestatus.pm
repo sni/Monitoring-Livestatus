@@ -12,7 +12,7 @@ use Monitoring::Livestatus::MULTI;
 use Encode;
 use JSON::XS;
 
-our $VERSION = '0.74';
+our $VERSION = '0.76';
 
 
 =head1 NAME
