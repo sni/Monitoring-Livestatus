@@ -940,7 +940,7 @@ sub _send {
 
     # set some metadata
     $self->{'meta_data'} = {
-                    'result_count' => scalar @${result},
+                    'result_count' => scalar @{$result},
     };
 
     return({ keys => $keys, result => $result });
