@@ -914,6 +914,15 @@ sub _send {
         if($self->{'errors_are_fatal'}) {
             croak($message);
         }
+        return({ keys => [], result => []});
+    }
+    if(!defined $result) {
+        my $message = "ERROR undef result for text: '".$body."'\" for statement: '$statement'\n";
+        $self->{'logger'}->error($message) if $self->{'verbose'};
+        if($self->{'errors_are_fatal'}) {
+            croak($message);
+        }
+        return({ keys => [], result => []});
     }
 
     # for querys with column header, no separate columns will be returned
