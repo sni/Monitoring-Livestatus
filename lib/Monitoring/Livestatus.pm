@@ -147,7 +147,6 @@ sub new {
       "warnings"                    => 1,       # show warnings, for example on querys without Column: Header
       "logger"                      => undef,   # logger object used for statistical informations and errors / warnings
       "deepcopy"                    => undef,   # copy result set to avoid errors with tied structures
-      "disabled"                    => 0,       # if disabled, this peer will not receive any query
       "retries_on_connection_error" => 3,       # retry x times to connect
       "retry_interval"              => 1,       # retry after x seconds
     };
@@ -217,7 +216,6 @@ Always returns true.
 
 sub do {
     my($self, $statement) = @_;
-    return if $self->{'disabled'};
     $self->_send($statement);
     return(1);
 }
@@ -265,7 +263,6 @@ column aliases can be defined with a rename hash
 sub selectall_arrayref {
     my($self, $statement, $opt, $limit) = @_;
     $limit = 0 unless defined $limit;
-    return if $self->{'disabled'};
     my $result;
 
     # make opt hash keys lowercase
@@ -325,7 +322,6 @@ sub selectall_arrayref {
             push @{$result->{'keys'}}, $key;
         }
     }
-
     return($result->{'result'});
 }
 
@@ -673,40 +669,6 @@ sub peer_key {
     return $self->{'key'};
 }
 
-
-########################################
-
-=head2 disable
-
- $ml->disable()
-
-disables this connection, returns the last state.
-
-=cut
-sub disable {
-    my($self) = @_;
-    my $prev = $self->{'disabled'};
-    $self->{'disabled'} = 1;
-    return $prev;
-}
-
-
-########################################
-
-=head2 enable
-
- $ml->enable()
-
-enables this connection, returns the last state.
-
-=cut
-sub enable {
-    my($self) = @_;
-    my $prev = $self->{'disabled'};
-    $self->{'disabled'} = 0;
-    return $prev;
-}
-
 ########################################
 # INTERNAL SUBS
 ########################################
@@ -848,10 +810,10 @@ sub _send {
     my $limit_start = 0;
     if(defined $opt->{'limit_start'}) { $limit_start = $opt->{'limit_start'}; }
     my $result;
+    my $json_decoder = JSON::XS->new->utf8->relaxed;
     # fix json output
-    $body =~ s/\],\n\]\n$/]]/mx;
     eval {
-        $result = decode_json($body);
+        $result = $json_decoder->decode($body);
     };
     # fix low/high surrogate errors
     # missing high surrogate character in surrogate pair
@@ -860,7 +822,7 @@ sub _send {
         # replace u+D800 to u+DFFF (reserved utf-16 low/high surrogates)
         $body =~ s/\\ud[89a-f]\w{2}/\\ufffd/gmxi;
         eval {
-            $result = decode_json($body);
+            $result = $json_decoder->decode($body);
         };
     }
     if($@) {
@@ -1043,7 +1005,6 @@ sub _send_socket {
 
     my $retries = 0;
     my($status, $msg, $recv);
-
 
     # try to avoid connection errors
     eval {

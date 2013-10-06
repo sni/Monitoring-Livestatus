@@ -181,6 +181,7 @@ my $expected_keys = {
     'servicesbyhostgroup' => [
                          '__all_from_services__', '__all_from_hosts__', '__all_from_hostgroups__'
                        ],
+    'statehist'     => [],
     'status'        => [
                          'accept_passive_host_checks','accept_passive_service_checks','cached_log_messages',
                          'check_external_commands','check_host_freshness','check_service_freshness','connections',
@@ -239,7 +240,7 @@ for my $key (sort keys %{$objects_to_test}) {
         my $expected_keys = get_expected_keys($type);
         my $statement = "GET $type\n".$filter."Limit: 1";
         $lastquery = $statement;
-        my $hash_ref  = $ml->selectrow_hashref($statement );
+        my $hash_ref  = $ml->selectrow_hashref($statement);
         undef $lastquery;
         is(ref $hash_ref, 'HASH', $type.' keys are a hash') or BAIL_OUT($type.'keys are not in hash format, got '.Dumper($hash_ref));
         my @keys      = sort keys %{$hash_ref};
