@@ -6,8 +6,6 @@ use warnings;
 use Data::Dumper;
 use Carp;
 use Digest::MD5 qw(md5_hex);
-use Monitoring::Livestatus::INET;
-use Monitoring::Livestatus::UNIX;
 use Encode;
 use JSON::XS;
 
@@ -180,9 +178,11 @@ sub new {
         $options{'name'} = $peer->{'name'};
         $options{'peer'} = $peer->{'peer'};
         if($peer->{'type'} eq 'UNIX') {
+            require Monitoring::Livestatus::UNIX;
             $self->{'CONNECTOR'} = new Monitoring::Livestatus::UNIX(%options);
         }
         elsif($peer->{'type'} eq 'INET') {
+            require Monitoring::Livestatus::INET;
             $self->{'CONNECTOR'} = new Monitoring::Livestatus::INET(%options);
         }
         $self->{'peer'} = $peer->{'peer'};
