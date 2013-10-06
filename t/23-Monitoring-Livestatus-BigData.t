@@ -40,7 +40,7 @@ unlink($testfile.'.head', $testfile.'.data');
 
 ##########################################################
 my $mem_start = get_memory_usage();
-ok($mem_start, sprintf('memory at start: %.2f MB', $mem_start));
+ok($mem_start, sprintf('memory at start: %.2f MB', $mem_start/1024));
 
 ##########################################################
 # start netcat
@@ -62,12 +62,13 @@ is($result->[$testresults-1]->{'name'}, 'Test Host '.$testresults, 'result conta
 
 ##########################################################
 my $mem_end = get_memory_usage();
-ok($mem_end, sprintf('memory at end: %.2f MB', $mem_end));
+ok($mem_end, sprintf('memory at end: %.2f MB', $mem_end/1024));
 my $delta = $mem_end - $mem_start;
-ok($delta, sprintf('memory delta: %.2f MB', $delta));
-ok($delta, sprintf('memory per entry: %.6f MB', $delta/$testresults));
+ok($delta, sprintf('memory delta: %.2f MB', $delta/1024));
+ok($delta, sprintf('memory usage per entry: %d B', $delta*1024/$testresults));
 
 ##########################################################
+# returns memory usage in kB
 sub get_memory_usage {
     my($pid) = @_;
     $pid = $$ unless defined $pid;
@@ -76,7 +77,7 @@ sub get_memory_usage {
     open(my $ph, '-|', "ps -p $pid -o rss") or die("ps failed: $!");
     while(my $line = <$ph>) {
         if($line =~ m/(\d+)/mx) {
-            $rsize = sprintf("%.2f", $1/1024);
+            $rsize = sprintf("%.2f", $1);
         }
     }
     CORE::close($ph);

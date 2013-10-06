@@ -809,29 +809,34 @@ sub _send {
 
     my $limit_start = 0;
     if(defined $opt->{'limit_start'}) { $limit_start = $opt->{'limit_start'}; }
+    # body is already parsed
     my $result;
-    my $json_decoder = JSON::XS->new->utf8->relaxed;
-    # fix json output
-    eval {
-        $result = $json_decoder->decode($body);
-    };
-    # fix low/high surrogate errors
-    # missing high surrogate character in surrogate pair
-    # surrogate pair expected
-    if($@) {
-        # replace u+D800 to u+DFFF (reserved utf-16 low/high surrogates)
-        $body =~ s/\\ud[89a-f]\w{2}/\\ufffd/gmxi;
+    if($status == 200) {
+        $result = $body;
+    } else {
+        my $json_decoder = JSON::XS->new->utf8->relaxed;
+        # fix json output
         eval {
             $result = $json_decoder->decode($body);
         };
-    }
-    if($@) {
-        my $message = "ERROR ".$@." in text: '".$body."'\" for statement: '$statement'\n";
-        $self->{'logger'}->error($message) if $self->{'verbose'};
-        if($self->{'errors_are_fatal'}) {
-            croak($message);
+        # fix low/high surrogate errors
+        # missing high surrogate character in surrogate pair
+        # surrogate pair expected
+        if($@) {
+            # replace u+D800 to u+DFFF (reserved utf-16 low/high surrogates)
+            $body =~ s/\\ud[89a-f]\w{2}/\\ufffd/gmxi;
+            eval {
+                $result = $json_decoder->decode($body);
+            };
         }
-        return({ keys => [], result => []});
+        if($@) {
+            my $message = "ERROR ".$@." in text: '".$body."'\" for statement: '$statement'\n";
+            $self->{'logger'}->error($message) if $self->{'verbose'};
+            if($self->{'errors_are_fatal'}) {
+                croak($message);
+            }
+            return({ keys => [], result => []});
+        }
     }
     if(!defined $result) {
         my $message = "ERROR undef result for text: '".$body."'\" for statement: '$statement'\n";
@@ -1063,8 +1068,23 @@ sub _send_socket_do {
     $self->{'logger'}->debug("header: $header") if $self->{'verbose'};
     my($status, $msg, $content_length) = $self->_parse_header($header, $sock);
     return($status, $msg, undef) if !defined $content_length;
+    my $json_decoder = JSON::XS->new->utf8->relaxed;
     if($content_length > 0) {
-        $sock->read($recv, $content_length) or return($self->_socket_error($statement, $sock, 'reading body from socket failed'));
+        if($status == 200) {
+            my $remaining = $content_length;
+            my $length    = 8192;
+            if($remaining < $length) { $length = $remaining; }
+            while($length > 0 && $sock->read(my $buf, $length)) {
+                # replace u+D800 to u+DFFF (reserved utf-16 low/high surrogates)
+                $buf =~ s/\\ud[89a-f]\w{2}/\\ufffd/gmxio;
+                $json_decoder->incr_parse($buf);
+                $remaining = $remaining -$length;
+                if($remaining < $length) { $length = $remaining; }
+            }
+            $recv = $json_decoder->incr_parse or return($self->_socket_error($statement, $sock, 'reading body from socket failed: '.$json_decoder->incr_text));
+        } else {
+            $sock->read($recv, $content_length) or return($self->_socket_error($statement, $sock, 'reading body from socket failed'));
+        }
     }
 
     $self->_close($sock) unless $self->{'keepalive'};

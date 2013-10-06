@@ -10,7 +10,7 @@ if ( ! defined $ENV{TEST_SOCKET} or !defined $ENV{TEST_SERVER} ) {
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} to run';
     plan( skip_all => $msg );
 } else {
-    plan( tests => 331 );
+    plan( tests => 333 );
 }
 
 # set an alarm
@@ -23,6 +23,8 @@ $SIG{ALRM} = sub {
 alarm(120);
 
 use_ok('Monitoring::Livestatus');
+use_ok('Monitoring::Livestatus::INET');
+use_ok('Monitoring::Livestatus::UNIX');
 
 #########################
 my $line_seperator      = 10;
