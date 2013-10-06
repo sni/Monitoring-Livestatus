@@ -14,7 +14,7 @@ BEGIN {
         plan skip_all => 'no sockets on windows';
     }
     else {
-        plan tests => 35;
+        plan tests => 29;
     }
 }
 
@@ -69,30 +69,6 @@ isa_ok($ml, 'Monitoring::Livestatus', 'peer hash arg server');
 is($ml->peer_name(), $server, 'get peer_name()');
 is($ml->peer_addr(), $server, 'get peer_addr()');
 isa_ok($ml->{'CONNECTOR'}, 'Monitoring::Livestatus::INET', 'peer backend INET');
-
-#########################
-# create multi object with peers
-$ml = Monitoring::Livestatus->new(
-                                    peer              => [ $server, $socket_path ],
-                               );
-isa_ok($ml, 'Monitoring::Livestatus', 'peer hash arg multi');
-my @names  = $ml->peer_name();
-my @addrs  = $ml->peer_addr();
-my $name   = $ml->peer_name();
-my $expect = [ $server, $socket_path ];
-is_deeply(\@names, $expect, 'list context get peer_name()') or diag("got peer names: ".Dumper(\@names)."but expected:  ".Dumper($expect));
-is($name, 'multiple connector', 'scalar context get peer_name()') or diag("got peer name: ".Dumper($name)."but expected:  ".Dumper('multiple connector'));
-is_deeply(\@addrs, $expect, 'list context get peer_addr()') or diag("got peer addrs: ".Dumper(\@addrs)."but expected:  ".Dumper($expect));
-
-#########################
-# create multi object with peers and name
-$ml = Monitoring::Livestatus->new(
-                                    peer              => [ $server, $socket_path ],
-                                    name              => 'test multi',
-                               );
-isa_ok($ml, 'Monitoring::Livestatus', 'peer hash arg multi with name');
-$name = $ml->peer_name();
-is($name, 'test multi', 'peer_name()');
 
 #########################
 $ml = Monitoring::Livestatus->new(

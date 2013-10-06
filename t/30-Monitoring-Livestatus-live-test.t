@@ -88,16 +88,6 @@ my $objects_to_test = {
                                       peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
                                       use_threads         => 0,
                                     ),
-
-  # create multi object with only one peer
-  '11 multi_one_peer' => Monitoring::Livestatus::MULTI->new(
-                                      peer                => $ENV{TEST_SERVER},
-                                    ),
-
-  # create multi object without threads
-  '12 multi_two_peers' => Monitoring::Livestatus::MULTI->new(
-                                      peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
-                                    ),
 };
 
 my $expected_keys = {
