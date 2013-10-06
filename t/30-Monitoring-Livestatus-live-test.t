@@ -10,7 +10,7 @@ if ( ! defined $ENV{TEST_SOCKET} or !defined $ENV{TEST_SERVER} ) {
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} to run';
     plan( skip_all => $msg );
 } else {
-    plan( tests => 727 );
+    plan( tests => 331 );
 }
 
 # set an alarm
@@ -66,28 +66,6 @@ my $objects_to_test = {
                                       server              => $ENV{TEST_SERVER},
                                       keepalive           => 1,
                                     ),
-
-  # create multi single args
-  '07 multi_keepalive' => Monitoring::Livestatus->new( [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ] ),
-
-  # create multi object with keepalive
-  '08 multi_keepalive_hash_args' => Monitoring::Livestatus->new(
-                                      verbose             => 0,
-                                      peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
-                                      keepalive           => 1,
-                                    ),
-
-  # create multi object without keepalive
-  '09 multi_no_keepalive' => Monitoring::Livestatus->new(
-                                      peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
-                                      keepalive           => 0,
-                                    ),
-
-  # create multi object without threads
-  '10 multi_no_threads' => Monitoring::Livestatus->new(
-                                      peer                => [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ],
-                                      use_threads         => 0,
-                                    ),
 };
 
 my $expected_keys = {
@@ -104,7 +82,7 @@ my $expected_keys = {
                        ],
     'contacts'      => [
                          'address1','address2','address3','address4','address5','address6','alias',
-                         'can_submit_commands','custom_variable_names','custom_variable_values','email',
+                         'can_submit_commands','custom_variable_names','custom_variable_values','email','custom_variables',
                          'host_notification_period','host_notifications_enabled','in_host_notification_period',
                          'in_service_notification_period','name','modified_attributes','modified_attributes_list',
                          'pager','service_notification_period','service_notifications_enabled'
@@ -124,11 +102,11 @@ my $expected_keys = {
                        ],
     'hosts'         => [
                          'accept_passive_checks','acknowledged','acknowledgement_type','action_url','action_url_expanded',
-                         'active_checks_enabled','address','alias','check_command','check_flapping_recovery_notification','check_freshness','check_interval',
-                         'check_options','check_period','check_type','checks_enabled','childs','comments','comments_with_info',
-                         'contacts','current_attempt','current_notification_number','custom_variable_names',
-                         'custom_variable_values','display_name','downtimes','downtimes_with_info','event_handler_enabled',
-                         'execution_time','first_notification_delay','flap_detection_enabled','groups','hard_state','has_been_checked',
+                         'active_checks_enabled','address','alias','check_command','check_command_expanded','check_flapping_recovery_notification','check_freshness','check_interval',
+                         'check_options','check_period','check_type','checks_enabled','childs','comments','comments_with_extra_info','comments_with_info',
+                         'contact_groups','contacts','current_attempt','current_notification_number','custom_variable_names',
+                         'custom_variable_values','custom_variables','display_name','downtimes','downtimes_with_info','event_handler','event_handler_enabled',
+                         'execution_time','filename','first_notification_delay','flap_detection_enabled','groups','hard_state','has_been_checked',
                          'high_flap_threshold','icon_image','icon_image_alt','icon_image_expanded','in_check_period',
                          'in_notification_period','initial_state','is_executing','is_flapping','last_check','last_hard_state',
                          'last_hard_state_change','last_notification','last_state','last_state_change','latency','last_time_down',
@@ -163,9 +141,9 @@ my $expected_keys = {
     'services'      => [
                          '__all_from_hosts__',
                          'accept_passive_checks','acknowledged','acknowledgement_type','action_url','action_url_expanded',
-                         'active_checks_enabled','check_command','check_interval','check_options','check_period',
-                         'check_type','checks_enabled','comments','comments_with_info','contacts','current_attempt',
-                         'current_notification_number','custom_variable_names','custom_variable_values',
+                         'active_checks_enabled','check_command','check_command_expanded','check_freshness','check_interval','check_options','check_period',
+                         'check_type','checks_enabled','comments','comments_with_extra_info','comments_with_info','contact_groups','contacts','current_attempt',
+                         'current_notification_number','custom_variable_names','custom_variable_values','custom_variables',
                          'description','display_name','downtimes','downtimes_with_info','event_handler','event_handler_enabled',
                          'execution_time','first_notification_delay','flap_detection_enabled','groups',
                          'has_been_checked','high_flap_threshold','icon_image','icon_image_alt','icon_image_expanded','in_check_period',
@@ -187,8 +165,8 @@ my $expected_keys = {
                          'check_external_commands','check_host_freshness','check_service_freshness','connections',
                          'connections_rate','enable_event_handlers','enable_flap_detection','enable_notifications',
                          'execute_host_checks','execute_service_checks','external_command_buffer_max','external_command_buffer_slots','external_command_buffer_usage','external_commands','external_commands_rate','forks','forks_rate','host_checks','host_checks_rate','interval_length',
-                         'last_command_check','last_log_rotation','livestatus_version','log_messages','log_messages_rate','nagios_pid','neb_callbacks',
-                         'neb_callbacks_rate','obsess_over_hosts','obsess_over_services','process_performance_data',
+                         'last_command_check','last_log_rotation','livecheck_overflows','livecheck_overflows_rate','livechecks','livechecks_rate','livestatus_active_connections','livestatus_queued_connections','livestatus_threads','livestatus_version','log_messages','log_messages_rate','nagios_pid','neb_callbacks',
+                         'neb_callbacks_rate','num_hosts','num_services','obsess_over_hosts','obsess_over_services','process_performance_data',
                          'program_start','program_version','requests','requests_rate','service_checks','service_checks_rate'
                        ],
     'timeperiods'   => [ 'in', 'name', 'alias' ],
@@ -234,6 +212,7 @@ for my $key (sort keys %{$objects_to_test}) {
     #########################
     # check keys
     for my $type (keys %{$expected_keys}) {
+        next if $type eq 'statehist';
         my $filter = "";
         $filter  = "Filter: time > ".(time() - 86400)."\n" if $type eq 'log';
         $filter .= "Filter: time < ".(time())."\n"         if $type eq 'log';

@@ -21,7 +21,7 @@ $SIG{ALRM} = sub {
     my @caller = caller;
     $lastquery =~ s/\n+/\n/g;
     print STDERR 'last query: '.$lastquery."\n" if defined $lastquery;
-    confess "timeout reached:".Dumper(\@caller)."\n" 
+    confess "timeout reached:".Dumper(\@caller)."\n"
 };
 
 use_ok('Monitoring::Livestatus');
@@ -33,9 +33,6 @@ my $objects_to_test = {
 
   # TCP
   '02 inet_single_arg' => Monitoring::Livestatus::INET->new( $ENV{TEST_SERVER} ),
-
-  # MULTI
-  '03 multi_keepalive' => Monitoring::Livestatus->new( [ $ENV{TEST_SERVER}, $ENV{TEST_SOCKET} ] ),
 };
 
 for my $key (sort keys %{$objects_to_test}) {
@@ -54,6 +51,7 @@ for my $key (sort keys %{$objects_to_test}) {
     #########################
     # check keys
     for my $type (@tables) {
+        next if $type eq 'statehist';
         alarm(120);
         my $filter = "";
         $filter  = "Filter: time > ".(time() - 86400)."\n" if $type eq 'log';
@@ -98,7 +96,7 @@ for my $key (sort keys %{$objects_to_test}) {
             }
 
             # wait till backend is started up again
-            if(!defined $hash_ref and $Monitoring::Livestatus::ErrorCode > 200) { 
+            if(!defined $hash_ref and $Monitoring::Livestatus::ErrorCode > 200) {
                 sleep(2);
             }
         }

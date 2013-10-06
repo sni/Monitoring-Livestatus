@@ -7,8 +7,12 @@ use Encode;
 use Test::More;
 use Data::Dumper;
 
-if ( !defined $ENV{TEST_SERVER} ) {
-    my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} to run';
+if ( !defined $ENV{TEST_UTF8} ) {
+    my $msg = 'Author test. $ENV{TEST_UTF8} to run';
+    plan( skip_all => $msg );
+}
+elsif ( !defined $ENV{TEST_SERVER} ) {
+    my $msg = 'Author test.  Set $ENV{TEST_SERVER} to run';
     plan( skip_all => $msg );
 } else {
     plan( tests => 9 );
