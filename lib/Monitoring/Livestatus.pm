@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 use Data::Dumper qw/Dumper/;
-use Carp qw/croak confess/;
+use Carp qw/carp croak confess/;
 use Digest::MD5 qw(md5_hex);
 use Encode qw(encode);
 use JSON::XS qw();
@@ -30,9 +30,9 @@ data from Nagios and Icinga
 
 =head1 DESCRIPTION
 
-This module connects via socket/tcp to the check_mk livestatus addon for Nagios
-and Icinga. You first have to install and activate the mklivestatus addon in your
-monitoring installation.
+This module connects via socket/tcp to the livestatus addon for Naemon, Nagios,
+Icinga and Shinken. You first have to install and activate the livestatus addon
+in your monitoring installation.
 
 =head1 CONSTRUCTOR
 
@@ -278,7 +278,7 @@ sub selectall_arrayref {
     }
 
     # trim result set down to excepted row count
-    if(defined $limit and $limit >= 1) {
+    if(!$opt->{'offset'} && defined $limit and $limit >= 1) {
         if(scalar @{$result->{'result'}} > $limit) {
             @{$result->{'result'}} = @{$result->{'result'}}[0..$limit-1];
         }
@@ -753,9 +753,25 @@ sub _send {
             ($statement,$keys) = $self->_extract_keys_from_stats_statement($statement);
         }
 
+        # Offset header (currently naemon only)
+        if(defined $opt->{'offset'}) {
+            $statement .= "\nOffset: ".$opt->{'offset'};
+        }
+
+        # Sort header (currently naemon only)
+        if(defined $opt->{'sort'}) {
+            for my $sort (@{$opt->{'sort'}}) {
+                $statement .= "\nSort: ".$sort;
+            }
+        }
+
         # Commands need no additional header
         if($statement !~ m/^COMMAND/mx) {
-            $header .= "OutputFormat: json\n";
+            if($opt->{'wrapped_json'}) {
+                $header .= "OutputFormat: wrapped_json\n";
+            } else {
+                $header .= "OutputFormat: json\n";
+            }
             $header .= "ResponseHeader: fixed16\n";
             if($self->{'keepalive'}) {
                 $header .= "KeepAlive: on\n";
@@ -863,6 +879,12 @@ sub _send {
 sub _post_processing {
     my($self, $result, $opt, $keys) = @_;
 
+    my $total_count;
+    if($opt->{'wrapped_json'}) {
+        $total_count = $result->{'total_count'};
+        $result = $result->{'data'};
+    }
+
     # add peer information?
     my $with_peers = 0;
     if(defined $opt->{'addpeer'} and $opt->{'addpeer'}) {
@@ -887,7 +909,8 @@ sub _post_processing {
 
     # set some metadata
     $self->{'meta_data'} = {
-                    'result_count' => scalar @{$result},
+        'total_count'  => $total_count,
+        'result_count' => scalar @{$result},
     };
 
     return({ keys => $keys, result => $result });
@@ -1408,6 +1431,9 @@ sub _lowercase_and_verify_options {
         'slice'         => 1,
         'sum'           => 1,
         'callbacks'     => 1,
+        'wrapped_json'  => 1,
+        'sort'          => 1,
+        'offset'        => 1,
     };
 
     for my $key (keys %{$opts}) {
@@ -1456,32 +1482,6 @@ sub _log_statement {
 
 1;
 
-=head1 EXAMPLES
-
-=head2 Multibackend Configuration
-
-    use Monitoring::Livestatus;
-    my $ml = Monitoring::Livestatus->new(
-      name       => 'multiple connector',
-      verbose   => 0,
-      keepalive => 1,
-      peer      => [
-            {
-                name => 'DMZ Monitoring',
-                peer => '50.50.50.50:9999',
-            },
-            {
-                name => 'Local Monitoring',
-                peer => '/tmp/livestatus.socket',
-            },
-            {
-                name => 'Special Monitoring',
-                peer => '100.100.100.100:9999',
-            }
-      ],
-    );
-    my $hosts = $ml->selectall_arrayref("GET hosts");
-
 =head1 SEE ALSO
 
 For more information about the query syntax and the livestatus plugin installation
@@ -1492,8 +1492,6 @@ see the Livestatus page: http://mathias-kettner.de/checkmk_livestatus.html
 Sven Nierlein, 2009-2014, <sven@nierlein.org>
 
 =head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2009 by Sven Nierlein
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
