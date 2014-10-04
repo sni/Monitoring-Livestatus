@@ -8,12 +8,32 @@ use Carp qw/carp croak confess/;
 use Digest::MD5 qw(md5_hex);
 use Encode qw(encode);
 use JSON::XS qw();
+use Storable qw/dclone/;
 
 use Monitoring::Livestatus::INET qw//;
 use Monitoring::Livestatus::UNIX qw//;
 
 our $VERSION = '0.76';
 
+
+# list of allowed options
+my $allowed_options = {
+        'addpeer'       => 1,
+        'backend'       => 1,
+        'columns'       => 1,
+        'deepcopy'      => 1,
+        'header'        => 1,
+        'limit'         => 1,
+        'limit_start'   => 1,
+        'limit_length'  => 1,
+        'rename'        => 1,
+        'slice'         => 1,
+        'sum'           => 1,
+        'callbacks'     => 1,
+        'wrapped_json'  => 1,
+        'sort'          => 1,
+        'offset'        => 1,
+};
 
 =head1 NAME
 
@@ -107,14 +127,6 @@ set a query timeout. Used for retrieving querys, Default 60sec
 
 set a connect timeout. Used for initial connections, default 5sec
 
-=item use_threads
-
-only used with multiple backend connections.
-Default is to don't threads where available. As threads in perl
-are causing problems with tied resultset and using more memory.
-Querys are usually faster without threads, except for very slow backends
-connections.
-
 =back
 
 If the constructor is only passed a single argument, it is assumed to
@@ -144,7 +156,6 @@ sub new {
       'query_timeout'               => 60,      # query timeout for tcp connections
       'connect_timeout'             => 5,       # connect timeout for tcp connections
       'timeout'                     => undef,   # timeout for tcp connections
-      'use_threads'                 => undef,   # use threads, default is to use threads where available
       'warnings'                    => 1,       # show warnings, for example on querys without Column: Header
       'logger'                      => undef,   # logger object used for statistical informations and errors / warnings
       'deepcopy'                    => undef,   # copy result set to avoid errors with tied structures
@@ -262,19 +273,22 @@ column aliases can be defined with a rename hash
 =cut
 
 sub selectall_arrayref {
-    my($self, $statement, $opt, $limit) = @_;
+    my($self, $statement, $opt, $limit, $result) = @_;
     $limit = 0 unless defined $limit;
 
     # make opt hash keys lowercase
-    $opt = &_lowercase_and_verify_options($self, $opt);
+    $opt = &_lowercase_and_verify_options($self, $opt) unless $result;
 
-    $self->_log_statement($statement, $opt, $limit) if $self->{'verbose'};
-
-    my $result = &_send($self, $statement, $opt);
+    $self->_log_statement($statement, $opt, $limit) if !$result && $self->{'verbose'};
 
     if(!defined $result) {
-        return unless $self->{'errors_are_fatal'};
-        croak("got undef result for: $statement");
+        $result = &_send($self, $statement, $opt);
+        return $result if $ENV{'THRUK_SELECT'};
+
+        if(!defined $result) {
+            return unless $self->{'errors_are_fatal'};
+            croak("got undef result for: $statement");
+        }
     }
 
     # trim result set down to excepted row count
@@ -285,30 +299,30 @@ sub selectall_arrayref {
     }
 
     if($opt->{'slice'}) {
+        my $callbacks = $opt->{'callbacks'};
         # make an array of hashes, inplace to safe memory
-        my $rnum = scalar @{$result->{'result'}};
-        my $knum = scalar @{$result->{'keys'}};
-        my @keys = @{$result->{'keys'}};
-        $result  = $result->{'result'};
-        for(my $x=0;$x<$rnum;$x++) {
-            my $row      = $result->[$x];
-            my %hash;
-
-            # sort array into hash slices
-            @hash{@keys} = @{$row};
-
-            # renamed columns
-            if(exists $opt->{'rename'}) {
-                for my $old (keys %{$opt->{'rename'}}) {
-                    my $new = $opt->{'rename'}->{$old};
-                    $hash{$new} = delete $hash{$old};
+        my $keys = $result->{'keys'};
+        # renamed columns
+        if($opt->{'rename'}) {
+            $keys = dclone($result->{'keys'});
+            my $keysize = scalar @{$keys};
+            for(my $x=0; $x<$keysize;$x++) {
+                my $old = $keys->[$x];
+                if($opt->{'rename'}->{$old}) {
+                    $keys->[$x] = $opt->{'rename'}->{$old};
                 }
             }
-
+        }
+        $result  = $result->{'result'};
+        my $rnum = scalar @{$result};
+        for(my $x=0;$x<$rnum;$x++) {
+            # sort array into hash slices
+            my %hash;
+            @hash{@{$keys}} = @{$result->[$x]};
             # add callbacks
-            if(exists $opt->{'callbacks'}) {
-                for my $key (keys %{$opt->{'callbacks'}}) {
-                    $hash{$key} = $opt->{'callbacks'}->{$key}->(\%hash);
+            if($callbacks) {
+                for my $key (keys %{$callbacks}) {
+                    $hash{$key} = $callbacks->{$key}->(\%hash);
                 }
             }
             $result->[$x] = \%hash;
@@ -683,6 +697,8 @@ sub peer_key {
 sub _send {
     my($self, $statement, $opt) = @_;
 
+    confess('duplicate data') if $opt->{'data'};
+
     delete $self->{'meta_data'};
 
     my $header = '';
@@ -750,7 +766,7 @@ sub _send {
         if($statement =~ m/^Columns:\ (.*)$/mx) {
             ($statement,$keys) = $self->_extract_keys_from_columns_header($statement);
         } elsif($statement =~ m/^Stats:\ (.*)$/mx or $statement =~ m/^StatsGroupBy:\ (.*)$/mx) {
-            ($statement,$keys) = $self->_extract_keys_from_stats_statement($statement);
+            ($statement,$keys) = extract_keys_from_stats_statement($statement);
         }
 
         # Offset header (currently naemon only)
@@ -791,6 +807,7 @@ sub _send {
         my $send = "$statement\n$header";
         $self->{'logger'}->debug('> '.Dumper($send)) if $self->{'verbose'};
         ($status,$msg,$body) = &_send_socket($self, $send);
+        return([$status, $opt, $keys]) if $ENV{'THRUK_SELECT'};
         if($self->{'verbose'}) {
             #$self->{'logger'}->debug("got:");
             #$self->{'logger'}->debug(Dumper(\@erg));
@@ -819,9 +836,6 @@ sub _send {
 
     # return a empty result set if nothing found
     return({ keys => [], result => []}) if !defined $body;
-
-    my $line_seperator = chr($self->{'line_seperator'});
-    my $col_seperator  = chr($self->{'column_seperator'});
 
     my $limit_start = 0;
     if(defined $opt->{'limit_start'}) { $limit_start = $opt->{'limit_start'}; }
@@ -872,17 +886,27 @@ sub _send {
         $keys = shift @{$result};
     }
 
-    return($self->_post_processing($result, $opt, $keys));
+    return(&post_processing($self, $result, $opt, $keys));
 }
 
 ########################################
-sub _post_processing {
+
+=head2 post_processing
+
+ $ml->post_processing($result, $options, $keys)
+
+returns postprocessed result.
+
+Useful when using select based io.
+
+=cut
+sub post_processing {
     my($self, $result, $opt, $keys) = @_;
 
     my $total_count;
     if($opt->{'wrapped_json'}) {
         $total_count = $result->{'total_count'};
-        $result = $result->{'data'};
+        $result      = $result->{'data'};
     }
 
     # add peer information?
@@ -891,11 +915,11 @@ sub _post_processing {
         $with_peers = 1;
     }
 
-    my $peer_name = $self->peer_name;
-    my $peer_addr = $self->peer_addr;
-    my $peer_key  = $self->peer_key;
-
     if(defined $with_peers and $with_peers == 1) {
+        my $peer_name = $self->peer_name;
+        my $peer_addr = $self->peer_addr;
+        my $peer_key  = $self->peer_key;
+
         unshift @{$keys}, 'peer_name';
         unshift @{$keys}, 'peer_addr';
         unshift @{$keys}, 'peer_key';
@@ -918,7 +942,7 @@ sub _post_processing {
 
 ########################################
 sub _open {
-    my($self, $statement) = @_;
+    my($self) = @_;
 
     # return the current socket in keep alive mode
     if($self->{'keepalive'} and defined $self->{'sock'} and $self->{'sock'}->connected) {
@@ -1059,6 +1083,7 @@ sub _send_socket {
         if($self->{'retries_on_connection_error'} <= 0) {
             ($sock, $msg, $recv) = &_send_socket_do($self, $statement);
             return($sock, $msg, $recv) if $msg;
+            return $sock if $ENV{'THRUK_SELECT'};
             ($status, $msg, $recv) = &_read_socket_do($self, $sock, $statement);
             return($status, $msg, $recv);
         }
@@ -1067,6 +1092,7 @@ sub _send_socket {
             $retries++;
             ($sock, $msg, $recv) = &_send_socket_do($self, $statement);
             return($status, $msg, $recv) if $msg;
+            return $sock if $ENV{'THRUK_SELECT'};
             ($status, $msg, $recv) = &_read_socket_do($self, $sock, $statement);
             $self->{'logger'}->debug('query status '.$status) if $self->{'verbose'};
             if($status == 491 or $status == 497 or $status == 500) {
@@ -1079,14 +1105,16 @@ sub _send_socket {
     if($@) {
         $self->{'logger'}->debug("try 1 failed: $@") if $self->{'verbose'};
         if(defined $@ and $@ =~ /broken\ pipe/mx) {
-            ($sock, $msg, $recv) = $self->_send_socket_do($statement);
+            ($sock, $msg, $recv) = &_send_socket_do($self, $statement);
             return($status, $msg, $recv) if $msg;
+            return $sock if $ENV{'THRUK_SELECT'};
             return(&_read_socket_do($self, $sock, $statement));
         }
         croak($@) if $self->{'errors_are_fatal'};
     }
 
     $status = $sock unless $status;
+    return $sock if $ENV{'THRUK_SELECT'};
     croak($msg) if($status >= 400 and $self->{'errors_are_fatal'});
 
     return($status, $msg, $recv);
@@ -1095,7 +1123,7 @@ sub _send_socket {
 ########################################
 sub _send_socket_do {
     my($self, $statement) = @_;
-    my $sock = $self->_open() or return(491, $self->_get_error(491), $!);
+    my $sock = $self->_open() or return(491, $self->_get_error(491, $!), $!);
     utf8::decode($statement);
     print $sock encode('utf-8' => $statement) or return($self->_socket_error($statement, $sock, 'write to socket failed: '.$!));
     print $sock "\n";
@@ -1141,7 +1169,8 @@ sub _read_socket_do {
 
 ########################################
 sub _socket_error {
-    my($self, $statement, $sock, $body) = @_;
+    #my($self, $statement, $sock, $body)...
+    my($self, $statement, undef, $body) = @_;
 
     my $message = "\n";
     $message   .= "peer                ".Dumper($self->peer_name);
@@ -1221,28 +1250,40 @@ pairs:
 =cut
 
 ########################################
-sub _extract_keys_from_stats_statement {
-    my($self, $statement) = @_;
+
+=head2 extract_keys_from_stats_statement
+
+ extract_keys_from_stats_statement($statement)
+
+Extract column keys from statement.
+
+=cut
+sub extract_keys_from_stats_statement {
+    my($statement) = @_;
 
     my(@header, $new_statement);
 
     for my $line (split/\n/mx, $statement) {
-        if($line =~ m/^Stats:\ (.*)\s+as\s+(.*)$/mxi) {
+        if($line !~ m/^Stats/mxo) { # faster shortcut for non-stats lines
+            $new_statement .= $line."\n";
+            next;
+        }
+        if($line =~ m/^Stats:\ (.*)\s+as\s+(.*?)$/mxo) {
             push @header, $2;
             $line = 'Stats: '.$1;
         }
-        elsif($line =~ m/^Stats:\ (.*)$/mx) {
+        elsif($line =~ m/^Stats:\ (.*)$/mxo) {
             push @header, $1;
         }
 
-        if($line =~ m/^StatsAnd:\ (\d+)\s+as\s+(.*)$/mx) {
+        elsif($line =~ m/^StatsAnd:\ (\d+)\s+as\s+(.*?)$/mxo) {
             for(my $x = 0; $x < $1; $x++) {
                 pop @header;
             }
             $line = 'StatsAnd: '.$1;
             push @header, $2;
         }
-        elsif($line =~ m/^StatsAnd:\ (\d+)$/mx) {
+        elsif($line =~ m/^StatsAnd:\ (\d+)$/mxo) {
             my @to_join;
             for(my $x = 0; $x < $1; $x++) {
                 unshift @to_join, pop @header;
@@ -1250,14 +1291,14 @@ sub _extract_keys_from_stats_statement {
             push @header, join(' && ', @to_join);
         }
 
-        if($line =~ m/^StatsOr:\ (\d+)\s+as\s+(.*)$/mx) {
+        elsif($line =~ m/^StatsOr:\ (\d+)\s+as\s+(.*?)$/mxo) {
             for(my $x = 0; $x < $1; $x++) {
                 pop @header;
             }
             $line = 'StatsOr: '.$1;
             push @header, $2;
         }
-        elsif($line =~ m/^StatsOr:\ (\d+)$/mx) {
+        elsif($line =~ m/^StatsOr:\ (\d+)$/mxo) {
             my @to_join;
             for(my $x = 0; $x < $1; $x++) {
                 unshift @to_join, pop @header;
@@ -1266,11 +1307,11 @@ sub _extract_keys_from_stats_statement {
         }
 
         # StatsGroupBy header are always sent first
-        if($line =~ m/^StatsGroupBy:\ (.*)\s+as\s+(.*)$/mxi) {
+        elsif($line =~ m/^StatsGroupBy:\ (.*)\s+as\s+(.*?)$/mxo) {
             unshift @header, $2;
             $line = 'StatsGroupBy: '.$1;
         }
-        elsif($line =~ m/^StatsGroupBy:\ (.*)$/mx) {
+        elsif($line =~ m/^StatsGroupBy:\ (.*)$/mxo) {
             unshift @header, $1;
         }
         $new_statement .= $line."\n";
@@ -1319,7 +1360,7 @@ Errorhandling can be done like this:
 
 =cut
 sub _get_error {
-    my($self, $code) = @_;
+    my($self, $code, $append) = @_;
 
     my $codes = {
         '200' => 'OK. Reponse contains the queried data.',
@@ -1345,8 +1386,10 @@ sub _get_error {
     };
 
     confess('non existant error code: '.$code) if !defined $codes->{$code};
+    my $msg = $codes->{$code};
+    $msg .= ' - '.$append if $append;
 
-    return($codes->{$code});
+    return($msg);
 }
 
 ########################################
@@ -1417,30 +1460,15 @@ sub _lowercase_and_verify_options {
     my($self, $opts) = @_;
     my $return = {};
 
-    # list of allowed options
-    my $allowed_options = {
-        'addpeer'       => 1,
-        'backend'       => 1,
-        'columns'       => 1,
-        'deepcopy'      => 1,
-        'header'        => 1,
-        'limit'         => 1,
-        'limit_start'   => 1,
-        'limit_length'  => 1,
-        'rename'        => 1,
-        'slice'         => 1,
-        'sum'           => 1,
-        'callbacks'     => 1,
-        'wrapped_json'  => 1,
-        'sort'          => 1,
-        'offset'        => 1,
-    };
+    # make keys lowercase
+    %{$return} = map { lc($_) => $opts->{$_} } keys %{$opts};
 
-    for my $key (keys %{$opts}) {
-        if($self->{'warnings'} and !defined $allowed_options->{lc $key}) {
-            carp("unknown option used: $key - please use only: ".join(', ', keys %{$allowed_options}));
+    if($self->{'warnings'}) {
+        for my $key (keys %{$return}) {
+            if(!defined $allowed_options->{$key}) {
+                carp("unknown option used: $key - please use only: ".join(', ', keys %{$allowed_options}));
+            }
         }
-        $return->{lc $key} = $opts->{$key};
     }
 
     # set limits
