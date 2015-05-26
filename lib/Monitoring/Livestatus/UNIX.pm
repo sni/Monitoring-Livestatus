@@ -1,11 +1,10 @@
 package Monitoring::Livestatus::UNIX;
 use parent 'Monitoring::Livestatus';
 
-use 5.000000;
 use strict;
 use warnings;
-use IO::Socket::UNIX;
-use Carp;
+use IO::Socket::UNIX ();
+use Carp qw/confess croak/;
 
 =head1 NAME
 
@@ -29,9 +28,9 @@ be a the C<socket> specification. Use either socker OR server.
 =cut
 
 sub new {
-    my $class = shift;
-    unshift(@_, "peer") if scalar @_ == 1;
-    my(%options) = @_;
+    my($class,@args) = @_;
+    unshift(@args, "peer") if scalar @args == 1;
+    my(%options) = @args;
     $options{'name'} = $options{'peer'} unless defined $options{'name'};
 
     $options{'backend'} = $class;
@@ -62,14 +61,14 @@ sub _open {
         return;
     }
     my $sock;
+    my $remaining = alarm($self->{'connect_timeout'});
     eval {
         local $SIG{'ALRM'} = sub { die("connection timeout"); };
-        alarm($self->{'connect_timeout'});
         $sock = IO::Socket::UNIX->new(
                                         Peer     => $self->{'peer'},
-                                        Type     => SOCK_STREAM,
+                                        Type     => IO::Socket::UNIX::SOCK_STREAM,
                                     );
-        if(!defined $sock or !$sock->connected()) {
+        if(!defined $sock || !$sock->connected()) {
             my $msg = "failed to connect to $self->{'peer'}: $!";
             if($self->{'errors_are_fatal'}) {
                 croak($msg);
@@ -80,6 +79,7 @@ sub _open {
         }
     };
     alarm(0);
+    alarm($remaining) if $remaining;
 
     if($@) {
         $Monitoring::Livestatus::ErrorCode    = 500;
