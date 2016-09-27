@@ -85,9 +85,9 @@ my @expected_keys1 = (
             'host_state != 0 && state = 3 && active_checks = 1',
             'state = 3 || active_checks = 1',
         );
-my @got_keys1 = @{$ml->_extract_keys_from_stats_statement($stats_query1)};
-is_deeply(\@got_keys1, \@expected_keys1, 'statsAnd, statsOr query keys')
-    or ( diag('got keys: '.Dumper(\@got_keys1)) );
+my($statement, $got_keys1) = Monitoring::Livestatus::extract_keys_from_stats_statement($stats_query1);
+is_deeply($got_keys1, \@expected_keys1, 'statsAnd, statsOr query keys')
+    or ( diag('got keys: '.Dumper($got_keys1)) );
 
 
 #########################
@@ -125,9 +125,9 @@ my @expected_keys2 = (
             'all_unknown_active_on_down_hosts',
             'all_active_or_unknown',
         );
-my @got_keys2 = @{$ml->_extract_keys_from_stats_statement($stats_query2)};
-is_deeply(\@got_keys2, \@expected_keys2, 'stats query keys2')
-    or ( diag('got keys: '.Dumper(\@got_keys2)) );
+my($statement, $got_keys2) = Monitoring::Livestatus::extract_keys_from_stats_statement($stats_query2);
+is_deeply($got_keys2, \@expected_keys2, 'stats query keys2')
+    or ( diag('got keys: '.Dumper($got_keys2)) );
 
 
 #########################
