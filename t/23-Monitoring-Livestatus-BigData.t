@@ -26,14 +26,11 @@ print $fh "]\n";
 close($fh);
 ok(-f $testfile, "testfile: ".$testfile.".data written");
 
-chomp(my $size = `du -h $testfile.data`);
-ok($size, $size);
-
-chomp(my $bytes = `du -b $testfile.data | awk '{print \$1}'`);
-ok($bytes, 'testfile has '.$bytes.' bytes');
+my $size = -s $testfile.".data";
+ok($size, "file has $size bytes");
 
 open($fh, '>', $testfile.'.head') or die($testfile.'.head: '.$!);
-printf($fh "200 %12d\n", $bytes);
+printf($fh "200 %12d\n", $size);
 close($fh);
 `cat $testfile.head $testfile.data > $testfile`;
 unlink($testfile.'.head', $testfile.'.data');
