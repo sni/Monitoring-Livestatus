@@ -17,9 +17,7 @@ resources(
 requires 'IO::Socket::UNIX';
 requires 'IO::Socket::INET';
 requires 'Digest::MD5';
-requires 'Scalar::Util';
 requires 'Test::More'        => '0.87';
-requires 'Thread::Queue'     => '2.11';
 requires 'utf8';
 requires 'Encode';
 requires 'JSON::XS';
