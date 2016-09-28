@@ -3,7 +3,7 @@
 #########################
 
 use strict;
-use Test::More tests => 14;
+use Test::More tests => 13;
 BEGIN { use_ok('Monitoring::Livestatus') };
 
 my $testport    = 60123;
