@@ -24,7 +24,7 @@ for my $x (1..$testresults) {
 }
 print $fh "]\n";
 close($fh);
-ok(-f $testfile, "testfile: ".$testfile.".data written");
+ok(-f $testfile.".data", "testfile: ".$testfile.".data written");
 
 my $size = -s $testfile.".data";
 ok($size, "file has $size bytes");
