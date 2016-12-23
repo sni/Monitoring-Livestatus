@@ -21,13 +21,11 @@ META.yml
 README
 t/01-Monitoring-Livestatus-basic_tests.t
 t/02-Monitoring-Livestatus-internals.t
-t/03-Monitoring-Livestatus-MULTI-internals.t
 t/20-Monitoring-Livestatus-test_socket.t
 t/21-Monitoring-Livestatus-INET.t
 t/22-Monitoring-Livestatus-UNIX.t
 t/23-Monitoring-Livestatus-BigData.t
 t/30-Monitoring-Livestatus-live-test.t
-t/31-Monitoring-Livestatus-MULTI-live-test.t
 t/32-Monitoring-Livestatus-backend-test.t
 t/33-Monitoring-Livestatus-test_socket_timeout.t
 t/34-Monitoring-Livestatus-utf8_support.t

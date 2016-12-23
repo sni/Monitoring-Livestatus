@@ -1,5 +1,8 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
+0.78  Fri Dec 23 17:09:35 CET 2016
+	- fix spelling errors (#5)
+
 0.76  Tue Sep 27 21:45:25 CEST 2016
 	- fix utf-8 decoding error: missing high surrogate character in surrogate pair
 	- fixed typo
