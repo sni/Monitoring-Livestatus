@@ -11,7 +11,7 @@ if ( ! defined $ENV{TEST_SOCKET} or !defined $ENV{TEST_SERVER} or !defined $ENV{
     my $msg = 'Author test.  Set $ENV{TEST_SOCKET} and $ENV{TEST_SERVER} and $ENV{TEST_BACKEND} to run';
     plan( skip_all => $msg );
 } else {
-    # we dont know yet how many tests we got
+    # we don't know yet how many tests we got
     plan( tests => 57070 );
 }
 
@@ -39,7 +39,7 @@ for my $key (sort keys %{$objects_to_test}) {
     my $ml = $objects_to_test->{$key};
     isa_ok($ml, 'Monitoring::Livestatus') or BAIL_OUT("no need to continue without a proper Monitoring::Livestatus object: ".$key);
 
-    # dont die on errors
+    # don't die on errors
     $ml->errors_are_fatal(0);
     $ml->warnings(0);
 

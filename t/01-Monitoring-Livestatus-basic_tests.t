@@ -37,13 +37,13 @@ is($ml->peer_addr(), $socket_path, 'get peer_addr()');
 
 #########################
 # create object with hash args
-my $line_seperator        = 10;
-my $column_seperator      = 0;
+my $line_separator        = 10;
+my $column_separator      = 0;
 $ml = Monitoring::Livestatus->new(
                                     verbose             => 0,
                                     socket              => $socket_path,
-                                    line_seperator      => $line_seperator,
-                                    column_seperator    => $column_seperator,
+                                    line_separator      => $line_separator,
+                                    column_separator    => $column_separator,
                                 );
 isa_ok($ml, 'Monitoring::Livestatus', 'new hash args');
 is($ml->peer_name(), $socket_path, 'get peer_name()');

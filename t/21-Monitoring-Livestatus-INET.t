@@ -19,12 +19,12 @@ isa_ok($ml, 'Monitoring::Livestatus', 'Monitoring::Livestatus::INET->new()');
 
 #########################
 # create object with hash args
-my $line_seperator        = 10;
-my $column_seperator      = 0;
+my $line_separator        = 10;
+my $column_separator      = 0;
 $ml = Monitoring::Livestatus::INET->new(
                                     verbose             => 0,
                                     server              => $server,
-                                    line_seperator      => $line_seperator,
-                                    column_seperator    => $column_seperator,
+                                    line_separator      => $line_separator,
+                                    column_separator    => $column_separator,
                                 );
 isa_ok($ml, 'Monitoring::Livestatus', 'Monitoring::Livestatus::INET->new(%args)');
