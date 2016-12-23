@@ -44,7 +44,7 @@ for my $key (sort keys %{$objects_to_test}) {
     my $ml = $objects_to_test->{$key};
     isa_ok($ml, 'Monitoring::Livestatus');
 
-    # we dont need warnings for testing
+    # we don't need warnings for testing
     $ml->warnings(0);
 
     #########################

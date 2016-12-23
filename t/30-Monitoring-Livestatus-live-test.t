@@ -27,8 +27,8 @@ use_ok('Monitoring::Livestatus::INET');
 use_ok('Monitoring::Livestatus::UNIX');
 
 #########################
-my $line_seperator      = 10;
-my $column_seperator    = 0;
+my $line_separator      = 10;
+my $column_separator    = 0;
 my $objects_to_test = {
   # UNIX
   # create unix object with a single arg
@@ -38,8 +38,8 @@ my $objects_to_test = {
   '02 unix_few_args' => Monitoring::Livestatus->new(
                                       #verbose             => 1,
                                       socket              => $ENV{TEST_SOCKET},
-                                      line_seperator      => $line_seperator,
-                                      column_seperator    => $column_seperator,
+                                      line_separator      => $line_separator,
+                                      column_separator    => $column_separator,
                                     ),
 
   # create unix object with hash args
@@ -57,8 +57,8 @@ my $objects_to_test = {
   '05 inet_few_args' => Monitoring::Livestatus->new(
                                       verbose             => 0,
                                       server              => $ENV{TEST_SERVER},
-                                      line_seperator      => $line_seperator,
-                                      column_seperator    => $column_seperator,
+                                      line_separator      => $line_separator,
+                                      column_separator    => $column_separator,
                                     ),
 
 
@@ -179,7 +179,7 @@ for my $key (sort keys %{$objects_to_test}) {
     my $ml = $objects_to_test->{$key};
     isa_ok($ml, 'Monitoring::Livestatus') or BAIL_OUT("no need to continue without a proper Monitoring::Livestatus object: ".$key);
 
-    # dont die on errors
+    # don't die on errors
     $ml->errors_are_fatal(0);
     $ml->warnings(0);
 
@@ -238,7 +238,7 @@ for my $key (sort keys %{$objects_to_test}) {
 
     #########################
     # send a test command
-    # commands still dont work and breaks livestatus
+    # commands still don't work and breaks livestatus
     my $rt = $ml->do('COMMAND ['.time().'] SAVE_STATE_INFORMATION');
     is($rt, '1', $key.' test command');
 

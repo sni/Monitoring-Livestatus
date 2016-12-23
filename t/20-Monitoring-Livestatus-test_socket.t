@@ -30,8 +30,8 @@ BEGIN { use_ok('Monitoring::Livestatus') };
 #########################
 # Normal Querys
 #########################
-my $line_seperator      = 10;
-my $column_seperator    = 0;
+my $line_separator      = 10;
+my $column_separator    = 0;
 my $test_data           = [ ["alias","name","contacts"],       # table header
                             ["alias1","host1","contact1"],     # row 1
                             ["alias2","host2","contact2"],     # row 2
@@ -112,8 +112,8 @@ my $objects_to_test = {
   'unix_hash_args' => Monitoring::Livestatus->new(
                                       verbose             => 0,
                                       socket              => $socket_path,
-                                      line_seperator      => $line_seperator,
-                                      column_seperator    => $column_seperator,
+                                      line_separator      => $line_separator,
+                                      column_separator    => $column_separator,
                                     ),
 
   # create unix object with a single arg
@@ -123,8 +123,8 @@ my $objects_to_test = {
   'inet_hash_args' => Monitoring::Livestatus->new(
                                       verbose             => 0,
                                       server              => $server,
-                                      line_seperator      => $line_seperator,
-                                      column_seperator    => $column_seperator,
+                                      line_separator      => $line_separator,
+                                      column_separator    => $column_separator,
                                     ),
 
   # create inet object with a single arg
@@ -136,7 +136,7 @@ for my $key (keys %{$objects_to_test}) {
     my $ml = $objects_to_test->{$key};
     isa_ok($ml, 'Monitoring::Livestatus');
 
-    # we dont need warnings for testing
+    # we don't need warnings for testing
     $ml->warnings(0);
 
     ##################################################
