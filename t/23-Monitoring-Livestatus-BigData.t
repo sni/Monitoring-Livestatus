@@ -41,7 +41,7 @@ ok($mem_start, sprintf('memory at start: %.2f MB', $mem_start/1024));
 
 ##########################################################
 # start netcat
-`netcat -vvv -w 3 -l -p $testport >/tmp/blah 2>&1 < $testfile &`;
+`netcat -vvv -w 3 -l -p $testport >/dev/null 2>&1 < $testfile &`;
 sleep(0.1);
 ok(1, "netcat started");
 
