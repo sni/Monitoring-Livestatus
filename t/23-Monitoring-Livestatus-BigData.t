@@ -3,7 +3,16 @@
 #########################
 
 use strict;
-use Test::More tests => 13;
+
+BEGIN {
+    if( $^O eq 'MSWin32' ) {
+        plan skip_all => 'no sockets on windows';
+    }
+    else {
+        plan tests => 13;
+    }
+}
+
 BEGIN { use_ok('Monitoring::Livestatus') };
 
 my $testport    = 60123;
