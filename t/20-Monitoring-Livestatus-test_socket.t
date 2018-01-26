@@ -6,7 +6,7 @@ use strict;
 use Test::More;
 use IO::Socket::UNIX qw( SOCK_STREAM SOMAXCONN );
 use Data::Dumper;
-use JSON::XS;
+use Cpanel::JSON::XS;
 
 BEGIN {
   eval {require threads;};
@@ -15,9 +15,6 @@ BEGIN {
   }
   elsif( $^O eq 'MSWin32' ) {
       plan skip_all => 'no sockets on windows';
-  }
-  elsif( $^V ge v5.22 ) {
-      plan skip_all => 'JSON::XS will not work in threaded perl >= 5.22';
   }
   else{
     plan tests => 109

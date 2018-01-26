@@ -20,7 +20,7 @@ requires 'Digest::MD5';
 requires 'Test::More'        => '0.87';
 requires 'utf8';
 requires 'Encode';
-requires 'JSON::XS';
+requires 'Cpanel::JSON::XS';
 
 # test requirements
 # these requirements still make it into the META.yml, so they are commented so far
