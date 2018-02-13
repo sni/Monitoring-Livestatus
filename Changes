@@ -1,5 +1,8 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
+next:
+	-add tls support for tcp livestatus connections
+
 0.80  Fri Jan 26 08:24:00 CET 2018
 	- support ipv6 connections
 	- change to Cpanel::JSON::XS
