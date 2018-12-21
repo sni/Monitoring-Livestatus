@@ -1,7 +1,11 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
+next:
+	- add support for command response
+	- remove alarm handler, timeouts should be handled in the calling module
+
 0.82  Sat Nov 10 12:11:31 CET 2018
-	-add tls support for tcp livestatus connections
+	- add tls support for tcp livestatus connections
 
 0.80  Fri Jan 26 08:24:00 CET 2018
 	- support ipv6 connections
