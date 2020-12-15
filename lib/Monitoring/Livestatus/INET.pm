@@ -39,7 +39,7 @@ sub new {
     bless $self, $class;
     confess('not a scalar') if ref $self->{'peer'} ne '';
 
-    if($self->{'peer'} =~ m|^tls://|mx) {
+    if(($self->{'peer'}//$self->{'server'}) =~ m|^tls://|mx) {
         require IO::Socket::SSL;
     }
 

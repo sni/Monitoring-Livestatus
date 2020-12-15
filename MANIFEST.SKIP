@@ -8,3 +8,5 @@ MANIFEST.SKIP
 TODO
 MYMETA.json
 MYMETA.yml
+.*.gz
+.travis.yml

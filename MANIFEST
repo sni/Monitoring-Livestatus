@@ -16,11 +16,12 @@ lib/Monitoring/Livestatus.pm
 lib/Monitoring/Livestatus/INET.pm
 lib/Monitoring/Livestatus/UNIX.pm
 Makefile.PL
-MANIFEST			This list of files
+MANIFEST
 META.yml
 README
 t/01-Monitoring-Livestatus-basic_tests.t
 t/02-Monitoring-Livestatus-internals.t
+t/085-json_xs.t
 t/20-Monitoring-Livestatus-test_socket.t
 t/21-Monitoring-Livestatus-INET.t
 t/22-Monitoring-Livestatus-UNIX.t
