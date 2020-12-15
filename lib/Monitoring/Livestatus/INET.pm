@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use IO::Socket::IP ();
 use Socket qw(IPPROTO_TCP TCP_NODELAY);
-use Carp qw/confess croak/;
+use Carp qw/confess/;
 
 =head1 NAME
 
@@ -83,7 +83,7 @@ sub _open {
         if(!defined $sock || !$sock->connected()) {
             my $msg = "failed to connect to $peer_addr: $!";
             if($self->{'errors_are_fatal'}) {
-                croak($msg);
+                confess($msg);
             }
             $Monitoring::Livestatus::ErrorCode    = 500;
             $Monitoring::Livestatus::ErrorMessage = $msg;
