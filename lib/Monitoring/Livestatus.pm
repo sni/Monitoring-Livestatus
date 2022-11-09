@@ -1,13 +1,12 @@
 package Monitoring::Livestatus;
 
-use 5.006;
-use strict;
 use warnings;
-use Data::Dumper qw/Dumper/;
+use strict;
 use Carp qw/carp confess/;
 use Cpanel::JSON::XS ();
-use Storable qw/dclone/;
+use Data::Dumper qw/Dumper/;
 use IO::Select ();
+use Storable qw/dclone/;
 
 use Monitoring::Livestatus::INET ();
 use Monitoring::Livestatus::UNIX ();
@@ -68,7 +67,7 @@ path to the UNIX socket of check_mk livestatus
 
 =item server
 
-uses this server for a TCP connection
+server address when using a TCP connection
 
 =item peer
 
@@ -776,8 +775,11 @@ sub _send {
         # for querys with column header, no seperate columns will be returned
         if($statement =~ m/^Columns:\ (.*)$/mx) {
             ($statement,$keys) = $self->_extract_keys_from_columns_header($statement);
-        } elsif($statement =~ m/^Stats:\ (.*)$/mx or $statement =~ m/^StatsGroupBy:\ (.*)$/mx) {
+        }
+        if($statement =~ m/^Stats:\ (.*)$/mx or $statement =~ m/^StatsGroupBy:\ (.*)$/mx) {
+            my $has_columns = defined $keys ? join(",", @{$keys}) : undef;
             ($statement,$keys) = extract_keys_from_stats_statement($statement);
+            unshift @{$keys}, $has_columns if $has_columns;
         }
 
         # Offset header (currently naemon only)
@@ -1002,8 +1004,8 @@ adds the peers name, addr and key to the result set:
 
 =head2 Backend
 
-send the query only to some specific backends. Only
-useful when using multiple backends.
+send the query only to some specific backends.
+Only useful when using multiple backends.
 
  my $hosts = $ml->selectall_arrayref(
    "GET hosts\nColumns: name alias state",
@@ -1092,16 +1094,18 @@ sub _send_socket {
     # https://riptutorial.com/posix/example/17424/handle-sigpipe-generated-by-write---in-a-thread-safe-manner
     local $SIG{PIPE} = 'IGNORE';
 
+    my $maxretries = $ENV{'LIVESTATUS_RETRIES'} // $self->{'retries_on_connection_error'};
+
     # try to avoid connection errors
     eval {
-        if($self->{'retries_on_connection_error'} <= 0) {
+        if($maxretries <= 0) {
             ($sock, $msg, $recv) = &_send_socket_do($self, $statement);
             return($sock, $msg, $recv) if $msg;
             ($status, $msg, $recv) = &_read_socket_do($self, $sock, $statement);
             return($status, $msg, $recv);
         }
 
-        while((!defined $status || ($status == 491 || $status == 497 || $status == 500)) && $retries < $self->{'retries_on_connection_error'}) {
+        while((!defined $status || ($status == 491 || $status == 497 || $status == 500)) && $retries < $maxretries) {
             $retries++;
             ($sock, $msg, $recv) = &_send_socket_do($self, $statement);
             return($status, $msg, $recv) if $msg;
@@ -1110,18 +1114,19 @@ sub _send_socket {
             if($status == 491 or $status == 497 or $status == 500) {
                 $self->{'logger'}->debug('got status '.$status.' retrying in '.$self->{'retry_interval'}.' seconds') if $self->{'verbose'};
                 $self->_close();
-                sleep($self->{'retry_interval'}) if $retries < $self->{'retries_on_connection_error'};
+                sleep($self->{'retry_interval'}) if $retries < $maxretries;
             }
         }
     };
-    if($@) {
-        $self->{'logger'}->debug("try 1 failed: $@") if $self->{'verbose'};
-        if(defined $@ and $@ =~ /broken\ pipe/mx) {
+    my $err = $@;
+    if($err) {
+        $self->{'logger'}->debug("try 1 failed: $err") if $self->{'verbose'};
+        if($err =~ /broken\ pipe/mx) {
             ($sock, $msg, $recv) = &_send_socket_do($self, $statement);
             return($status, $msg, $recv) if $msg;
             return(&_read_socket_do($self, $sock, $statement));
         }
-        confess($@) if $self->{'errors_are_fatal'};
+        confess($err) if $self->{'errors_are_fatal'};
     }
 
     $status = $sock unless $status;
@@ -1146,12 +1151,13 @@ sub _read_socket_do {
     my($self, $sock, $statement) = @_;
     my($recv,$header);
 
+    my $s = IO::Select->new();
+    $s->add($sock);
+
     # COMMAND statements might return a error message
     if($statement && $statement =~ m/^COMMAND/mx) {
         shutdown($sock, 1);
-        my $s = IO::Select->new();
-        $s->add($sock);
-        if($s->can_read(0.5)) {
+        if($s->can_read(3)) {
             $recv = <$sock>;
         }
         if($recv) {
@@ -1164,6 +1170,12 @@ sub _read_socket_do {
         return('200', $self->_get_error(200), undef);
     }
 
+    # status requests should not take longer than 20 seconds
+    if($statement && $statement =~ m/^GET\s+status/mx) {
+        if(!$s->can_read(20)) {
+            return($self->_socket_error($statement, 'cannot read from socket socket'.($! ? ': '.$! : '')));
+        }
+    }
     $sock->read($header, 16) || return($self->_socket_error($statement, 'reading header from socket failed'.($! ? ': '.$! : '')));
     $self->{'logger'}->debug("header: $header") if $self->{'verbose'};
     my($status, $msg, $content_length) = &_parse_header($self, $header, $sock);
