@@ -1,5 +1,9 @@
 Revision history for Perl extension Monitoring::Livestatus.
 
+next:
+	- improve timeout handling
+	- improve utf8 handling
+
 0.84  Tue Dec 15 16:53:44 CET 2020
 	- add support for command response
 	- remove alarm handler, timeouts should be handled in the calling module
