@@ -3,28 +3,31 @@
 #########################
 
 use strict;
+use Test::More;
+
+if(!$ENV{TEST_AUTHOR}) {
+    plan skip_all => 'Author test. Set $ENV{TEST_AUTHOR} to a true value to run.';
+    exit;
+}
 
 my $netcat;
-BEGIN {
-    use Test::More;
-    for my $path (split(/:/mx, $ENV{'PATH'})) {
-        if(-x $path."/netcat") {
-            $netcat = $path."/netcat";
-            last;
-        }
+for my $path (split(/:/mx, $ENV{'PATH'})) {
+    if(-x $path."/netcat") {
+        $netcat = $path."/netcat";
+        last;
     }
-    if( $^O eq 'MSWin32' ) {
-        plan skip_all => 'no sockets on windows';
-    }
-    elsif(!$netcat) {
-        plan skip_all => 'no netcat found in path';
-    }
-    else {
-        plan tests => 13;
-    }
-};
+}
+if( $^O eq 'MSWin32' ) {
+    plan skip_all => 'no sockets on windows';
+}
+elsif(!$netcat) {
+    plan skip_all => 'no netcat found in path';
+}
+else {
+    plan tests => 13;
+}
 
-BEGIN { use_ok('Monitoring::Livestatus') };
+use_ok('Monitoring::Livestatus');
 
 my $testport    = 60123;
 my $testresults = $ARGV[0] || 5;
