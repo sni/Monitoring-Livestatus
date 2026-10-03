@@ -7,3 +7,4 @@ inc
 META.yml
 MYMETA.json
 MYMETA.yml
+*.tar.gz
